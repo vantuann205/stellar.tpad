@@ -1,0 +1,42 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "jest --passWithNoTests",
+    "test:wallet": "jest __tests__/stellar-wallet-service.test.ts __tests__/wallet-state.test.ts --no-coverage"
+  },
+  "dependencies": {
+    "@creit.tech/stellar-wallets-kit": "^2.1.0",
+    "@oasisprotocol/sapphire-paratime": "^2.3.0",
+    "@stellar/stellar-sdk": "^13.3.0",
+    "autoprefixer": "^10.0.1",
+    "cloudinary": "^2.9.0",
+    "dotenv": "^17.3.1",
+    "ethers": "^6.16.0",
+    "lightweight-charts": "^5.1.0",
+    "lucide-react": "^0.576.0",
+    "next": "14.2.29",
+    "postcss": "^8",
+    "react": "^18",
+    "react-dom": "^18",
+    "recharts": "^3.7.0",
+    "tailwindcss": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.29",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.9",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  }
+}
