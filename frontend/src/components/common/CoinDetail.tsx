@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Coin, Comment, Trade } from '../types';
+import { Coin, Comment, Trade } from '@/types';
 import TokenLightweightChart from './TokenLightweightChart';
 import TradeForm from './TradeForm';
 import CommentSection from './CommentSection';
@@ -11,10 +11,10 @@ import TokenInfoBar from './TokenInfoBar';
 import TokenMetrics from './TokenMetrics';
 import HoldersList from './HoldersList';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
-import { ToastMessage } from './Toast';
+import { ToastMessage } from '@/components/ui/Toast';
 import { BrowserProvider, Contract, formatEther } from 'ethers';
 import { wrapEthereumProvider } from '@oasisprotocol/sapphire-paratime';
-import { TOKEN_ABI } from '../abi/factoryAbi';
+import { TOKEN_ABI } from '@/blockchain/contracts/token.contract';
 
 const BONDING_TARGET = 10000; // TEST
 const CREATOR_FEE_RATE = 0.003;

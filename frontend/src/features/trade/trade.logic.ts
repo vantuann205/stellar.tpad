@@ -1,0 +1,1 @@
+export const estimateTradeFee = (amount: number, feeRate: number): number => amount * feeRate;

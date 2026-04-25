@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Grid2X2, ListFilter, Settings } from 'lucide-react';
-import { SortOption } from '../types';
+import { SortOption } from '@/types';
 
 interface FilterBarProps {
   currentSort: SortOption;

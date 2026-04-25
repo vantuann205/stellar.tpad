@@ -2,23 +2,22 @@
 
 import React, { useState, useEffect, useMemo, useRef, useReducer } from 'react';
 import dynamic from 'next/dynamic';
-import Header, { type HeaderRef } from '../components/Header';
-import KingOfTheHill from '../components/KingOfTheHill';
-import TrendingCoins from '../components/TrendingCoins';
-import CoinCard from '../components/CoinCard';
-import FilterBar from '../components/FilterBar';
-import Toast, { ToastMessage } from '../components/Toast';
-import { Coin, ViewState, SortOption } from '../types';
-import { formatMarketCap, formatPriceChange, formatTraderCount, formatVolume } from '../utils/formatters';
-import { saveWalletInfo } from '../lib/walletHelper';
-import { getWalletErrorMessage, stellarWalletService, WalletServiceError } from '../lib/stellarWalletService';
-import { initialWalletState, walletStateReducer } from '../lib/walletState';
+import Header, { type HeaderRef } from '@/components/layout/header';
+import KingOfTheHill from '@/components/common/KingOfTheHill';
+import TrendingCoins from '@/components/common/TrendingCoins';
+import CoinCard from '@/components/common/CoinCard';
+import FilterBar from '@/components/common/FilterBar';
+import Toast, { ToastMessage } from '@/components/ui/Toast';
+import { Coin, ViewState, SortOption } from '@/types';
+import { formatMarketCap, formatPriceChange, formatTraderCount, formatVolume } from '@/lib/helpers';
+import { saveWalletInfo } from '@/lib/walletHelper';
+import { getWalletErrorMessage, stellarWalletService, WalletServiceError } from '@/services/wallet.service';
+import { initialWalletState, walletStateReducer } from '@/store/wallet.store';
 
-const CoinDetail    = dynamic(() => import('../components/CoinDetail'),    { ssr: false });
-const CreateCoinPage = dynamic(() => import('../components/CreateCoinPage'), { ssr: false });
-const LivestreamsPage = dynamic(() => import('../components/LivestreamsPage'), { ssr: false });
-const SupportPage   = dynamic(() => import('../components/SupportPage'),   { ssr: false });
-const ProfilePage   = dynamic(() => import('../components/ProfilePage'),   { ssr: false });
+const CoinDetail    = dynamic(() => import('@/components/common/CoinDetail'),    { ssr: false });
+const CreateCoinPage = dynamic(() => import('@/components/common/CreateCoinPage'), { ssr: false });
+const LivestreamsPage = dynamic(() => import('@/components/common/LivestreamsPage'), { ssr: false });
+const SupportPage   = dynamic(() => import('@/components/common/SupportPage'),   { ssr: false });
 
 const getTimeAgoShort = (timestamp: number) => {
   const diffInMs = Date.now() - timestamp;
@@ -113,7 +112,6 @@ export default function Home() {
   const handleGoCreate  = () => setViewState(ViewState.CREATE);
   const handleGoLivestreams = () => setViewState(ViewState.LIVESTREAMS);
   const handleGoSupport = () => setViewState(ViewState.SUPPORT);
-  const handleGoProfile = () => setViewState(ViewState.PROFILE);
 
   const handleSelectTokenFromSearch = (contractAddress: string) => {
     const token = realTokens.find(t => t.contractAddress === contractAddress);
@@ -121,10 +119,6 @@ export default function Home() {
       setSelectedCoin(token);
       setViewState(ViewState.DETAIL);
     }
-  };
-
-  const handleProfileUpdated = async () => {
-    if (headerRef.current) await headerRef.current.refreshWalletInfo();
   };
 
   const fetchRealTokens = async () => {
@@ -341,7 +335,6 @@ export default function Home() {
         onGoCreate={handleGoCreate}
         onGoLivestreams={handleGoLivestreams}
         onGoSupport={handleGoSupport}
-        onGoProfile={handleGoProfile}
         onConnectWallet={handleConnectWallet}
         onDisconnectWallet={handleDisconnectWallet}
         onSelectToken={handleSelectTokenFromSearch}
@@ -501,9 +494,6 @@ export default function Home() {
 
         {viewState === ViewState.LIVESTREAMS && <LivestreamsPage />}
         {viewState === ViewState.SUPPORT && <SupportPage />}
-        {viewState === ViewState.PROFILE && walletState.address && (
-          <ProfilePage walletAddress={walletState.address} onBack={handleGoHome} onProfileUpdated={handleProfileUpdated} />
-        )}
       </main>
     </div>
   );

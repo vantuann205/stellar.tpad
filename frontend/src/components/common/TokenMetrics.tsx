@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { formatMarketCap, formatVolume, formatPriceChange, formatPriceChangeColor, formatTraderCount } from '../utils/formatters'
+import { formatMarketCap, formatVolume, formatPriceChange, formatPriceChangeColor, formatTraderCount } from '@/lib/helpers'
 
 interface TokenMetricsProps {
     token?: {

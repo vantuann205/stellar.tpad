@@ -1,0 +1,1 @@
+export const STELLAR_SDK_READY = true;

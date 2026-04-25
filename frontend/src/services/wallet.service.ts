@@ -2,8 +2,8 @@ import { KitEventType, Networks } from '@creit.tech/stellar-wallets-kit';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit/sdk';
 import { FREIGHTER_ID, FreighterModule } from '@creit.tech/stellar-wallets-kit/modules/freighter';
 import { RABET_ID, RabetModule } from '@creit.tech/stellar-wallets-kit/modules/rabet';
-import { STELLAR_NETWORK_PASSPHRASE } from './stellarConfig';
-import { StellarWalletProvider, WalletErrorCode } from './walletState';
+import { STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
+import { StellarWalletProvider, WalletErrorCode } from '@/store/wallet.store';
 
 const SESSION_KEY = 'stellar.wallet.session.v1';
 

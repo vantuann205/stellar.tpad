@@ -2,8 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Coin } from '../types';
-import { formatMarketCap, formatVolume } from '../utils/formatters';
+import { Coin } from '@/types';
+import { formatMarketCap, formatVolume } from '@/lib/helpers';
 
 interface TrendingToken {
     id: string;

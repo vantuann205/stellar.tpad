@@ -1,0 +1,1 @@
+export const sendTransaction = async (signedXdr: string) => ({ hash: signedXdr.slice(0, 16) });

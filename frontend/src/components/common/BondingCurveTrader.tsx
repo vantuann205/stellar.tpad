@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ethers } from 'ethers';
-import { BONDING_CURVE_ADDRESS, BONDING_CURVE_ABI } from '@/abi/bondingCurveAbi';
+import { BONDING_CURVE_ADDRESS, BONDING_CURVE_ABI } from '@/blockchain/contracts/bonding.contract';
 
 // IMPORTANTE: Cập nhật các địa chỉ này
 const TOKEN_X_ADDRESS = "0x614Cb533EB4691794790366eF5B84cAC6aDf9959";

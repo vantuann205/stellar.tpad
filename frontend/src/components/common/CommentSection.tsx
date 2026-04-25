@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Comment } from '../types';
+import { Comment } from '@/types';
 import { User, Send } from 'lucide-react';
 
 interface CommentSectionProps {

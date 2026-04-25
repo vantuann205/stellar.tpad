@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
-import { Coin } from '../types';
+import { Coin } from '@/types';
 import { ExternalLink, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 interface TokenInfoBarProps {

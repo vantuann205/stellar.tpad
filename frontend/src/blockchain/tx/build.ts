@@ -1,0 +1,1 @@
+export const buildTransaction = (input: Record<string, unknown>) => ({ ...input, builtAt: Date.now() });

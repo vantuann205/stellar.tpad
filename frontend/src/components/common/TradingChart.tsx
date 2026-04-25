@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from 'recharts';
-import { Coin } from '../types';
+import { Coin } from '@/types';
 
 interface TradingChartProps {
   data: Coin['priceHistory'];

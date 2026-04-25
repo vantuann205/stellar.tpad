@@ -1,6 +1,6 @@
 import React from 'react';
-import { Coin } from '../types';
-import { formatMarketCap } from '../utils/formatters';
+import { Coin } from '@/types';
+import { formatMarketCap } from '@/lib/helpers';
 
 interface CoinCardProps {
   coin: Coin;

@@ -12,7 +12,7 @@ import {
     CandlestickSeries,
     HistogramSeries,
 } from 'lightweight-charts';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/hooks/useTheme';
 
 interface TokenLightweightChartProps {
     tokenId: string | number;

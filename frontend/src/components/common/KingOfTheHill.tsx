@@ -1,7 +1,7 @@
 import React from 'react';
-import { Coin } from '../types';
+import { Coin } from '@/types';
 import { Crown } from 'lucide-react';
-import { formatMarketCap, formatVolume } from '../utils/formatters';
+import { formatMarketCap, formatVolume } from '@/lib/helpers';
 
 interface KingOfTheHillProps {
   coin: Coin | null;

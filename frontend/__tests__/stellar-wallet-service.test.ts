@@ -73,7 +73,7 @@ describe('stellarWalletService', () => {
       address: 'GDH6Y7NQDW4JQ3SRTJKW45MMQ3WQ3VFS46SM3V24BW5Z2X5RBQHB5QCU',
     });
 
-    const { stellarWalletService } = await import('../lib/stellarWalletService');
+    const { stellarWalletService } = await import('../src/services/wallet.service');
     const result = await stellarWalletService.connect();
 
     expect(result.provider).toBe('freighter');
@@ -83,14 +83,14 @@ describe('stellarWalletService', () => {
 
   test('connect maps rejection error', async () => {
     mockKit.authModal.mockRejectedValue(new Error('User rejected the request'));
-    const { stellarWalletService, WalletServiceError } = await import('../lib/stellarWalletService');
+    const { stellarWalletService, WalletServiceError } = await import('../src/services/wallet.service');
 
     await expect(stellarWalletService.connect()).rejects.toBeInstanceOf(WalletServiceError);
     await expect(stellarWalletService.connect()).rejects.toMatchObject({ code: 'user_rejected' });
   });
 
   test('restoreSession returns null without persisted session', async () => {
-    const { stellarWalletService } = await import('../lib/stellarWalletService');
+    const { stellarWalletService } = await import('../src/services/wallet.service');
     const restored = await stellarWalletService.restoreSession();
     expect(restored).toBeNull();
   });
@@ -102,7 +102,7 @@ describe('stellarWalletService', () => {
       address: 'GABC',
     }));
 
-    const { stellarWalletService } = await import('../lib/stellarWalletService');
+    const { stellarWalletService } = await import('../src/services/wallet.service');
     await stellarWalletService.disconnect();
 
     expect(storage.getItem('stellar.wallet.session.v1')).toBeNull();

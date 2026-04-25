@@ -1,0 +1,1 @@
+export const normalizeSymbol = (symbol: string): string => symbol.trim().toUpperCase();

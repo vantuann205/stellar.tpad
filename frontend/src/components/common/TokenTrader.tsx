@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { BrowserProvider, Contract, formatEther, parseEther } from 'ethers'
 import { wrapEthereumProvider } from '@oasisprotocol/sapphire-paratime'
-import { TOKEN_ABI } from '../abi/factoryAbi'
+import { TOKEN_ABI } from '@/blockchain/contracts/token.contract'
 
 const CREATOR_FEE_RATE = 0.003
 const PROTOCOL_FEE_RATE = 0.008

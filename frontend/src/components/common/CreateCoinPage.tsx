@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Upload, AlertTriangle, ShieldCheck, Rocket, Loader2 } from 'lucide-react';
 import { BrowserProvider, Contract } from 'ethers';
 import { wrapEthereumProvider } from '@oasisprotocol/sapphire-paratime';
-import { FACTORY_ABI, FACTORY_ADDRESS } from '../abi/factoryAbi';
+import { FACTORY_ABI, FACTORY_ADDRESS } from '@/blockchain/contracts/token.contract';
 
 interface CreateCoinPageProps {
   onCancel: () => void;

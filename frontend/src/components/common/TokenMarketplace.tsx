@@ -3,7 +3,7 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { BrowserProvider, Contract, formatEther } from 'ethers'
 import { wrapEthereumProvider } from '@oasisprotocol/sapphire-paratime'
-import { TOKEN_ABI } from '../abi/factoryAbi'
+import { TOKEN_ABI } from '@/blockchain/contracts/token.contract'
 import TokenTrader from './TokenTrader'
 
 declare global {

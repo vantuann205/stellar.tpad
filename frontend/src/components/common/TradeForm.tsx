@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { Coin } from '../types';
+import { Coin } from '@/types';
 import { Settings, Wallet, Loader2 } from 'lucide-react';
-import SettingsModal from './SettingsModal';
-import { ToastMessage } from './Toast';
+import SettingsModal from '@/components/ui/SettingsModal';
+import { ToastMessage } from '@/components/ui/Toast';
 import { BrowserProvider, Contract, formatEther, parseEther } from 'ethers';
 import { wrapEthereumProvider } from '@oasisprotocol/sapphire-paratime';
-import { TOKEN_ABI } from '../abi/factoryAbi';
+import { TOKEN_ABI } from '@/blockchain/contracts/token.contract';
 
 const CREATOR_FEE_RATE = 0.003; // 0.300%
 const PROTOCOL_FEE_RATE = 0.008; // 0.800%

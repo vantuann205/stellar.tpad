@@ -1,0 +1,1 @@
+export const getHorizonUrl = () => process.env.NEXT_PUBLIC_HORIZON_URL ?? '';

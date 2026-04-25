@@ -1,0 +1,1 @@
+export { stellarWalletService } from '@/services/wallet.service';

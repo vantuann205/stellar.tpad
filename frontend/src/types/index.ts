@@ -38,8 +38,7 @@ export enum ViewState {
   DETAIL = 'DETAIL',
   CREATE = 'CREATE',
   LIVESTREAMS = 'LIVESTREAMS',
-  SUPPORT = 'SUPPORT',
-  PROFILE = 'PROFILE'
+  SUPPORT = 'SUPPORT'
 }
 
 export interface Trade {

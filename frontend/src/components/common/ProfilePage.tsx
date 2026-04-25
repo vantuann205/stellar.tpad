@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { ArrowLeft, Edit2, Copy, Check } from 'lucide-react';
 import Image from 'next/image';
 import { getWalletInfo } from '@/lib/walletHelper';
-import EditProfileModal from './EditProfileModal';
+import EditProfileModal from '@/components/ui/EditProfileModal';
 import { Coin } from '@/types';
 
 interface WalletInfo {

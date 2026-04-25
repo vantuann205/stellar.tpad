@@ -1,4 +1,4 @@
-import { initialWalletState, walletStateReducer } from '../lib/walletState';
+import { initialWalletState, walletStateReducer } from '../src/store/wallet.store';
 
 describe('walletStateReducer', () => {
   test('transitions idle -> connecting -> connected', () => {

@@ -1,0 +1,1 @@
+export const signTransaction = async (xdr: string) => xdr;
