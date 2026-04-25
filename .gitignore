@@ -33,6 +33,9 @@ frontend/tsconfig.tsbuildinfo
 .vscode/
 .idea/
 
+# Kiro spec files
+.kiro/
+
 # Rust build artifacts
 target/
 **/target/
