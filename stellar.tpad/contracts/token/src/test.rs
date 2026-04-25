@@ -520,3 +520,97 @@ proptest! {
         prop_assert_eq!(client.allowance(&from, &spender), allowance_amount - burn_amount);
     }
 }
+
+// --- Task 8.2: mint unit tests ---
+
+#[test]
+fn test_mint_success() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let to = Address::generate(&env);
+    let amount: i128 = 1000;
+    let before = client.balance(&to);
+    client.mint(&to, &amount);
+    assert_eq!(client.balance(&to), before + amount);
+}
+
+#[test]
+#[should_panic]
+fn test_mint_invalid_amount() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let to = Address::generate(&env);
+    client.mint(&to, &0_i128);
+}
+
+#[test]
+#[should_panic]
+fn test_mint_unauthorized() {
+    let env = Env::default();
+    // No mock_all_auths — auth will fail for non-admin
+    let admin = Address::generate(&env);
+    let sac = env.register_stellar_asset_contract_v2(admin.clone());
+    let contract_id = env.register(crate::TokenContract, ());
+    let client = TokenContractClient::new(&env, &contract_id);
+    // Initialize with mock_all_auths
+    env.mock_all_auths();
+    client.initialize(
+        &admin,
+        &7u32,
+        &String::from_str(&env, "TPad Token"),
+        &String::from_str(&env, "TPAD"),
+        &sac.address(),
+    );
+    // Now try to mint with a non-admin auth
+    let non_admin = Address::generate(&env);
+    let to = Address::generate(&env);
+    env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+        address: &non_admin,
+        invoke: &soroban_sdk::testutils::MockAuthInvoke {
+            contract: &client.address,
+            fn_name: "mint",
+            args: (&to, &1000_i128).into_val(&env),
+            sub_invokes: &[],
+        },
+    }]);
+    client.mint(&to, &1000_i128);
+}
+
+// --- Task 8.3: Property 7 — Mint Increases Balance ---
+// Validates: Requirements 8.3, 8.7
+
+proptest! {
+    #[test]
+    fn prop_mint_increases_balance(
+        amount in 1_i128..1_000_000_i128,
+    ) {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _, _) = setup(&env);
+        let to = Address::generate(&env);
+        let before = client.balance(&to);
+        client.mint(&to, &amount);
+        prop_assert_eq!(client.balance(&to), before + amount);
+    }
+}
+
+// --- Task 8.4: Property 8 — Mint-Burn Round Trip ---
+// Validates: Requirements 11.5
+
+proptest! {
+    #[test]
+    fn prop_mint_burn_round_trip(
+        amount in 1_i128..1_000_000_i128,
+    ) {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _, _) = setup(&env);
+        let to = Address::generate(&env);
+        let original = client.balance(&to);
+        client.mint(&to, &amount);
+        client.burn(&to, &amount);
+        prop_assert_eq!(client.balance(&to), original);
+    }
+}

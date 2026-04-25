@@ -143,6 +143,22 @@ impl TokenContract {
         );
     }
 
+    pub fn mint(env: Env, to: Address, amount: i128) {
+        let admin = read_admin(&env);
+        admin.require_auth();
+        if amount <= 0 {
+            panic_with_error!(&env, TokenError::InvalidAmount);
+        }
+        let balance = read_balance(&env, &to);
+        write_balance(&env, &to, balance + amount);
+        let sac = read_sac(&env);
+        soroban_sdk::token::StellarAssetClient::new(&env, &sac).mint(&to, &amount);
+        env.events().publish(
+            (soroban_sdk::symbol_short!("mint"), admin.clone(), to.clone()),
+            amount,
+        );
+    }
+
     pub fn admin(env: Env) -> Address {
         read_admin(&env)
     }
