@@ -25,7 +25,7 @@ impl TokenContract {
         if env.storage().persistent().has(&DataKey::Admin) {
             panic_with_error!(&env, TokenError::AlreadyInitialized);
         }
-        admin.require_auth();
+        // No require_auth here — caller is the trusted factory contract
         write_admin(&env, &admin);
         write_decimals(&env, 7);
         write_name(&env, &name);

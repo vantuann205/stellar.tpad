@@ -15,6 +15,7 @@ import {
   Address,
   xdr,
   StrKey,
+  nativeToScVal,
 } from '@stellar/stellar-sdk';
 import { STELLAR_TESTNET_RPC_URL, STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
 
@@ -22,86 +23,73 @@ export interface CreateTokenParams {
   name: string;
   symbol: string;
   adminPublicKey: string;
-  wasmHash: string; // hex string from `stellar contract install`
+  wasmHash: string;
   signTransaction: (xdr: string) => Promise<string>;
 }
 
 const rpc = new SorobanRpc.Server(STELLAR_TESTNET_RPC_URL, { allowHttp: false });
 
-/** Deploy a new token contract instance and call initialize. Returns contract ID (C...). */
+/** Deploy a new token contract instance via Factory contract. Returns contract ID. */
 export async function deployAndInitToken(params: CreateTokenParams): Promise<string> {
   const { name, symbol, adminPublicKey, wasmHash, signTransaction } = params;
 
   const adminAddress = new Address(adminPublicKey);
   const wasmHashBytes = hexToBytes(wasmHash);
+  const salt = crypto.getRandomValues(new Uint8Array(32));
 
-  // ── Step 1: Deploy contract instance ──────────────────────────────────────
-  const account1 = await rpc.getAccount(adminPublicKey);
-  const deployTx = new TransactionBuilder(account1, {
+  const factoryId = process.env.NEXT_PUBLIC_FACTORY_CONTRACT_ID;
+  if (!factoryId) {
+    throw new Error('NEXT_PUBLIC_FACTORY_CONTRACT_ID is not configured in .env.local');
+  }
+
+  // ── Build Factory Call ──────────────────────────────────────────────────
+  // Interface: create_token(wasm_hash: BytesN<32>, salt: BytesN<32>, admin: Address, name: String, symbol: String)
+  const account = await rpc.getAccount(adminPublicKey);
+  const factoryTx = new TransactionBuilder(account, {
     fee: String(Number(BASE_FEE) * 100),
     networkPassphrase: STELLAR_NETWORK_PASSPHRASE,
   })
     .addOperation(
-      Operation.createCustomContract({
-        address: adminAddress,
-        wasmHash: wasmHashBytes,
-      })
+      new Contract(factoryId).call(
+        'create_token',
+        xdr.ScVal.scvBytes(Buffer.from(wasmHashBytes)),
+        xdr.ScVal.scvBytes(Buffer.from(salt)),
+        adminAddress.toScVal(),
+        nativeToScVal(name, { type: 'string' }),
+        nativeToScVal(symbol, { type: 'string' })
+      )
     )
     .setTimeout(60)
     .build();
 
-  const simDeploy = await rpc.simulateTransaction(deployTx);
-  if (SorobanRpc.Api.isSimulationError(simDeploy)) {
-    throw new Error(`Deploy simulation failed: ${simDeploy.error}`);
+  // ── Simulation & Auth ────────────────────────────────────────────────────
+  const simulation = await rpc.simulateTransaction(factoryTx);
+  if (SorobanRpc.Api.isSimulationError(simulation)) {
+    throw new Error(`Factory simulation failed: ${simulation.error}`);
   }
 
-  const preparedDeploy = SorobanRpc.assembleTransaction(deployTx, simDeploy).build();
-  const signedDeployXdr = await signTransaction(preparedDeploy.toXDR());
+  // Log auth entries for debugging
+  const simSuccess = simulation as SorobanRpc.Api.SimulateTransactionSuccessResponse;
+  console.log('Simulation auth entries:', JSON.stringify(simSuccess.result?.auth?.length ?? 0));
 
-  // Send using raw XDR envelope — avoids fromXDR parse issues with new op types
-  const deployResp = await rpc.sendTransaction(
-    xdrToTransaction(signedDeployXdr)
-  );
+  // assembleTransaction injects sorobanData (footprint) + fee + auth entries from simulation
+  const assembled = SorobanRpc.assembleTransaction(factoryTx, simulation);
+  const preparedTx = assembled.build();
 
-  if (deployResp.status === 'ERROR') {
-    throw new Error(`Deploy tx error: ${JSON.stringify(deployResp.errorResult)}`);
+  console.log('Prepared tx soroban data set, sending to Freighter for signing...');
+  const signedXdr = await signTransaction(preparedTx.toXDR());
+
+  // ── Send Transaction ─────────────────────────────────────────────────────
+  // Parse signed XDR directly — do NOT re-wrap to preserve auth entries & footprint
+  const signedTx = TransactionBuilder.fromXDR(signedXdr, STELLAR_NETWORK_PASSPHRASE);
+  const resp = await rpc.sendTransaction(signedTx);
+
+  if (resp.status === 'ERROR') {
+    throw new Error(`Factory tx error: ${JSON.stringify(resp.errorResult)}`);
   }
 
-  const contractId = await waitForContractId(deployResp.hash);
-
-  // ── Step 2: Initialize contract ───────────────────────────────────────────
-  const account2 = await rpc.getAccount(adminPublicKey);
-
-  // Build ScVal args manually to ensure correct types
-  const adminScVal = adminAddress.toScVal();
-  const nameScVal  = xdr.ScVal.scvString(Buffer.from(name,   'utf8'));
-  const symbolScVal = xdr.ScVal.scvString(Buffer.from(symbol, 'utf8'));
-
-  const initTx = new TransactionBuilder(account2, {
-    fee: String(Number(BASE_FEE) * 100),
-    networkPassphrase: STELLAR_NETWORK_PASSPHRASE,
-  })
-    .addOperation(
-      new Contract(contractId).call('initialize', adminScVal, nameScVal, symbolScVal)
-    )
-    .setTimeout(60)
-    .build();
-
-  const simInit = await rpc.simulateTransaction(initTx);
-  if (SorobanRpc.Api.isSimulationError(simInit)) {
-    throw new Error(`Initialize simulation failed: ${simInit.error}`);
-  }
-
-  const preparedInit = SorobanRpc.assembleTransaction(initTx, simInit).build();
-  const signedInitXdr = await signTransaction(preparedInit.toXDR());
-
-  const initResp = await rpc.sendTransaction(xdrToTransaction(signedInitXdr));
-
-  if (initResp.status === 'ERROR') {
-    throw new Error(`Initialize tx error: ${JSON.stringify(initResp.errorResult)}`);
-  }
-
-  await waitForTx(initResp.hash);
+  // Extraction of the new contract ID is handled by waitForContractId (Method 1: return value)
+  const contractId = await waitForContractId(resp.hash);
   return contractId;
 }
 
