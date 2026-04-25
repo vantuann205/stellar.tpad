@@ -51,6 +51,21 @@ impl TokenContract {
         read_allowance(&env, &from, &spender)
     }
 
+    pub fn approve(env: Env, from: Address, spender: Address, amount: i128, expiration_ledger: u32) {
+        from.require_auth();
+        if amount < 0 {
+            panic_with_error!(&env, TokenError::InvalidAmount);
+        }
+        if amount > 0 && expiration_ledger < env.ledger().sequence() {
+            panic_with_error!(&env, TokenError::InvalidExpirationLedger);
+        }
+        write_allowance(&env, &from, &spender, amount, expiration_ledger);
+        env.events().publish(
+            (soroban_sdk::symbol_short!("approve"), from.clone(), spender.clone()),
+            (amount, expiration_ledger),
+        );
+    }
+
     pub fn admin(env: Env) -> Address {
         read_admin(&env)
     }

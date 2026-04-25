@@ -1,6 +1,7 @@
 #![cfg(test)]
 
-use soroban_sdk::{testutils::Address as _, Address, Env, IntoVal, String};
+use proptest::prelude::*;
+use soroban_sdk::{testutils::{Address as _, Ledger as _}, Address, Env, IntoVal, String};
 
 use crate::TokenContract;
 use crate::TokenContractClient;
@@ -163,4 +164,78 @@ fn test_set_admin_unauthorized() {
         },
     }]);
     client3.set_admin(&new_admin3);
+}
+
+// --- Task 5.2: approve unit tests ---
+
+#[test]
+fn test_approve_and_query() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let spender = Address::generate(&env);
+    let amount: i128 = 1000;
+    let expiration_ledger: u32 = env.ledger().sequence() + 100;
+    client.approve(&from, &spender, &amount, &expiration_ledger);
+    assert_eq!(client.allowance(&from, &spender), amount);
+}
+
+#[test]
+#[should_panic]
+fn test_approve_negative_amount() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let spender = Address::generate(&env);
+    let expiration_ledger: u32 = env.ledger().sequence() + 100;
+    client.approve(&from, &spender, &-1_i128, &expiration_ledger);
+}
+
+#[test]
+#[should_panic]
+fn test_approve_expired_ledger() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let spender = Address::generate(&env);
+    // Set current ledger to 10, then use expiration_ledger = 5 (< current)
+    env.ledger().set_sequence_number(10);
+    client.approve(&from, &spender, &500_i128, &5u32);
+}
+
+#[test]
+fn test_allowance_expiration() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let spender = Address::generate(&env);
+    let expiration_ledger: u32 = env.ledger().sequence() + 10;
+    client.approve(&from, &spender, &500_i128, &expiration_ledger);
+    // Advance ledger past expiration
+    env.ledger().set_sequence_number(expiration_ledger + 1);
+    assert_eq!(client.allowance(&from, &spender), 0);
+}
+
+// --- Task 5.3: Property 3 — Approve Round-Trip ---
+
+proptest! {
+    #[test]
+    fn prop_approve_round_trip(
+        amount in 0_i128..1_000_000_i128,
+        ledger_offset in 1_u32..1000_u32,
+    ) {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _, _) = setup(&env);
+        let from = Address::generate(&env);
+        let spender = Address::generate(&env);
+        let current = env.ledger().sequence();
+        let expiration_ledger = current + ledger_offset;
+        client.approve(&from, &spender, &amount, &expiration_ledger);
+        prop_assert_eq!(client.allowance(&from, &spender), amount);
+    }
 }
