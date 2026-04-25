@@ -88,14 +88,30 @@ proptest! {
 }
 
 // Feature: stellar-bonding-curve, Property 2: positive spread
-// calc_buy_cost(base, slope, S, N) > calc_sell_proceeds(base, slope, S, N) when slope > 0
+// calc_buy_cost(base, slope, S, N) >= calc_sell_proceeds(base, slope, S, N) when slope > 0
+// Note: with integer division, spread may be 0 for very small N (< 10_000_000 raw units).
+// Strict > only guaranteed when N >= 10_000_000 (1 full token). We assert >= for all N.
 proptest! {
     #[test]
     fn prop_positive_spread(
         sold_supply in 1i128..=1_000_000_000i128,
         token_amount in 1i128..=1_000_000i128,
     ) {
-        // slope=1 ensures spread is positive
+        // slope=1 ensures spread is non-negative
+        let buy = calc_buy_cost(100, 1, sold_supply, token_amount);
+        let sell = calc_sell_proceeds(100, 1, sold_supply, token_amount);
+        prop_assert!(buy >= sell, "buy={} sell={} at S={} N={}", buy, sell, sold_supply, token_amount);
+    }
+}
+
+// Feature: stellar-bonding-curve, Property 2b: strict positive spread for full tokens
+// For N >= 10_000_000 (1 full token), buy strictly > sell
+proptest! {
+    #[test]
+    fn prop_strict_positive_spread_full_tokens(
+        sold_supply in 1i128..=1_000_000_000i128,
+        token_amount in 10_000_000i128..=1_000_000_000i128,
+    ) {
         let buy = calc_buy_cost(100, 1, sold_supply, token_amount);
         let sell = calc_sell_proceeds(100, 1, sold_supply, token_amount);
         prop_assert!(buy > sell, "buy={} sell={} at S={} N={}", buy, sell, sold_supply, token_amount);
