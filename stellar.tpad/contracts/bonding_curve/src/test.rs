@@ -133,3 +133,39 @@ proptest! {
         );
     }
 }
+
+// Feature: stellar-bonding-curve, Property 3: buy/sell state invariants
+// Validates: Requirements 13.3, 4.1
+//
+// After sell(N), sold_supply_after == sold_supply_before - N
+proptest! {
+    #[test]
+    fn prop_sell_decreases_sold_supply(token_amount in 1i128..=1_000_000i128) {
+        let (_env, client, buyer, token_addr) = setup_env();
+
+        // First buy N tokens so sold_supply > 0 and the reserve is funded
+        let state_init = client.get_token_state(&token_addr);
+        let cost = calc_buy_cost(
+            state_init.base_price,
+            state_init.slope,
+            state_init.sold_supply,
+            token_amount,
+        );
+        let max_xlm_in = cost + cost / 100 + 1; // cost + 1% fee + 1 stroop buffer
+        client.buy(&buyer, &token_addr, &token_amount, &max_xlm_in);
+
+        // Record sold_supply after the buy (= token_amount, since we started at 0)
+        let state_before = client.get_token_state(&token_addr);
+        let sold_before = state_before.sold_supply;
+
+        // Sell the same N tokens back; use min_xlm_out = 0 to avoid slippage rejection
+        client.sell(&buyer, &token_addr, &token_amount, &0i128);
+
+        let state_after = client.get_token_state(&token_addr);
+        prop_assert_eq!(
+            state_after.sold_supply,
+            sold_before - token_amount,
+            "sold_supply should decrease by exactly token_amount={}", token_amount
+        );
+    }
+}
