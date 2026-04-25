@@ -1,7 +1,6 @@
 #![cfg(test)]
 
 use soroban_sdk::{testutils::Address as _, Address, Env, String};
-use soroban_sdk::token::StellarAssetClient;
 
 use crate::TokenContract;
 use crate::TokenContractClient;
