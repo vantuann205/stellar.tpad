@@ -134,6 +134,36 @@ proptest! {
     }
 }
 
+// Feature: stellar-bonding-curve, Property 4: net loss = 2% fee
+// Validates: Requirements 13.4
+//
+// After buy-then-sell of N tokens, xlm_out < xlm_in and the net loss ≈ 2% of cost (±2 stroops).
+proptest! {
+    #[test]
+    fn prop_buy_sell_net_loss(
+        sold_supply in 0i128..=1_000_000_000i128,
+        token_amount in 1i128..=1_000_000i128,
+    ) {
+        let cost = calc_buy_cost(100, 1, sold_supply, token_amount);
+        // Round-trip: sell proceeds at sold_supply + token_amount equals buy cost
+        let proceeds = calc_sell_proceeds(100, 1, sold_supply + token_amount, token_amount);
+
+        let xlm_in = cost + cost / 100;           // cost + 1% buy fee
+        let xlm_out = proceeds - proceeds / 100;  // proceeds - 1% sell fee
+
+        prop_assert!(xlm_out < xlm_in, "xlm_out={} must be < xlm_in={}", xlm_out, xlm_in);
+
+        // Net loss ≈ 2% of cost (±2 stroops rounding)
+        let expected_loss = cost / 50; // 2% = cost / 50
+        let actual_loss = xlm_in - xlm_out;
+        prop_assert!(
+            (actual_loss - expected_loss).abs() <= 2,
+            "actual_loss={} expected_loss={} diff={}",
+            actual_loss, expected_loss, (actual_loss - expected_loss).abs()
+        );
+    }
+}
+
 // Feature: stellar-bonding-curve, Property 3: buy/sell state invariants
 // Validates: Requirements 13.3, 4.1
 //
