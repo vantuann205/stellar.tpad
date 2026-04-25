@@ -50,4 +50,14 @@ impl TokenContract {
     pub fn allowance(env: Env, from: Address, spender: Address) -> i128 {
         read_allowance(&env, &from, &spender)
     }
+
+    pub fn admin(env: Env) -> Address {
+        read_admin(&env)
+    }
+
+    pub fn set_admin(env: Env, new_admin: Address) {
+        let current_admin = read_admin(&env);
+        current_admin.require_auth();
+        write_admin(&env, &new_admin);
+    }
 }
