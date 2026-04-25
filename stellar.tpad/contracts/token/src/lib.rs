@@ -1,3 +1,3 @@
-pub mod storage;
-pub mod types;
+mod types;
+mod storage;
 mod test;
