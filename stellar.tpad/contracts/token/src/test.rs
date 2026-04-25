@@ -397,3 +397,126 @@ proptest! {
         prop_assert_eq!(client.allowance(&from, &spender), allowance_amount - transfer_amount);
     }
 }
+
+// --- Task 7.3: burn unit tests ---
+
+#[test]
+fn test_burn_success() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let initial: i128 = 1000;
+    let amount: i128 = 400;
+    env.as_contract(&client.address, || {
+        crate::storage::write_balance(&env, &from, initial);
+    });
+    client.burn(&from, &amount);
+    assert_eq!(client.balance(&from), initial - amount);
+}
+
+#[test]
+#[should_panic]
+fn test_burn_invalid_amount() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    client.burn(&from, &0_i128);
+}
+
+#[test]
+#[should_panic]
+fn test_burn_insufficient_balance() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    client.burn(&from, &100_i128);
+}
+
+#[test]
+fn test_burn_from_success() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let spender = Address::generate(&env);
+    let initial: i128 = 1000;
+    let allowance_amount: i128 = 500;
+    let burn_amount: i128 = 300;
+    let expiration_ledger = env.ledger().sequence() + 100;
+    env.as_contract(&client.address, || {
+        crate::storage::write_balance(&env, &from, initial);
+    });
+    client.approve(&from, &spender, &allowance_amount, &expiration_ledger);
+    client.burn_from(&spender, &from, &burn_amount);
+    assert_eq!(client.balance(&from), initial - burn_amount);
+    assert_eq!(client.allowance(&from, &spender), allowance_amount - burn_amount);
+}
+
+#[test]
+#[should_panic]
+fn test_burn_from_insufficient_allowance() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let spender = Address::generate(&env);
+    let initial: i128 = 1000;
+    let allowance_amount: i128 = 100;
+    let burn_amount: i128 = 500;
+    let expiration_ledger = env.ledger().sequence() + 100;
+    env.as_contract(&client.address, || {
+        crate::storage::write_balance(&env, &from, initial);
+    });
+    client.approve(&from, &spender, &allowance_amount, &expiration_ledger);
+    client.burn_from(&spender, &from, &burn_amount);
+}
+
+// --- Task 7.4: Property 6 — Burn Reduces Balance ---
+// Validates: Requirements 6.3
+
+proptest! {
+    #[test]
+    fn prop_burn_reduces_balance(
+        initial in 1_i128..1_000_000_i128,
+        amount in 1_i128..500_000_i128,
+    ) {
+        prop_assume!(initial >= amount);
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _, _) = setup(&env);
+        let from = Address::generate(&env);
+        env.as_contract(&client.address, || {
+            crate::storage::write_balance(&env, &from, initial);
+        });
+        client.burn(&from, &amount);
+        prop_assert_eq!(client.balance(&from), initial - amount);
+    }
+}
+
+// --- Task 7.5: Property 9 — Burn From Reduces Allowance ---
+// Validates: Requirements 7.3, 7.4
+
+proptest! {
+    #[test]
+    fn prop_burn_from_reduces_allowance(
+        allowance_amount in 1_i128..1_000_000_i128,
+        burn_amount in 1_i128..500_000_i128,
+    ) {
+        prop_assume!(allowance_amount >= burn_amount);
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _, _) = setup(&env);
+        let from = Address::generate(&env);
+        let spender = Address::generate(&env);
+        let expiration_ledger = env.ledger().sequence() + 1000;
+        env.as_contract(&client.address, || {
+            crate::storage::write_balance(&env, &from, allowance_amount);
+        });
+        client.approve(&from, &spender, &allowance_amount, &expiration_ledger);
+        client.burn_from(&spender, &from, &burn_amount);
+        prop_assert_eq!(client.allowance(&from, &spender), allowance_amount - burn_amount);
+    }
+}

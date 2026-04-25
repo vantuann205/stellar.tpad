@@ -108,6 +108,41 @@ impl TokenContract {
         );
     }
 
+    pub fn burn(env: Env, from: Address, amount: i128) {
+        from.require_auth();
+        if amount <= 0 {
+            panic_with_error!(&env, TokenError::InvalidAmount);
+        }
+        let balance = read_balance(&env, &from);
+        if balance < amount {
+            panic_with_error!(&env, TokenError::InsufficientBalance);
+        }
+        write_balance(&env, &from, balance - amount);
+        env.events().publish(
+            (soroban_sdk::symbol_short!("burn"), from.clone()),
+            amount,
+        );
+    }
+
+    pub fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
+        spender.require_auth();
+        let allowance_val = storage::read_allowance_value(&env, &from, &spender);
+        let av = match allowance_val {
+            Some(v) if v.amount >= amount => v,
+            _ => panic_with_error!(&env, TokenError::InsufficientAllowance),
+        };
+        let balance = read_balance(&env, &from);
+        if balance < amount {
+            panic_with_error!(&env, TokenError::InsufficientBalance);
+        }
+        write_allowance(&env, &from, &spender, av.amount - amount, av.expiration_ledger);
+        write_balance(&env, &from, balance - amount);
+        env.events().publish(
+            (soroban_sdk::symbol_short!("burn"), from.clone()),
+            amount,
+        );
+    }
+
     pub fn admin(env: Env) -> Address {
         read_admin(&env)
     }
