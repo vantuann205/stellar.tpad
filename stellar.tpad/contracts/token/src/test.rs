@@ -239,3 +239,161 @@ proptest! {
         prop_assert_eq!(client.allowance(&from, &spender), amount);
     }
 }
+
+// --- Task 5.4: Property 4 — Allowance Expiration ---
+// Validates: Requirements 3.6
+
+proptest! {
+    #[test]
+    fn prop_allowance_expiration(
+        amount in 1_i128..1_000_000_i128,
+        ledger_offset in 1_u32..100_u32,
+    ) {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _, _) = setup(&env);
+        let from = Address::generate(&env);
+        let spender = Address::generate(&env);
+        let current = env.ledger().sequence();
+        let expiration_ledger = current + ledger_offset;
+        client.approve(&from, &spender, &amount, &expiration_ledger);
+        // Advance ledger past expiration
+        env.ledger().set_sequence_number(expiration_ledger + 1);
+        prop_assert_eq!(client.allowance(&from, &spender), 0);
+    }
+}
+
+// --- Task 6.3: transfer unit tests ---
+
+#[test]
+fn test_transfer_success() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let to = Address::generate(&env);
+    let initial: i128 = 1000;
+    let amount: i128 = 400;
+    env.as_contract(&client.address, || {
+        crate::storage::write_balance(&env, &from, initial);
+    });
+    client.transfer(&from, &to, &amount);
+    assert_eq!(client.balance(&from), initial - amount);
+    assert_eq!(client.balance(&to), amount);
+}
+
+#[test]
+#[should_panic]
+fn test_transfer_invalid_amount() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let to = Address::generate(&env);
+    client.transfer(&from, &to, &0_i128);
+}
+
+#[test]
+#[should_panic]
+fn test_transfer_insufficient_balance() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let to = Address::generate(&env);
+    // from has 0 balance, try to transfer 100
+    client.transfer(&from, &to, &100_i128);
+}
+
+#[test]
+fn test_transfer_from_success() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let spender = Address::generate(&env);
+    let to = Address::generate(&env);
+    let initial: i128 = 1000;
+    let allowance_amount: i128 = 500;
+    let transfer_amount: i128 = 300;
+    let expiration_ledger = env.ledger().sequence() + 100;
+    env.as_contract(&client.address, || {
+        crate::storage::write_balance(&env, &from, initial);
+    });
+    client.approve(&from, &spender, &allowance_amount, &expiration_ledger);
+    client.transfer_from(&spender, &from, &to, &transfer_amount);
+    assert_eq!(client.balance(&from), initial - transfer_amount);
+    assert_eq!(client.balance(&to), transfer_amount);
+    assert_eq!(client.allowance(&from, &spender), allowance_amount - transfer_amount);
+}
+
+#[test]
+#[should_panic]
+fn test_transfer_from_insufficient_allowance() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _, _) = setup(&env);
+    let from = Address::generate(&env);
+    let spender = Address::generate(&env);
+    let to = Address::generate(&env);
+    let initial: i128 = 1000;
+    let allowance_amount: i128 = 100;
+    let transfer_amount: i128 = 500;
+    let expiration_ledger = env.ledger().sequence() + 100;
+    env.as_contract(&client.address, || {
+        crate::storage::write_balance(&env, &from, initial);
+    });
+    client.approve(&from, &spender, &allowance_amount, &expiration_ledger);
+    client.transfer_from(&spender, &from, &to, &transfer_amount);
+}
+
+// --- Task 6.4: Property 2 — Transfer Balance Delta ---
+// Validates: Requirements 4.3, 4.7
+
+proptest! {
+    #[test]
+    fn prop_transfer_balance_delta(
+        initial_from in 1_i128..1_000_000_i128,
+        amount in 1_i128..500_000_i128,
+    ) {
+        prop_assume!(initial_from >= amount);
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _, _) = setup(&env);
+        let from = Address::generate(&env);
+        let to = Address::generate(&env);
+        env.as_contract(&client.address, || {
+            crate::storage::write_balance(&env, &from, initial_from);
+        });
+        let before_to = client.balance(&to);
+        client.transfer(&from, &to, &amount);
+        prop_assert_eq!(client.balance(&from), initial_from - amount);
+        prop_assert_eq!(client.balance(&to), before_to + amount);
+    }
+}
+
+// --- Task 6.5: Property 5 — Transfer From Reduces Allowance ---
+// Validates: Requirements 5.3, 5.4
+
+proptest! {
+    #[test]
+    fn prop_transfer_from_reduces_allowance(
+        allowance_amount in 1_i128..1_000_000_i128,
+        transfer_amount in 1_i128..500_000_i128,
+    ) {
+        prop_assume!(allowance_amount >= transfer_amount);
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _, _) = setup(&env);
+        let from = Address::generate(&env);
+        let spender = Address::generate(&env);
+        let to = Address::generate(&env);
+        let expiration_ledger = env.ledger().sequence() + 1000;
+        env.as_contract(&client.address, || {
+            crate::storage::write_balance(&env, &from, allowance_amount);
+        });
+        client.approve(&from, &spender, &allowance_amount, &expiration_ledger);
+        client.transfer_from(&spender, &from, &to, &transfer_amount);
+        prop_assert_eq!(client.allowance(&from, &spender), allowance_amount - transfer_amount);
+    }
+}

@@ -33,6 +33,23 @@ pub fn read_allowance(env: &Env, from: &Address, spender: &Address) -> i128 {
     }
 }
 
+pub fn read_allowance_value(env: &Env, from: &Address, spender: &Address) -> Option<AllowanceValue> {
+    let key = DataKey::Allowance(AllowanceKey {
+        from: from.clone(),
+        spender: spender.clone(),
+    });
+    match env.storage().temporary().get::<DataKey, AllowanceValue>(&key) {
+        Some(val) => {
+            if val.expiration_ledger < env.ledger().sequence() {
+                None
+            } else {
+                Some(val)
+            }
+        }
+        None => None,
+    }
+}
+
 pub fn write_allowance(
     env: &Env,
     from: &Address,

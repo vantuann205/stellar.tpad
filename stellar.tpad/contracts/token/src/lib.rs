@@ -66,6 +66,48 @@ impl TokenContract {
         );
     }
 
+    pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
+        from.require_auth();
+        if amount <= 0 {
+            panic_with_error!(&env, TokenError::InvalidAmount);
+        }
+        let balance_from = read_balance(&env, &from);
+        if balance_from < amount {
+            panic_with_error!(&env, TokenError::InsufficientBalance);
+        }
+        write_balance(&env, &from, balance_from - amount);
+        let balance_to = read_balance(&env, &to);
+        write_balance(&env, &to, balance_to + amount);
+        env.events().publish(
+            (soroban_sdk::symbol_short!("transfer"), from.clone(), to.clone()),
+            amount,
+        );
+    }
+
+    pub fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
+        spender.require_auth();
+        if amount <= 0 {
+            panic_with_error!(&env, TokenError::InvalidAmount);
+        }
+        let allowance_val = storage::read_allowance_value(&env, &from, &spender);
+        let av = match allowance_val {
+            Some(v) if v.amount >= amount => v,
+            _ => panic_with_error!(&env, TokenError::InsufficientAllowance),
+        };
+        let balance_from = read_balance(&env, &from);
+        if balance_from < amount {
+            panic_with_error!(&env, TokenError::InsufficientBalance);
+        }
+        write_allowance(&env, &from, &spender, av.amount - amount, av.expiration_ledger);
+        write_balance(&env, &from, balance_from - amount);
+        let balance_to = read_balance(&env, &to);
+        write_balance(&env, &to, balance_to + amount);
+        env.events().publish(
+            (soroban_sdk::symbol_short!("transfer"), from.clone(), to.clone()),
+            amount,
+        );
+    }
+
     pub fn admin(env: Env) -> Address {
         read_admin(&env)
     }
