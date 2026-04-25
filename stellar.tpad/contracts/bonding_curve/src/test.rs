@@ -199,3 +199,119 @@ proptest! {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// Unit tests for contract error paths
+// Validates: Requirements 1.2, 1b.2, 2.4, 3.2, 3.3, 4.2, 4.3
+//
+// Soroban try_ methods return:
+//   Ok(Ok(value))          — success
+//   Ok(Err(_))             — conversion error (unused here)
+//   Err(Ok(soroban_error)) — contract panicked with panic_with_error!
+//   Err(Err(_))            — host-level invoke error
+//
+// We extract the error code from the soroban_sdk::Error and compare it to
+// the ContractError discriminant value.
+// ---------------------------------------------------------------------------
+
+fn assert_contract_error<T>(
+    result: Result<Result<T, soroban_sdk::ConversionError>, Result<soroban_sdk::Error, soroban_sdk::InvokeError>>,
+    expected: crate::state::ContractError,
+) {
+    match result {
+        Err(Ok(e)) => {
+            // panic_with_error! produces a soroban_sdk::Error with the contract error code
+            let code = e.get_code();
+            assert_eq!(code, expected as u32, "expected ContractError code {}, got {}", expected as u32, code);
+        }
+        Err(Err(soroban_sdk::InvokeError::Contract(code))) => {
+            assert_eq!(code, expected as u32, "expected ContractError code {}, got {}", expected as u32, code);
+        }
+        Err(Err(soroban_sdk::InvokeError::Abort)) => panic!("contract aborted unexpectedly"),
+        Ok(_) => panic!("expected error ContractError code {}, got Ok", expected as u32),
+    }
+}
+
+#[test]
+fn test_initialize_twice_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(BondingCurveContract, ());
+    let client = BondingCurveContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+
+    let result = client.try_initialize(&admin);
+    assert_contract_error(result, crate::state::ContractError::AlreadyInitialized);
+}
+
+#[test]
+fn test_register_token_twice_fails() {
+    let (env, client, _buyer, token_addr) = setup_env();
+
+    let admin = Address::generate(&env);
+    let result = client.try_register_token(&token_addr, &admin);
+    assert_contract_error(result, crate::state::ContractError::TokenAlreadyRegistered);
+}
+
+#[test]
+fn test_get_token_state_not_found() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(BondingCurveContract, ());
+    let client = BondingCurveContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.initialize(&admin);
+
+    let unknown = Address::generate(&env);
+    let result = client.try_get_token_state(&unknown);
+    assert_contract_error(result, crate::state::ContractError::TokenNotFound);
+}
+
+#[test]
+fn test_buy_slippage_exceeded() {
+    let (_env, client, buyer, token_addr) = setup_env();
+
+    // max_xlm_in = 0 will always be less than cost + fee
+    let result = client.try_buy(&buyer, &token_addr, &1i128, &0i128);
+    assert_contract_error(result, crate::state::ContractError::SlippageExceeded);
+}
+
+#[test]
+fn test_buy_exceeds_supply() {
+    let (_env, client, buyer, token_addr) = setup_env();
+
+    // total_supply = 10_000_000_000_000_000; request more than that
+    let over_supply = 10_000_000_000_000_001i128;
+    let result = client.try_buy(&buyer, &token_addr, &over_supply, &i128::MAX);
+    assert_contract_error(result, crate::state::ContractError::ExceedsSupply);
+}
+
+#[test]
+fn test_sell_insufficient_liquidity() {
+    let (_env, client, buyer, token_addr) = setup_env();
+
+    // sold_supply is 0, so selling any amount should fail
+    let result = client.try_sell(&buyer, &token_addr, &1i128, &0i128);
+    assert_contract_error(result, crate::state::ContractError::InsufficientLiquidity);
+}
+
+#[test]
+fn test_buy_invalid_amount() {
+    let (_env, client, buyer, token_addr) = setup_env();
+
+    let result = client.try_buy(&buyer, &token_addr, &0i128, &i128::MAX);
+    assert_contract_error(result, crate::state::ContractError::InvalidAmount);
+}
+
+#[test]
+fn test_sell_invalid_amount() {
+    let (_env, client, buyer, token_addr) = setup_env();
+
+    let result = client.try_sell(&buyer, &token_addr, &0i128, &0i128);
+    assert_contract_error(result, crate::state::ContractError::InvalidAmount);
+}

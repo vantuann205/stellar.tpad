@@ -13,7 +13,7 @@ pub enum DataKey {
 
 /// Bonding curve state for a single token.
 /// Stored in persistent storage under DataKey::Token(token_address).
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[contracttype]
 pub struct TokenCurveState {
     pub token_address: Address,
