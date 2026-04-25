@@ -8,7 +8,7 @@ Each task ends with a `git add && git commit && git push`.
 
 ## Tasks
 
-- [-] 1. Setup Cargo.toml và project structure
+- [x] 1. Setup Cargo.toml và project structure
   - Update `stellar.tpad/contracts/token/Cargo.toml` với đầy đủ dependencies: `soroban-sdk = { version = "22.0", features = ["alloc"] }`, dev-dependencies `soroban-sdk = { version = "22.0", features = ["testutils"] }` và `proptest = "1"`, release profile tối ưu WASM (`opt-level = "z"`, `lto = true`, `panic = "abort"`, v.v.)
   - Tạo file `stellar.tpad/contracts/token/src/test.rs` (rỗng, chỉ `#[cfg(test)] mod test {}`)
   - Cập nhật `stellar.tpad/contracts/token/src/lib.rs` để khai báo `mod test`
@@ -16,15 +16,15 @@ Each task ends with a `git add && git commit && git push`.
   - Chạy `git add && git commit -m "chore: setup Cargo.toml and project structure for token contract" && git push`
   - _Requirements: 10.1, 10.5_
 
-- [ ] 2. Implement storage layer (types.rs + storage.rs)
-  - [ ] 2.1 Implement `stellar.tpad/contracts/token/src/types.rs`
+- [x] 2. Implement storage layer (types.rs + storage.rs)
+  - [x] 2.1 Implement `stellar.tpad/contracts/token/src/types.rs`
     - Định nghĩa `DataKey` enum với variants: `Admin`, `Decimals`, `Name`, `Symbol`, `Sac`, `Balance(Address)`, `Allowance(AllowanceKey)` — tất cả annotate `#[contracttype]`
     - Định nghĩa `AllowanceKey { from: Address, spender: Address }` với `#[contracttype]`
     - Định nghĩa `AllowanceValue { amount: i128, expiration_ledger: u32 }` với `#[contracttype]`
     - Định nghĩa `TokenError` enum với `#[contracterror]`: `AlreadyInitialized=1`, `NotInitialized=2`, `Unauthorized=3`, `InvalidAmount=4`, `InsufficientBalance=5`, `InsufficientAllowance=6`, `InvalidExpirationLedger=7`
     - _Requirements: 1.5, 3.4, 3.5, 4.4, 4.5, 5.5, 5.6, 6.4, 6.5, 7.5, 7.6, 8.5_
 
-  - [ ] 2.2 Implement `stellar.tpad/contracts/token/src/storage.rs`
+  - [x] 2.2 Implement `stellar.tpad/contracts/token/src/storage.rs`
     - Viết helper `read_balance(env, addr) -> i128` — đọc từ persistent storage, default `0`
     - Viết helper `write_balance(env, addr, amount)`
     - Viết helper `read_allowance(env, from, spender) -> i128` — đọc từ temporary storage, kiểm tra `expiration_ledger`, trả về `0` nếu expired
@@ -32,13 +32,13 @@ Each task ends with a `git add && git commit && git push`.
     - Viết helpers cho metadata: `read_admin`, `write_admin`, `read_decimals`, `write_decimals`, `read_name`, `write_name`, `read_symbol`, `write_symbol`, `read_sac`, `write_sac`
     - _Requirements: 2.4, 2.6, 2.7, 3.3, 3.6_
 
-  - [ ] 2.3 Cập nhật `lib.rs` để re-export types và storage modules
+  - [x] 2.3 Cập nhật `lib.rs` để re-export types và storage modules
     - Chạy `cargo test` để verify compile
     - Chạy `git add && git commit -m "feat: implement storage layer (types.rs + storage.rs)" && git push`
     - _Requirements: 1.5_
 
-- [ ] 3. Implement SEP-41 read interface
-  - [ ] 3.1 Implement contract struct và `#[contractimpl]` block trong `lib.rs`
+- [-] 3. Implement SEP-41 read interface
+  - [-] 3.1 Implement contract struct và `#[contractimpl]` block trong `lib.rs`
     - Khai báo `pub struct TokenContract;`
     - Implement `decimals(env: Env) -> u32` — đọc từ persistent storage
     - Implement `name(env: Env) -> String` — đọc từ persistent storage
@@ -47,14 +47,14 @@ Each task ends with a `git add && git commit && git push`.
     - Implement `allowance(env: Env, from: Address, spender: Address) -> i128` — gọi `read_allowance`, trả về `0` nếu expired
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
 
-  - [ ]* 3.2 Viết unit tests cho read interface trong `test.rs`
+  - [~]* 3.2 Viết unit tests cho read interface trong `test.rs`
     - `test_balance_default_zero`: balance của địa chỉ mới = 0
     - `test_allowance_default_zero`: allowance của cặp mới = 0
     - `test_decimals_name_symbol`: verify metadata sau initialize
     - Setup helper `fn setup() -> (Env, TokenContractClient, Address, Address)` dùng `env.register_stellar_asset_contract_v2`
     - _Requirements: 2.4, 2.6, 2.7, 11.1_
 
-  - [ ] 3.3 Chạy `cargo test` — verify pass, rồi `git add && git commit -m "feat: implement SEP-41 read interface (balance, allowance, decimals, name, symbol)" && git push`
+  - [~] 3.3 Chạy `cargo test` — verify pass, rồi `git add && git commit -m "feat: implement SEP-41 read interface (balance, allowance, decimals, name, symbol)" && git push`
     - _Requirements: 2.1–2.7, 11.2_
 
 - [ ] 4. Implement initialize và admin functions
