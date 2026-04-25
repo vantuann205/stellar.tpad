@@ -204,8 +204,8 @@ impl BondingCurveContract {
     }
 }
 
-/// Returns the native XLM token contract address for Stellar testnet.
+/// Returns the native XLM Stellar Asset Contract (SAC) address for Stellar testnet.
 fn get_xlm_address(env: &Env) -> Address {
-    // Native XLM wrapped token on Stellar testnet
-    Address::from_str(env, "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA")
+    // Native XLM SAC on Stellar testnet (generated via `stellar contract id asset --asset native`)
+    Address::from_str(env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC")
 }

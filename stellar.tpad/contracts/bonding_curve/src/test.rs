@@ -52,11 +52,11 @@ fn setup_env() -> (Env, BondingCurveContractClient<'static>, Address, Address) {
     // Register the project token on the bonding curve
     client.register_token(&token_addr, &admin);
 
-    // Register a MockToken at the hardcoded XLM address so that
+    // Register a MockToken at the correct native XLM SAC address so that
     // buy() can call xlm_client.transfer() without panicking.
     let xlm_addr = Address::from_str(
         &env,
-        "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA",
+        "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
     );
     #[allow(deprecated)]
     env.register_contract(Some(&xlm_addr), MockToken);
