@@ -15,7 +15,26 @@ pub struct TokenContract;
 
 #[contractimpl]
 impl TokenContract {
-    /// Khởi tạo token. Mint toàn bộ 1B supply cho admin ngay lập tức.
+    /// Constructor — called atomically by factory via deploy_v2.
+    /// Mint toàn bộ 1B supply cho admin ngay lập tức.
+    pub fn __constructor(
+        env: Env,
+        admin: Address,
+        name: String,
+        symbol: String,
+    ) {
+        write_admin(&env, &admin);
+        write_decimals(&env, 7);
+        write_name(&env, &name);
+        write_symbol(&env, &symbol);
+        write_balance(&env, &admin, DEFAULT_SUPPLY);
+        env.events().publish(
+            (soroban_sdk::symbol_short!("mint"), admin.clone()),
+            DEFAULT_SUPPLY,
+        );
+    }
+
+    /// initialize kept for backward compat (direct deploy without factory).
     pub fn initialize(
         env: Env,
         admin: Address,
@@ -25,12 +44,10 @@ impl TokenContract {
         if env.storage().persistent().has(&DataKey::Admin) {
             panic_with_error!(&env, TokenError::AlreadyInitialized);
         }
-        // No require_auth here — caller is the trusted factory contract
         write_admin(&env, &admin);
         write_decimals(&env, 7);
         write_name(&env, &name);
         write_symbol(&env, &symbol);
-        // Mint 1B supply cho creator
         write_balance(&env, &admin, DEFAULT_SUPPLY);
         env.events().publish(
             (soroban_sdk::symbol_short!("mint"), admin.clone()),
