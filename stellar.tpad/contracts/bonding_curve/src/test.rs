@@ -154,24 +154,33 @@ proptest! {
 // Validates: Requirements 13.4
 //
 // After buy-then-sell of N tokens, xlm_out < xlm_in and the net loss ≈ 2% of cost (±2 stroops).
+// Ranges use token units (multiples of 10^7 raw) to ensure cost > 0 with the new formula.
 proptest! {
     #[test]
     fn prop_buy_sell_net_loss(
-        sold_supply in 0i128..=1_000_000_000i128,
-        token_amount in 1i128..=1_000_000i128,
+        sold_tokens in 0i128..=1_000_000i128,   // tokens sold (not raw units)
+        buy_tokens  in 1i128..=10_000i128,       // tokens to buy (not raw units)
     ) {
-        let cost = calc_buy_cost(100, 1, sold_supply, token_amount);
-        // Round-trip: sell proceeds at sold_supply + token_amount equals buy cost
-        let proceeds = calc_sell_proceeds(100, 1, sold_supply + token_amount, token_amount);
+        const ONE_TOKEN: i128 = 10_000_000;
+        let base  = 1_000i128;
+        let slope = 250_000i128;
+        let sold_supply   = sold_tokens * ONE_TOKEN;
+        let token_amount  = buy_tokens  * ONE_TOKEN;
 
-        let xlm_in = cost + cost / 100;           // cost + 1% buy fee
-        let xlm_out = proceeds - proceeds / 100;  // proceeds - 1% sell fee
+        let cost    = calc_buy_cost(base, slope, sold_supply, token_amount);
+        let proceeds = calc_sell_proceeds(base, slope, sold_supply + token_amount, token_amount);
+
+        // Skip degenerate case where cost rounds to 0 (shouldn't happen with token-unit amounts)
+        prop_assume!(cost > 0);
+
+        let xlm_in  = cost    + cost    / 100; // cost + 1% buy fee
+        let xlm_out = proceeds - proceeds / 100; // proceeds - 1% sell fee
 
         prop_assert!(xlm_out < xlm_in, "xlm_out={} must be < xlm_in={}", xlm_out, xlm_in);
 
         // Net loss ≈ 2% of cost (±2 stroops rounding)
-        let expected_loss = cost / 50; // 2% = cost / 50
-        let actual_loss = xlm_in - xlm_out;
+        let expected_loss = cost / 50;
+        let actual_loss   = xlm_in - xlm_out;
         prop_assert!(
             (actual_loss - expected_loss).abs() <= 2,
             "actual_loss={} expected_loss={} diff={}",
@@ -292,8 +301,9 @@ fn test_get_token_state_not_found() {
 fn test_buy_slippage_exceeded() {
     let (_env, client, buyer, token_addr) = setup_env();
 
-    // max_xlm_in = 0 will always be less than cost + fee
-    let result = client.try_buy(&buyer, &token_addr, &1i128, &0i128);
+    // max_xlm_in = 0 will always be less than cost + fee for any real token amount
+    let one_token = 10_000_000i128; // 1 token = 10^7 raw units
+    let result = client.try_buy(&buyer, &token_addr, &one_token, &0i128);
     assert_contract_error(result, crate::state::ContractError::SlippageExceeded);
 }
 
