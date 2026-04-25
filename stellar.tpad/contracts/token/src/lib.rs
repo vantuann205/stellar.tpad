@@ -7,28 +7,35 @@ use soroban_sdk::{contract, contractimpl, panic_with_error, Address, Env, String
 use storage::*;
 use types::*;
 
+/// Supply mặc định: 1,000,000,000 với 7 decimals
+const DEFAULT_SUPPLY: i128 = 1_000_000_000 * 10_000_000; // 1B * 10^7
+
 #[contract]
 pub struct TokenContract;
 
 #[contractimpl]
 impl TokenContract {
+    /// Khởi tạo token. Mint toàn bộ 1B supply cho admin ngay lập tức.
     pub fn initialize(
         env: Env,
         admin: Address,
-        decimal: u32,
         name: String,
         symbol: String,
-        sac: Address,
     ) {
         if env.storage().persistent().has(&DataKey::Admin) {
             panic_with_error!(&env, TokenError::AlreadyInitialized);
         }
         admin.require_auth();
         write_admin(&env, &admin);
-        write_decimals(&env, decimal);
+        write_decimals(&env, 7);
         write_name(&env, &name);
         write_symbol(&env, &symbol);
-        write_sac(&env, &sac);
+        // Mint 1B supply cho creator
+        write_balance(&env, &admin, DEFAULT_SUPPLY);
+        env.events().publish(
+            (soroban_sdk::symbol_short!("mint"), admin.clone()),
+            DEFAULT_SUPPLY,
+        );
     }
 
     pub fn decimals(env: Env) -> u32 {
@@ -47,125 +54,56 @@ impl TokenContract {
         read_balance(&env, &id)
     }
 
-    pub fn allowance(env: Env, from: Address, spender: Address) -> i128 {
-        read_allowance(&env, &from, &spender)
-    }
-
-    pub fn approve(env: Env, from: Address, spender: Address, amount: i128, expiration_ledger: u32) {
-        from.require_auth();
-        if amount < 0 {
-            panic_with_error!(&env, TokenError::InvalidAmount);
-        }
-        if amount > 0 && expiration_ledger < env.ledger().sequence() {
-            panic_with_error!(&env, TokenError::InvalidExpirationLedger);
-        }
-        write_allowance(&env, &from, &spender, amount, expiration_ledger);
-        env.events().publish(
-            (soroban_sdk::symbol_short!("approve"), from.clone(), spender.clone()),
-            (amount, expiration_ledger),
-        );
-    }
-
+    /// Transfer token giữa 2 địa chỉ.
     pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
         from.require_auth();
         if amount <= 0 {
             panic_with_error!(&env, TokenError::InvalidAmount);
         }
-        let balance_from = read_balance(&env, &from);
-        if balance_from < amount {
+        let bal = read_balance(&env, &from);
+        if bal < amount {
             panic_with_error!(&env, TokenError::InsufficientBalance);
         }
-        write_balance(&env, &from, balance_from - amount);
-        let balance_to = read_balance(&env, &to);
-        write_balance(&env, &to, balance_to + amount);
+        write_balance(&env, &from, bal - amount);
+        write_balance(&env, &to, read_balance(&env, &to) + amount);
         env.events().publish(
             (soroban_sdk::symbol_short!("transfer"), from.clone(), to.clone()),
             amount,
         );
     }
 
-    pub fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
-        spender.require_auth();
-        if amount <= 0 {
-            panic_with_error!(&env, TokenError::InvalidAmount);
-        }
-        let allowance_val = storage::read_allowance_value(&env, &from, &spender);
-        let av = match allowance_val {
-            Some(v) if v.amount >= amount => v,
-            _ => panic_with_error!(&env, TokenError::InsufficientAllowance),
-        };
-        let balance_from = read_balance(&env, &from);
-        if balance_from < amount {
-            panic_with_error!(&env, TokenError::InsufficientBalance);
-        }
-        write_allowance(&env, &from, &spender, av.amount - amount, av.expiration_ledger);
-        write_balance(&env, &from, balance_from - amount);
-        let balance_to = read_balance(&env, &to);
-        write_balance(&env, &to, balance_to + amount);
-        env.events().publish(
-            (soroban_sdk::symbol_short!("transfer"), from.clone(), to.clone()),
-            amount,
-        );
-    }
-
-    pub fn burn(env: Env, from: Address, amount: i128) {
-        from.require_auth();
-        if amount <= 0 {
-            panic_with_error!(&env, TokenError::InvalidAmount);
-        }
-        let balance = read_balance(&env, &from);
-        if balance < amount {
-            panic_with_error!(&env, TokenError::InsufficientBalance);
-        }
-        write_balance(&env, &from, balance - amount);
-        env.events().publish(
-            (soroban_sdk::symbol_short!("burn"), from.clone()),
-            amount,
-        );
-    }
-
-    pub fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
-        spender.require_auth();
-        let allowance_val = storage::read_allowance_value(&env, &from, &spender);
-        let av = match allowance_val {
-            Some(v) if v.amount >= amount => v,
-            _ => panic_with_error!(&env, TokenError::InsufficientAllowance),
-        };
-        let balance = read_balance(&env, &from);
-        if balance < amount {
-            panic_with_error!(&env, TokenError::InsufficientBalance);
-        }
-        write_allowance(&env, &from, &spender, av.amount - amount, av.expiration_ledger);
-        write_balance(&env, &from, balance - amount);
-        env.events().publish(
-            (soroban_sdk::symbol_short!("burn"), from.clone()),
-            amount,
-        );
-    }
-
+    /// Mint thêm token — chỉ admin.
     pub fn mint(env: Env, to: Address, amount: i128) {
         let admin = read_admin(&env);
         admin.require_auth();
         if amount <= 0 {
             panic_with_error!(&env, TokenError::InvalidAmount);
         }
-        let balance = read_balance(&env, &to);
-        write_balance(&env, &to, balance + amount);
-        let sac = read_sac(&env);
-        soroban_sdk::token::StellarAssetClient::new(&env, &sac).mint(&to, &amount);
+        write_balance(&env, &to, read_balance(&env, &to) + amount);
         env.events().publish(
-            (soroban_sdk::symbol_short!("mint"), admin.clone(), to.clone()),
+            (soroban_sdk::symbol_short!("mint"), to.clone()),
+            amount,
+        );
+    }
+
+    /// Burn token của chính mình.
+    pub fn burn(env: Env, from: Address, amount: i128) {
+        from.require_auth();
+        if amount <= 0 {
+            panic_with_error!(&env, TokenError::InvalidAmount);
+        }
+        let bal = read_balance(&env, &from);
+        if bal < amount {
+            panic_with_error!(&env, TokenError::InsufficientBalance);
+        }
+        write_balance(&env, &from, bal - amount);
+        env.events().publish(
+            (soroban_sdk::symbol_short!("burn"), from.clone()),
             amount,
         );
     }
 
     pub fn admin(env: Env) -> Address {
         read_admin(&env)
-    }
-
-    pub fn set_admin(env: Env, new_admin: Address) {
-        let current_admin = read_admin(&env);
-        current_admin.require_auth();
-        write_admin(&env, &new_admin);
     }
 }
