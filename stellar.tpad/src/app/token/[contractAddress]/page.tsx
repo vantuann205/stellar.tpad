@@ -12,7 +12,7 @@ import TokenMetrics from '@/components/trade/TokenMetrics';
 import CommentSection from '@/components/trade/CommentSection';
 import HoldersList from '@/components/trade/HoldersList';
 import { getTokenState } from '@/features/trade/bonding-curve.service';
-import type { TokenStoreRecord as TokenRecord } from '@/lib/stores';
+import type { TokenRecord } from '@/types/token';
 import { stellarWalletService } from '@/services/wallet.service';
 
 interface PageProps {

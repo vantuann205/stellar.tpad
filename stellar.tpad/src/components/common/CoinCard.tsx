@@ -1,7 +1,7 @@
 import React from 'react';
 import { Coin } from '@/types';
 import { formatMarketCap } from '@/lib/helpers';
-import type { TokenStoreRecord as TokenRecord } from '@/lib/stores';
+import type { TokenRecord } from '@/types/token';
 
 interface CoinCardProps {
   coin: Coin;
