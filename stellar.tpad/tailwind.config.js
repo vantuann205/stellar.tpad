@@ -15,11 +15,11 @@ module.exports = {
       },
       colors: {
         pump: {
-          bg: '#10141f',
-          card: '#1a1f2e',
+          bg: '#020617',
+          card: '#0f172a',
           green: '#4ade80',
           red: '#f87171',
-          accent: '#f87171', // Red (softer)
+          accent: '#f87171',
           text: '#e2e8f0'
         }
       },
