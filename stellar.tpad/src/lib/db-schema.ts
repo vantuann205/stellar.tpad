@@ -17,13 +17,17 @@ CREATE TABLE IF NOT EXISTS tokens (
   price_change_1h NUMERIC(10, 4) DEFAULT 0,
   price_change_4h NUMERIC(10, 4) DEFAULT 0,
   price_change_6h NUMERIC(10, 4) DEFAULT 0,
+  price_change_24h NUMERIC(10, 4) DEFAULT 0,
   trader_count INTEGER DEFAULT 0,
   price_snapshot_time TIMESTAMP,
   price_snapshot_value NUMERIC(36, 18),
+  metrics_updated_at TIMESTAMP,
   bonding_curve_contract VARCHAR(255),
   bonding_curve_registered BOOLEAN DEFAULT FALSE,
   sold_supply NUMERIC(36, 18) DEFAULT 0,
   current_price NUMERIC(36, 18) DEFAULT 0,
+  base_price NUMERIC(36, 18) DEFAULT 0.0001,
+  slope NUMERIC(36, 18) DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -67,6 +71,13 @@ CREATE TABLE IF NOT EXISTS wallets (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS price_snapshots (
+  id SERIAL PRIMARY KEY,
+  token_id INTEGER NOT NULL REFERENCES tokens(id) ON DELETE CASCADE,
+  price NUMERIC(36, 18) NOT NULL,
+  recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS comments (
   id SERIAL PRIMARY KEY,
   token_id INTEGER NOT NULL REFERENCES tokens(id) ON DELETE CASCADE,
@@ -93,6 +104,8 @@ CREATE INDEX IF NOT EXISTS idx_purchases_is_private ON purchases(is_private);
 CREATE INDEX IF NOT EXISTS idx_wallets_address ON wallets(wallet_address);
 CREATE INDEX IF NOT EXISTS idx_wallets_display_name ON wallets(display_name);
 CREATE INDEX IF NOT EXISTS idx_comments_token_id_created_at ON comments(token_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_tokens_metrics_updated ON tokens(metrics_updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_price_snapshots_token_id ON price_snapshots(token_id, recorded_at DESC);
 `;
 
 let schemaPromise: Promise<void> | null = null;
@@ -108,4 +121,16 @@ export async function ensureDatabaseSchema(): Promise<void> {
   }
 
   await schemaPromise;
+
+  // Run migrations for existing tables
+  try {
+    await query(`
+      ALTER TABLE tokens ADD COLUMN IF NOT EXISTS base_price NUMERIC(36, 18) DEFAULT 0.0001;
+      ALTER TABLE tokens ADD COLUMN IF NOT EXISTS slope NUMERIC(36, 18) DEFAULT 0;
+      ALTER TABLE tokens ADD COLUMN IF NOT EXISTS price_change_24h NUMERIC(10, 4) DEFAULT 0;
+      ALTER TABLE tokens ADD COLUMN IF NOT EXISTS metrics_updated_at TIMESTAMP;
+    `);
+  } catch (err) {
+    console.error('Migration error:', err);
+  }
 }

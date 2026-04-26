@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureDatabaseSchema } from '@/lib/db-schema';
+import { formatUtc7DateTime } from '@/lib/time';
 
 export async function GET(
   request: NextRequest,
@@ -36,14 +37,12 @@ export async function GET(
         user: c.username || c.user_address || 'Anonymous',
         avatarUrl: c.avatar_url || '',
         text: c.comment_text || '',
-        timestamp: new Date(c.created_at).toLocaleString('en-GB', {
-          timeZone: 'Asia/Ho_Chi_Minh',
+        timestamp: formatUtc7DateTime(c.created_at, {
           day: '2-digit',
           month: '2-digit',
           year: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-          hour12: false,
         }),
       })),
     });
@@ -90,7 +89,7 @@ export async function POST(
         id: String(comment.id),
         user: resolvedUser,
         text: comment.comment_text,
-        timestamp: new Date(comment.created_at).toLocaleString(),
+        timestamp: formatUtc7DateTime(comment.created_at),
       },
     });
   } catch (error) {

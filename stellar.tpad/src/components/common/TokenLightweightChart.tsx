@@ -117,6 +117,7 @@ export default function TokenLightweightChart({
     const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
     const [countdownY, setCountdownY] = useState<number | null>(null);
     const isFetchingRef = useRef(false);
+    const queuedRefetchRef = useRef(false);
     const fitPendingRef = useRef(true);
     const pendingPostTradeAutoscaleRef = useRef(false);
 
@@ -310,11 +311,16 @@ export default function TokenLightweightChart({
     const fetchCandles = useCallback(
         async (showLoader = false) => {
             if (!tokenId) { setCandles([]); setLoading(false); return; }
-            if (isFetchingRef.current) return;
+            if (isFetchingRef.current) {
+                queuedRefetchRef.current = true;
+                return;
+            }
             if (showLoader) setLoading(true);
             isFetchingRef.current = true;
             try {
-                const res = await fetch(`/api/ohlcv?tokenId=${tokenId}&interval=${interval}`);
+                const res = await fetch(`/api/ohlcv?tokenId=${tokenId}&interval=${interval}&ts=${Date.now()}`, {
+                    cache: 'no-store',
+                });
                 const data = await res.json();
                 if (data.success && data.data.length > 0) {
                     setCandles(data.data);
@@ -332,6 +338,10 @@ export default function TokenLightweightChart({
             } finally {
                 isFetchingRef.current = false;
                 if (showLoader) setLoading(false);
+                if (queuedRefetchRef.current) {
+                    queuedRefetchRef.current = false;
+                    void fetchCandles(false);
+                }
             }
         },
         [tokenId, interval]

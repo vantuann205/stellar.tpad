@@ -13,6 +13,7 @@ import {
     HistogramSeries,
 } from 'lightweight-charts';
 import { useTheme } from '@/hooks/useTheme';
+import { parsePossiblyUtc7TimestampToUnixSeconds } from '@/lib/time';
 
 interface TokenLightweightChartProps {
     tokenId: string | number;
@@ -117,6 +118,7 @@ export default function TokenLightweightChart({
     const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
     const [countdownY, setCountdownY] = useState<number | null>(null);
     const isFetchingRef = useRef(false);
+    const queuedRefetchRef = useRef(false);
     const fitPendingRef = useRef(true);
     const pendingPostTradeAutoscaleRef = useRef(false);
 
@@ -165,22 +167,7 @@ export default function TokenLightweightChart({
             const currentPriceNum = Number(_currentPrice);
             const cp = Number.isFinite(currentPriceNum) && currentPriceNum > 0 ? currentPriceNum : null;
             const nowBucket = getBucketTime(nowSec, intervalSec);
-            const createdAtSec = (() => {
-                if (typeof createdAt === 'number' && createdAt > 0) {
-                    const raw = createdAt > 1_000_000_000_000
-                        ? Math.floor(createdAt / 1000)
-                        : Math.floor(createdAt);
-                    return raw > nowSec + 1800 ? raw - (7 * 3600) : raw;
-                }
-                if (typeof createdAt === 'string') {
-                    const ms = Date.parse(createdAt);
-                    if (!Number.isNaN(ms) && ms > 0) {
-                        const raw = Math.floor(ms / 1000);
-                        return raw > nowSec + 1800 ? raw - (7 * 3600) : raw;
-                    }
-                }
-                return null;
-            })();
+            const createdAtSec = parsePossiblyUtc7TimestampToUnixSeconds(createdAt);
             const startBucketRaw = createdAtSec !== null
                 ? getBucketTime(createdAtSec, intervalSec)
                 : nowBucket;
@@ -310,11 +297,16 @@ export default function TokenLightweightChart({
     const fetchCandles = useCallback(
         async (showLoader = false) => {
             if (!tokenId) { setCandles([]); setLoading(false); return; }
-            if (isFetchingRef.current) return;
+            if (isFetchingRef.current) {
+                queuedRefetchRef.current = true;
+                return;
+            }
             if (showLoader) setLoading(true);
             isFetchingRef.current = true;
             try {
-                const res = await fetch(`/api/ohlcv?tokenId=${tokenId}&interval=${interval}`);
+                const res = await fetch(`/api/ohlcv?tokenId=${tokenId}&interval=${interval}&ts=${Date.now()}`, {
+                    cache: 'no-store',
+                });
                 const data = await res.json();
                 if (data.success && data.data.length > 0) {
                     setCandles(data.data);
@@ -332,6 +324,10 @@ export default function TokenLightweightChart({
             } finally {
                 isFetchingRef.current = false;
                 if (showLoader) setLoading(false);
+                if (queuedRefetchRef.current) {
+                    queuedRefetchRef.current = false;
+                    void fetchCandles(false);
+                }
             }
         },
         [tokenId, interval]

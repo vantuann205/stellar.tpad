@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { TradeRecord } from '@/types';
+import { formatUtc7DateTime } from '@/lib/time';
 
 interface TransactionTableProps {
   tokenAddress: string;
@@ -15,17 +16,7 @@ function truncate(addr: string) {
 }
 
 function formatTime(iso: string) {
-  const dt = new Date(iso);
-  if (Number.isNaN(dt.getTime())) return iso;
-  return dt.toLocaleString('en-GB', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
+  return formatUtc7DateTime(iso);
 }
 
 export default function TransactionTable({ tokenAddress, refreshKey }: TransactionTableProps) {
@@ -85,7 +76,7 @@ export default function TransactionTable({ tokenAddress, refreshKey }: Transacti
                       {trade.price.toFixed(8)} XLM
                     </td>
                     <td className="w-[15%] px-3 py-3 text-gray-700 dark:text-gray-400 font-mono text-xs tabular-nums">
-                      {(Number(trade.tokenAmount) / 1e7).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {Number(trade.tokenAmount).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                     </td>
                     <td className="w-[14%] px-3 py-3 text-xs font-mono text-gray-700 dark:text-gray-400">
                       {(Number(trade.fee) / 1e7).toFixed(6)} XLM

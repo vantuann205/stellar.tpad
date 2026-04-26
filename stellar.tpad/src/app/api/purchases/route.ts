@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { ensureDatabaseSchema } from '@/lib/db-schema';
+import { calculateAndStoreTokenMetrics } from '@/lib/token-metrics';
 
 export async function POST(request: NextRequest) {
     try {
+        await ensureDatabaseSchema();
         const body = await request.json();
         const {
             token_id,
             buyer_address,
             seller_address,
             quantity,
+            sold_supply,
             price_per_token,
             total_price,
             transaction_hash,
@@ -62,16 +66,24 @@ export async function POST(request: NextRequest) {
             ]
         );
 
-        // Update token metrics after purchase
+        // Recalculate token metrics immediately so price/chart/market cap stay in sync after each trade.
         if ((status || 'completed') === 'completed') {
             try {
-                // Update current_price and metrics_updated_at
-                await query(
-                    `UPDATE tokens 
-                    SET current_price = $1, metrics_updated_at = NOW()
-                    WHERE id = $2`,
-                    [price_per_token, token_id]
-                );
+                if (sold_supply !== undefined && sold_supply !== null) {
+                    await query(
+                        `UPDATE tokens
+                         SET sold_supply = $2,
+                             updated_at = NOW()
+                         WHERE id = $1`,
+                        [Number(token_id), sold_supply]
+                    );
+                }
+
+                await calculateAndStoreTokenMetrics({
+                    tokenId: Number(token_id),
+                    currentPrice: price_per_token,
+                    recordSnapshot: true,
+                });
             } catch (metricsError) {
                 console.warn('Purchase saved, but metrics update failed:', metricsError);
             }
@@ -89,6 +101,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
     try {
+        await ensureDatabaseSchema();
         const tokenId = request.nextUrl.searchParams.get('token_id');
         const buyerAddress = request.nextUrl.searchParams.get('buyer_address');
         const sellerAddress = request.nextUrl.searchParams.get('seller_address');

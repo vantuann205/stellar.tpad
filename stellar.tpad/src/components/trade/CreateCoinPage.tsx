@@ -99,6 +99,7 @@ export default function CreateCoinPage() {
         name: form.name,
         symbol: form.symbol,
         adminPublicKey,
+        bondingCurveAddress: BONDING_CURVE_CONTRACT,
         wasmHash,
         signTransaction: sign,
       });

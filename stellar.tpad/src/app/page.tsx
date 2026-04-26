@@ -14,6 +14,7 @@ import { Coin, ViewState, SortOption } from '@/types';
 import { formatMarketCap, formatPriceChange, formatTraderCount, formatVolume } from '@/lib/helpers';
 import { getWalletErrorMessage, stellarWalletService, WalletServiceError } from '@/services/wallet.service';
 import { initialWalletState, walletStateReducer } from '@/store/wallet.store';
+import { parsePossiblyUtc7Timestamp } from '@/lib/time';
 import { useRef } from 'react';
 
 const CreateCoinPage = dynamic(() => import('@/components/common/CreateCoinPage'), { ssr: false });
@@ -56,22 +57,27 @@ export default function Home() {
       const res = await fetch('/api/tokens');
       const data = await res.json();
       if (data.success && data.data) {
-        setTokens(data.data.map((t: any, i: number): Coin => ({
-          id: t.id || String(i),
-          name: t.name,
-          ticker: t.symbol,
-          description: t.description || '',
-          imageUrl: t.image_url || `https://picsum.photos/200/200?random=${i}`,
-          creator: t.owner,
-          marketCap: 0,
-          replies: 0,
-          bondingCurveProgress: 0,
-          createdAt: new Date(t.created_at).getTime(),
-          lastReply: new Date(t.created_at).getTime(),
-          priceHistory: [],
-          tokenAddress: t.contract_address,
-          contractAddress: t.contract_address,
-        })));
+        setTokens(data.data.map((t: any, i: number): Coin => {
+          const createdAt = parsePossiblyUtc7Timestamp(t.created_at);
+          const createdAtMs = createdAt?.getTime() ?? Date.now();
+
+          return {
+            id: t.id || String(i),
+            name: t.name,
+            ticker: t.symbol,
+            description: t.description || '',
+            imageUrl: t.image_url || `https://picsum.photos/200/200?random=${i}`,
+            creator: t.owner,
+            marketCap: 0,
+            replies: 0,
+            bondingCurveProgress: 0,
+            createdAt: createdAtMs,
+            lastReply: createdAtMs,
+            priceHistory: [],
+            tokenAddress: t.contract_address,
+            contractAddress: t.contract_address,
+          };
+        }));
       }
     } catch { /* silent */ }
     finally { setLoading(false); }

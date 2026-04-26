@@ -3,6 +3,7 @@
 import React from 'react';
 import { ExternalLink, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import type { TokenRecord } from '@/types/token';
+import { formatUtc7Date } from '@/lib/time';
 
 interface TokenInfoBarProps {
   token: TokenRecord;
@@ -92,7 +93,7 @@ const TokenInfoBar: React.FC<TokenInfoBarProps> = ({ token, currentPrice, metric
               </button>
             )}
             <span className="text-gray-600 dark:text-gray-500">
-              Created {new Date(token.created_at).toLocaleDateString()}
+              Created {formatUtc7Date(token.created_at)}
             </span>
           </div>
         </div>
@@ -105,7 +106,7 @@ const TokenInfoBar: React.FC<TokenInfoBarProps> = ({ token, currentPrice, metric
             Market Cap
           </div>
           <div className="text-lg font-bold text-gray-900 dark:text-white font-mono">
-            {marketCap ? `$${(marketCap / 1000000).toFixed(2)}M` : '$0.00M'}
+            {formatMarketCap(marketCap)}
           </div>
         </div>
 

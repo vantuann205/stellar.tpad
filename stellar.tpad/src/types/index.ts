@@ -80,7 +80,7 @@ export interface TradeRecord {
   id: string;
   tokenId: string;
   type: 'buy' | 'sell';
-  tokenAmount: string;  // raw units string (7 decimals)
+  tokenAmount: string;  // human-readable token quantity
   xlmAmount: string;    // stroops string
   price: number;        // XLM per token (human-readable)
   fee: string;          // stroops string

@@ -106,7 +106,10 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
         const basePrice = BigInt(s.base_price);
         const slope = BigInt(s.slope);
         const soldSupply = BigInt(s.sold_supply);
-        const priceStroops = basePrice + slope * soldSupply / STROOPS;
+        // Current price formula: base_price + slope * (sold_supply / 10^7)
+        // sold_supply is in raw units (with 7 decimals), so divide by 10^7 to get token units
+        const soldTokens = soldSupply / STROOPS;
+        const priceStroops = basePrice + slope * soldTokens;
         setCurrentPrice(stroopsToXlm(priceStroops));
       })
       .catch(() => {});
@@ -255,12 +258,22 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
       // record trade in database
       if (preview) {
         try {
-          // Get token_id from database
+          // Get token_id and current state from database
           const tokenRes = await fetch(`/api/tokens/${tokenAddress}`);
           const tokenData = await tokenRes.json();
           
           if (tokenData.success && tokenData.data) {
-            const pricePerToken = Number(preview.cost) / 1e7 / num;
+            // Get updated bonding curve state after trade to get EXACT current price
+            const updatedState = await getTokenState(tokenAddress);
+            const basePrice = BigInt(updatedState.base_price);
+            const slope = BigInt(updatedState.slope);
+            const soldSupply = BigInt(updatedState.sold_supply);
+            
+            // Calculate current price AFTER trade: base_price + slope * (sold_supply / 10^7)
+            const soldTokens = soldSupply / STROOPS;
+            const currentPriceStroops = basePrice + slope * soldTokens;
+            const currentPriceXlm = Number(currentPriceStroops) / 1e7;
+            
             const totalPrice = Number(preview.cost) / 1e7;
             
             await fetch('/api/purchases', {
@@ -271,7 +284,8 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
                 buyer_address: mode === 'buy' ? userAddress : null,
                 seller_address: mode === 'sell' ? userAddress : null,
                 quantity: num,
-                price_per_token: pricePerToken,
+                sold_supply: soldSupply.toString(),
+                price_per_token: currentPriceXlm, // Use CURRENT price from smart contract
                 total_price: totalPrice,
                 transaction_hash: txHash,
                 status: 'completed',
@@ -341,20 +355,11 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
             0.5% slippage
           </div>
           <div className="flex items-center gap-1 text-gray-500 text-xs">
-            <Wallet className="w-3 h-3" />
-            {connected ? `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}` : 'wallet disconnected'}
-          </div>
-        </div>
-
-        {/* balance + price */}
-        <div className="flex justify-between text-xs text-gray-500">
-          <span className="flex items-center gap-1">
             <Wallet className="w-3.5 h-3.5" />
             {mode === 'buy'
               ? `${(Number(xlmBalance) / 1e7).toFixed(4)} XLM`
               : `${tokenBalanceNum.toFixed(2)} ${ticker.toUpperCase()}`}
-          </span>
-          {currentPrice && <span>price: {currentPrice} XLM</span>}
+          </div>
         </div>
 
         {/* amount input */}

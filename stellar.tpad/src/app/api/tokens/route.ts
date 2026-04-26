@@ -23,80 +23,16 @@ export interface TokenRecord {
 
 export async function GET() {
   try {
-    await ensureDatabaseSchema();
-
     const result = await query(
       `SELECT
           t.*,
-          COALESCE(bp.max_reserve, 0) AS max_reserve,
-          COALESCE(NULLIF(t.volume_24h, 0), pm.volume_24h_calc, 0) AS computed_volume_24h,
-          COALESCE(pm.trader_count_calc, t.trader_count, 0) AS computed_trader_count,
-          lt.last_trade_type
+          COALESCE(bp.max_reserve, 0) AS max_reserve
        FROM tokens t
        LEFT JOIN token_bonding_progress bp ON bp.token_id = t.id
-       LEFT JOIN LATERAL (
-          SELECT
-            COALESCE(
-              SUM(
-                COALESCE(
-                  quantity,
-                  CASE
-                    WHEN price_per_token IS NULL OR price_per_token = 0 THEN 0
-                    ELSE total_price / price_per_token
-                  END
-                )
-              ),
-              0
-            ) AS volume_24h_calc,
-            COALESCE((
-              SELECT COUNT(*)
-              FROM (
-                SELECT address
-                FROM (
-                  SELECT buyer_address AS address, SUM(quantity::numeric) AS net_qty
-                  FROM purchases
-                  WHERE token_id = t.id AND buyer_address IS NOT NULL AND status = 'completed'
-                  GROUP BY buyer_address
-                  UNION ALL
-                  SELECT seller_address AS address, -SUM(quantity::numeric) AS net_qty
-                  FROM purchases
-                  WHERE token_id = t.id AND seller_address IS NOT NULL AND status = 'completed'
-                  GROUP BY seller_address
-                ) net_moves
-                GROUP BY address
-                HAVING SUM(net_qty) > 0
-              ) holder_wallets
-            ), 0) AS trader_count_calc
-          FROM purchases p
-          WHERE p.token_id = t.id
-            AND p.status = 'completed'
-            AND p.created_at >= NOW() - INTERVAL '24 hours'
-       ) pm ON true
-       LEFT JOIN LATERAL (
-          SELECT CASE WHEN buyer_address IS NOT NULL THEN 'buy' ELSE 'sell' END AS last_trade_type
-          FROM purchases
-          WHERE token_id = t.id AND status = 'completed'
-          ORDER BY created_at DESC
-          LIMIT 1
-       ) lt ON true
        ORDER BY t.created_at DESC`
     );
 
-    const normalizedRows = result.rows.map((row: any) => {
-      const createdAt = new Date(row.created_at);
-      if (Number.isNaN(createdAt.getTime())) return row;
-
-      // Backward-compat for rows previously saved with +7h offset (e.g. from local DB)
-      if (createdAt.getTime() > Date.now() + (30 * 60 * 1000)) {
-        return {
-          ...row,
-          created_at: new Date(createdAt.getTime() - (7 * 60 * 60 * 1000)).toISOString(),
-        };
-      }
-      return row;
-    });
-
-    return NextResponse.json({ success: true, data: normalizedRows });
+    return NextResponse.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Error fetching tokens:', error);
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
@@ -125,6 +61,8 @@ export async function POST(req: NextRequest) {
     const INITIAL_PRICE = 0.0001;
     const supply = parseFloat(String(totalSupply || 0));
     const initialMarketcap = INITIAL_PRICE * supply;
+    // Default slope for Stellar based on contract
+    const DEFAULT_SLOPE = 25000; // stroops
 
     const result = await query(
       `INSERT INTO tokens (
@@ -134,7 +72,7 @@ export async function POST(req: NextRequest) {
         marketcap, volume_24h,
         price_change_5m, price_change_1h, price_change_4h, price_change_6h,
         trader_count, bonding_curve_contract, bonding_curve_registered,
-        sold_supply, current_price, created_at, updated_at
+        sold_supply, current_price, base_price, slope, created_at, updated_at
       ) VALUES (
         $1,$2,$3,$4,$5,
         $6,$7,$8,
@@ -142,7 +80,7 @@ export async function POST(req: NextRequest) {
         $10,0,
         0,0,0,0,
         0,$11,$12,
-        0,$13,NOW(),NOW()
+        0,$13,$14,$15,NOW(),NOW()
       ) RETURNING *`,
       [
         name,
@@ -158,7 +96,15 @@ export async function POST(req: NextRequest) {
         bonding_curve_contract || null,
         bonding_curve_registered ?? false,
         INITIAL_PRICE,
+        INITIAL_PRICE,
+        DEFAULT_SLOPE,
       ]
+    );
+
+    await query(
+      `INSERT INTO price_snapshots (token_id, price, recorded_at)
+       VALUES ($1, $2, NOW())`,
+      [result.rows[0].id, INITIAL_PRICE]
     );
 
     return NextResponse.json({ success: true, data: result.rows[0] }, { status: 201 });
