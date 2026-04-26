@@ -1,47 +1,97 @@
-/**
- * In-memory token store — no database.
- */
 import { NextRequest, NextResponse } from 'next/server';
-import { tokenStore, tradeStore, type TokenStoreRecord } from '@/lib/stores';
+import { query } from '@/lib/db';
+import { ensureDatabaseSchema } from '@/lib/db-schema';
 
-// Re-export type alias for components that import TokenRecord from this path
-export type { TokenStoreRecord as TokenRecord };
+export interface TokenRecord {
+  id: number;
+  name: string;
+  symbol: string;
+  description: string;
+  image_url: string;
+  social_link: string;
+  total_supply: string;
+  owner: string;
+  contract_address: string;
+  created_at: string;
+  bonding_curve_contract?: string;
+  bonding_curve_registered?: boolean;
+  current_price?: number;
+  volume_24h?: number;
+  price_change_5m?: number;
+  sold_supply?: string;
+}
 
 export async function GET() {
-  const now   = Date.now();
-  const ms24h = 24 * 60 * 60 * 1000;
-  const ms5m  = 5 * 60 * 1000;
+  try {
+    await ensureDatabaseSchema();
 
-  const tokens = Array.from(tokenStore.values())
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .map(token => {
-      if (!token.bonding_curve_registered) return token;
+    const result = await query(
+      `SELECT
+          t.*,
+          COALESCE(bp.max_reserve, 0) AS max_reserve,
+          COALESCE(NULLIF(t.volume_24h, 0), pm.volume_24h_calc, 0) AS computed_volume_24h,
+          COALESCE(pm.trader_count_calc, t.trader_count, 0) AS computed_trader_count,
+          lt.last_trade_type
+       FROM tokens t
+       LEFT JOIN token_bonding_progress bp ON bp.token_id = t.id
+       LEFT JOIN LATERAL (
+          SELECT
+            COALESCE(
+              SUM(
+                COALESCE(
+                  quantity,
+                  CASE
+                    WHEN price_per_token IS NULL OR price_per_token = 0 THEN 0
+                    ELSE total_price / price_per_token
+                  END
+                )
+              ),
+              0
+            ) AS volume_24h_calc,
+            COALESCE((
+              SELECT COUNT(*)
+              FROM (
+                SELECT address
+                FROM (
+                  SELECT buyer_address AS address, SUM(quantity::numeric) AS net_qty
+                  FROM purchases
+                  WHERE token_id = t.id AND buyer_address IS NOT NULL AND status = 'completed'
+                  GROUP BY buyer_address
+                  UNION ALL
+                  SELECT seller_address AS address, -SUM(quantity::numeric) AS net_qty
+                  FROM purchases
+                  WHERE token_id = t.id AND seller_address IS NOT NULL AND status = 'completed'
+                  GROUP BY seller_address
+                ) net_moves
+                GROUP BY address
+                HAVING SUM(net_qty) > 0
+              ) holder_wallets
+            ), 0) AS trader_count_calc
+          FROM purchases p
+          WHERE p.token_id = t.id
+            AND p.status = 'completed'
+            AND p.created_at >= NOW() - INTERVAL '24 hours'
+       ) pm ON true
+       LEFT JOIN LATERAL (
+          SELECT CASE WHEN buyer_address IS NOT NULL THEN 'buy' ELSE 'sell' END AS last_trade_type
+          FROM purchases
+          WHERE token_id = t.id AND status = 'completed'
+          ORDER BY created_at DESC
+          LIMIT 1
+       ) lt ON true
+       ORDER BY t.created_at DESC`
+    );
 
-      let current_price: number | undefined;
-      if (token.sold_supply) {
-        const soldRaw = BigInt(token.sold_supply);
-        const priceStroops = 100 + Number(soldRaw / 10_000_000n);
-        current_price = priceStroops / 1e7;
-      }
-
-      const trades     = tradeStore.get(token.contract_address) ?? [];
-      const recent24h  = trades.filter(t => now - new Date(t.timestamp).getTime() < ms24h);
-      const volume_24h = recent24h.reduce((s, t) => s + Number(t.xlmAmount) / 1e7, 0);
-
-      let price_change_5m: number | undefined;
-      if (current_price !== undefined) {
-        const older = trades.find(t => now - new Date(t.timestamp).getTime() > ms5m);
-        if (older) price_change_5m = ((current_price - older.price) / older.price) * 100;
-      }
-
-      return { ...token, current_price, volume_24h, price_change_5m };
-    });
-
-  return NextResponse.json({ success: true, data: tokens });
+    return NextResponse.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Error fetching tokens:', error);
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureDatabaseSchema();
     const body = await req.json();
     const {
       name, symbol, description, image_url, social_link,
@@ -53,27 +103,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
-    if (tokenStore.has(contractAddress)) {
-      return NextResponse.json({ success: true, data: tokenStore.get(contractAddress) });
+    const existing = await query('SELECT * FROM tokens WHERE contract_address = $1 LIMIT 1', [contractAddress]);
+    if (existing.rows.length > 0) {
+      return NextResponse.json({ success: true, data: existing.rows[0] });
     }
 
-    const record: TokenStoreRecord = {
-      id: contractAddress,
-      name,
-      symbol,
-      description:              description || '',
-      image_url:                image_url || '',
-      social_link:              social_link || '',
-      total_supply:             totalSupply || '1000000000',
-      owner,
-      contract_address:         contractAddress,
-      created_at:               new Date().toISOString(),
-      bonding_curve_contract:   bonding_curve_contract || '',
-      bonding_curve_registered: bonding_curve_registered ?? false,
-    };
+    const INITIAL_PRICE = 0.05;
+    const supply = parseFloat(String(totalSupply || 0));
+    const initialMarketcap = INITIAL_PRICE * supply;
 
-    tokenStore.set(contractAddress, record);
-    return NextResponse.json({ success: true, data: record }, { status: 201 });
+    const result = await query(
+      `INSERT INTO tokens (
+        name, symbol, description, image_url, social_link,
+        total_supply, owner, contract_address,
+        price_snapshot_value, price_snapshot_time,
+        marketcap, volume_24h,
+        price_change_5m, price_change_1h, price_change_4h, price_change_6h,
+        trader_count, bonding_curve_contract, bonding_curve_registered,
+        sold_supply, current_price, created_at, updated_at
+      ) VALUES (
+        $1,$2,$3,$4,$5,
+        $6,$7,$8,
+        $9,NOW(),
+        $10,0,
+        0,0,0,0,
+        0,$11,$12,
+        0,$13,NOW(),NOW()
+      ) RETURNING *`,
+      [
+        name,
+        symbol,
+        description || null,
+        image_url || null,
+        social_link || null,
+        supply,
+        owner,
+        contractAddress,
+        INITIAL_PRICE,
+        initialMarketcap,
+        bonding_curve_contract || null,
+        bonding_curve_registered ?? false,
+        INITIAL_PRICE,
+      ]
+    );
+
+    return NextResponse.json({ success: true, data: result.rows[0] }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }

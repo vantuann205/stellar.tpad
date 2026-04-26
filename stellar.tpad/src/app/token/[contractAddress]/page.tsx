@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import BondingCurveTrader from '@/components/trade/BondingCurveTrader';
 import TokenLightweightChart from '@/components/trade/TokenLightweightChart';
-import TradingViewChart from '@/components/trade/TradingViewChart';
 import TransactionTable from '@/components/trade/TransactionTable';
 import BondingCurve from '@/components/trade/BondingCurve';
 import TokenInfoBar from '@/components/trade/TokenInfoBar';
@@ -14,6 +13,7 @@ import CommentSection from '@/components/trade/CommentSection';
 import HoldersList from '@/components/trade/HoldersList';
 import { getTokenState } from '@/features/trade/bonding-curve.service';
 import type { TokenStoreRecord as TokenRecord } from '@/lib/stores';
+import { stellarWalletService } from '@/services/wallet.service';
 
 interface PageProps {
   params: { contractAddress: string };
@@ -39,7 +39,6 @@ export default function TradingPage({ params }: PageProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [tokenMetrics, setTokenMetrics] = useState<any>(null);
   const [maxReserve, setMaxReserve] = useState(0);
-  const [chartType, setChartType] = useState<'lightweight' | 'tradingview'>('lightweight');
 
   // fetch token info
   useEffect(() => {
@@ -126,10 +125,11 @@ export default function TradingPage({ params }: PageProps) {
 
   const handleAddComment = async (text: string) => {
     try {
+      const walletAddress = await stellarWalletService.getPublicKey();
       const res = await fetch(`/api/tokens/${contractAddress}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, userAddress: walletAddress || 'Anonymous' }),
       });
       if (res.ok) {
         await fetchComments();
@@ -169,6 +169,7 @@ export default function TradingPage({ params }: PageProps) {
           <TokenInfoBar 
             token={token} 
             currentPrice={currentPrice}
+            metrics={tokenMetrics}
           />
         )}
 
@@ -179,50 +180,13 @@ export default function TradingPage({ params }: PageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left column - Chart & Bonding Curve & Transactions */}
           <div className="lg:col-span-8 xl:col-span-9 space-y-6">
-            {/* Chart with toggle */}
-            <div className="bg-pump-card border border-gray-800 rounded-lg p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                  Price Chart
-                </h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setChartType('lightweight')}
-                    className={`px-3 py-1 text-xs font-bold rounded ${
-                      chartType === 'lightweight'
-                        ? 'bg-pump-green text-white'
-                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                    }`}
-                  >
-                    Lightweight
-                  </button>
-                  <button
-                    onClick={() => setChartType('tradingview')}
-                    className={`px-3 py-1 text-xs font-bold rounded ${
-                      chartType === 'tradingview'
-                        ? 'bg-pump-green text-white'
-                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                    }`}
-                  >
-                    TradingView
-                  </button>
-                </div>
-              </div>
-              
-              {chartType === 'lightweight' ? (
-                <TokenLightweightChart 
-                  tokenAddress={contractAddress} 
-                  refreshKey={refreshKey} 
-                />
-              ) : (
-                <TradingViewChart
-                  symbol="BINANCE:XLMUSDT"
-                  height={500}
-                  theme="dark"
-                  interval="15"
-                />
-              )}
-            </div>
+            <TokenLightweightChart
+              tokenAddress={contractAddress}
+              ticker={ticker}
+              currentPrice={currentPrice}
+              createdAt={token?.created_at}
+              refreshKey={refreshKey}
+            />
 
             {/* Bonding Curve Progress */}
             <div className="bg-pump-card border border-gray-800 rounded-lg p-5">

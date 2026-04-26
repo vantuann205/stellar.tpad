@@ -1,50 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTokenStore, getTradeStore } from '@/lib/stores';
+import { query } from '@/lib/db';
+import { ensureDatabaseSchema } from '@/lib/db-schema';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { contractAddress: string } }
 ) {
   try {
-    const tokenStore = await getTokenStore();
-    const tradeStore = await getTradeStore();
-    
-    const token = tokenStore.getByContractAddress(params.contractAddress);
-    if (!token) {
+    await ensureDatabaseSchema();
+
+    const tokenResult = await query(
+      `SELECT id, total_supply FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1`,
+      [params.contractAddress]
+    );
+    if (tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
+    const token = tokenResult.rows[0];
+    const tokenId = token.id;
+    const totalSupply = Number(token.total_supply || 0);
 
-    const trades = tradeStore.getByTokenId(token.id);
-    
-    // Calculate balances from trades
-    const balances = new Map<string, number>();
-    
-    trades.forEach(trade => {
-      const tokenAmount = parseFloat(trade.tokenAmount) / 10_000_000; // Convert to human-readable
-      if (trade.type === 'buy') {
-        const current = balances.get(trade.user) || 0;
-        balances.set(trade.user, current + tokenAmount);
-      } else if (trade.type === 'sell') {
-        const current = balances.get(trade.user) || 0;
-        balances.set(trade.user, current - tokenAmount);
-      }
+    const result = await query(
+      `SELECT
+          address,
+          SUM(net_qty) AS net_qty
+       FROM (
+         SELECT buyer_address AS address, SUM(quantity::numeric) AS net_qty
+         FROM purchases
+         WHERE token_id = $1 AND buyer_address IS NOT NULL AND status = 'completed'
+         GROUP BY buyer_address
+         UNION ALL
+         SELECT seller_address AS address, -SUM(quantity::numeric) AS net_qty
+         FROM purchases
+         WHERE token_id = $1 AND seller_address IS NOT NULL AND status = 'completed'
+         GROUP BY seller_address
+       ) t
+       GROUP BY address
+       HAVING SUM(net_qty) > 0
+       ORDER BY SUM(net_qty) DESC
+       LIMIT 50`,
+      [tokenId]
+    );
+
+    const holdersWithPercentage = result.rows.map((row: any) => {
+      const balance = Number(row.net_qty || 0);
+      return {
+        address: row.address,
+        balance: balance.toFixed(2),
+        percentage: totalSupply > 0 ? (balance / totalSupply) * 100 : 0,
+      };
     });
-
-    // Filter out zero balances and calculate total
-    const holders = Array.from(balances.entries())
-      .filter(([_, balance]) => balance > 0)
-      .map(([address, balance]) => ({ address, balance }));
-    
-    const totalSupply = holders.reduce((sum, h) => sum + h.balance, 0);
-
-    // Sort by balance descending
-    holders.sort((a, b) => b.balance - a.balance);
-
-    const holdersWithPercentage = holders.map(h => ({
-      address: h.address,
-      balance: h.balance.toFixed(2),
-      percentage: totalSupply > 0 ? (h.balance / totalSupply) * 100 : 0,
-    }));
 
     return NextResponse.json({
       success: true,

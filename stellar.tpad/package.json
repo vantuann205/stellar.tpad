@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest --passWithNoTests",
-    "test:wallet": "jest __tests__/stellar-wallet-service.test.ts __tests__/wallet-state.test.ts --no-coverage"
+    "test:wallet": "jest __tests__/stellar-wallet-service.test.ts __tests__/wallet-state.test.ts --no-coverage",
+    "init-db": "tsx scripts/init-db.ts"
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^2.1.0",

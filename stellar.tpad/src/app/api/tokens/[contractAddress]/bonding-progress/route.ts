@@ -1,34 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTokenStore, getTradeStore } from '@/lib/stores';
+import { query } from '@/lib/db';
+import { ensureDatabaseSchema } from '@/lib/db-schema';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { contractAddress: string } }
 ) {
   try {
-    const tokenStore = await getTokenStore();
-    const tradeStore = await getTradeStore();
-    
-    const token = tokenStore.getByContractAddress(params.contractAddress);
-    if (!token) {
+    await ensureDatabaseSchema();
+
+    const tokenResult = await query(
+      `SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1`,
+      [params.contractAddress]
+    );
+    if (tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
+    const tokenId = tokenResult.rows[0].id;
 
-    const trades = tradeStore.getByTokenId(token.id);
-    
-    // Calculate total collected from buys
-    let maxReserve = 0;
-    trades.forEach(trade => {
-      const xlmAmount = parseFloat(trade.xlmAmount) / 10_000_000; // Convert stroops to XLM
-      if (trade.type === 'buy') {
-        maxReserve += xlmAmount;
-      } else if (trade.type === 'sell') {
-        maxReserve -= xlmAmount;
-      }
-    });
+    const reserveResult = await query(
+      `SELECT
+          GREATEST(
+            COALESCE(SUM(CASE WHEN buyer_address IS NOT NULL THEN total_price ELSE 0 END), 0)
+            - COALESCE(SUM(CASE WHEN seller_address IS NOT NULL THEN total_price ELSE 0 END), 0),
+            0
+          ) AS max_reserve
+       FROM purchases
+       WHERE token_id = $1 AND status = 'completed'`,
+      [tokenId]
+    );
 
-    // Ensure non-negative
-    maxReserve = Math.max(0, maxReserve);
+    const maxReserve = Number(reserveResult.rows[0]?.max_reserve || 0);
 
     return NextResponse.json({
       success: true,

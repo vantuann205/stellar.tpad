@@ -1,58 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTokenStore, getTradeStore } from '@/lib/stores';
+import { query } from '@/lib/db';
+import { ensureDatabaseSchema } from '@/lib/db-schema';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { contractAddress: string } }
 ) {
   try {
-    const tokenStore = await getTokenStore();
-    const tradeStore = await getTradeStore();
-    
-    const token = tokenStore.getByContractAddress(params.contractAddress);
-    if (!token) {
+    await ensureDatabaseSchema();
+
+    const tokenResult = await query(
+      `SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1`,
+      [params.contractAddress]
+    );
+    if (tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
+    const tokenId = tokenResult.rows[0].id;
 
-    const trades = tradeStore.getByTokenId(token.id);
+    const tradesResult = await query(
+      `SELECT price_per_token, total_price, created_at,
+              COALESCE(buyer_address, seller_address) AS actor
+       FROM purchases
+       WHERE token_id = $1 AND status = 'completed'
+       ORDER BY created_at ASC`,
+      [tokenId]
+    );
+
+    const rows = tradesResult.rows;
     const now = Date.now();
 
-    // Calculate price changes
     const calculatePriceChange = (windowMs: number) => {
-      const windowStart = now - windowMs;
-      const recentTrades = trades.filter(t => new Date(t.timestamp).getTime() >= windowStart);
-      
-      if (recentTrades.length < 2) return null;
-      
-      const sorted = recentTrades.sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-      
-      const firstPrice = sorted[0].price;
-      const lastPrice = sorted[sorted.length - 1].price;
-      
-      if (firstPrice <= 0) return null;
-      return ((lastPrice - firstPrice) / firstPrice) * 100;
+      const from = now - windowMs;
+      const windowRows = rows.filter((r: any) => new Date(r.created_at).getTime() >= from);
+      if (windowRows.length < 2) return null;
+      const first = Number(windowRows[0].price_per_token || 0);
+      const last = Number(windowRows[windowRows.length - 1].price_per_token || 0);
+      if (first <= 0) return null;
+      return ((last - first) / first) * 100;
     };
 
-    // Calculate volume
-    const calculate24hVolume = () => {
-      const windowStart = now - 24 * 60 * 60 * 1000;
-      const recentTrades = trades.filter(t => new Date(t.timestamp).getTime() >= windowStart);
-      return recentTrades.reduce((sum, t) => {
-        const xlmAmount = parseFloat(t.xlmAmount) / 10_000_000;
-        return sum + xlmAmount;
-      }, 0);
-    };
+    const volume24h = rows
+      .filter((r: any) => new Date(r.created_at).getTime() >= (now - 24 * 60 * 60 * 1000))
+      .reduce((sum: number, r: any) => sum + Number(r.total_price || 0), 0);
 
-    // Count unique traders
-    const countTraders = () => {
-      const addresses = new Set<string>();
-      trades.forEach(t => {
-        addresses.add(t.user);
-      });
-      return addresses.size;
-    };
+    const traderCount = new Set(
+      rows
+        .map((r: any) => String(r.actor || '').trim())
+        .filter((v: string) => v.length > 0)
+    ).size;
 
     const metrics = {
       price_change_5m: calculatePriceChange(5 * 60 * 1000),
@@ -60,8 +56,8 @@ export async function GET(
       price_change_4h: calculatePriceChange(4 * 60 * 60 * 1000),
       price_change_6h: calculatePriceChange(6 * 60 * 60 * 1000),
       price_change_24h: calculatePriceChange(24 * 60 * 60 * 1000),
-      volume_24h: calculate24hVolume(),
-      trader_count: countTraders(),
+      volume_24h: volume24h,
+      trader_count: traderCount,
     };
 
     return NextResponse.json({ success: true, data: metrics });

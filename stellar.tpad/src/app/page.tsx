@@ -112,6 +112,12 @@ export default function Home() {
     }
   };
   const handleGoHome    = () => { setSelectedCoin(null); setViewState(ViewState.GRID); fetchTokens(); };
+  const handleGoProfile = () => {
+    // Navigate to profile page
+    if (walletState.address) {
+      router.push(`/profile/${walletState.address}`);
+    }
+  };
 
   const topCoin = useMemo(() =>
     tokens.length ? [...tokens].sort((a, b) => b.marketCap - a.marketCap)[0] : null,
@@ -133,6 +139,7 @@ export default function Home() {
         onGoCreate={() => setViewState(ViewState.CREATE)}
         onGoLivestreams={() => setViewState(ViewState.LIVESTREAMS)}
         onGoSupport={() => setViewState(ViewState.SUPPORT)}
+        onGoProfile={handleGoProfile}
         onConnectWallet={handleConnectWallet}
         onDisconnectWallet={handleDisconnectWallet}
         onSelectToken={(addr) => {

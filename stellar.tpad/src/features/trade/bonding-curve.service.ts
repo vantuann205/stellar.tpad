@@ -200,6 +200,40 @@ export async function getTokenState(tokenAddress: string): Promise<TokenCurveSta
   };
 }
 
+/**
+ * Simulate token.balance(address) on the token contract.
+ * Returns balance in raw units (7 decimals).
+ */
+export async function getWalletTokenBalance(tokenAddress: string, walletAddress: string): Promise<bigint> {
+  const rpc = getRpc();
+  const tokenContract = new Contract(tokenAddress);
+
+  const sourceAccount = {
+    accountId: () => 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN',
+    sequenceNumber: () => '0',
+    incrementSequenceNumber: () => {},
+  } as any;
+
+  const tx = new TransactionBuilder(sourceAccount, {
+    fee: BASE_FEE,
+    networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
+  })
+    .addOperation(
+      tokenContract.call('balance', new Address(walletAddress).toScVal())
+    )
+    .setTimeout(30)
+    .build();
+
+  const sim = await rpc.simulateTransaction(tx);
+  if (SorobanRpc.Api.isSimulationError(sim)) {
+    throw parseContractError(sim.error);
+  }
+
+  const result = (sim as SorobanRpc.Api.SimulateTransactionSuccessResponse).result;
+  if (!result) throw new Error('No simulation result for balance');
+  return BigInt(scValToNative(result.retval) as string | number);
+}
+
 // ─── Execute Buy/Sell ─────────────────────────────────────────────────────────
 
 export interface BuyParams {

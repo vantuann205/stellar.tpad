@@ -1,31 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTokenStore, getCommentStore } from '@/lib/stores';
+import { query } from '@/lib/db';
+import { ensureDatabaseSchema } from '@/lib/db-schema';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { contractAddress: string } }
 ) {
   try {
-    const tokenStore = await getTokenStore();
-    const commentStore = await getCommentStore();
-    
-    const token = tokenStore.getByContractAddress(params.contractAddress);
-    if (!token) {
+    await ensureDatabaseSchema();
+
+    const tokenResult = await query(
+      'SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1',
+      [params.contractAddress]
+    );
+    if (tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
 
-    const comments = commentStore.getByTokenId(token.id);
+    const tokenId = tokenResult.rows[0].id;
+    const commentsResult = await query(
+      `SELECT c.*, 
+              COALESCE(NULLIF(w.display_name, ''), c.user_address) AS username,
+              COALESCE(NULLIF(w.avatar_url, ''), '') AS avatar_url
+       FROM comments c
+       LEFT JOIN wallets w ON LOWER(w.wallet_address) = LOWER(c.user_address)
+       WHERE c.token_id = $1
+       ORDER BY c.created_at ASC`,
+      [tokenId]
+    );
     
     return NextResponse.json({
       success: true,
-      data: comments.map(c => ({
-        id: c.id,
-        user: c.user_address.length > 10 
-          ? c.user_address.slice(0, 6) + '...' + c.user_address.slice(-4)
-          : c.user_address,
-        avatarUrl: c.avatar_url,
-        text: c.comment_text,
-        timestamp: new Date(c.created_at).toLocaleString(),
+      data: commentsResult.rows.map((c: any) => ({
+        id: String(c.id),
+        user: c.username || c.user_address || 'Anonymous',
+        avatarUrl: c.avatar_url || '',
+        text: c.comment_text || '',
+        timestamp: new Date(c.created_at).toLocaleString('en-GB', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }),
       })),
     });
   } catch (error) {
@@ -39,36 +58,37 @@ export async function POST(
   { params }: { params: { contractAddress: string } }
 ) {
   try {
-    const tokenStore = await getTokenStore();
-    const commentStore = await getCommentStore();
-    
-    const token = tokenStore.getByContractAddress(params.contractAddress);
-    if (!token) {
+    await ensureDatabaseSchema();
+
+    const tokenResult = await query(
+      'SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1',
+      [params.contractAddress]
+    );
+    if (tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
 
     const body = await request.json();
-    const { text } = body;
+    const { text, userAddress, user } = body;
 
     if (!text || text.trim().length === 0) {
       return NextResponse.json({ success: false, error: 'Comment text is required' }, { status: 400 });
     }
 
-    // TODO: Get actual user address from wallet connection
-    const userAddress = 'Anonymous';
-
-    const comment = commentStore.create({
-      token_id: token.id,
-      user_address: userAddress,
-      comment_text: text.trim(),
-      avatar_url: null,
-    });
+    const resolvedUser = userAddress || user || 'Anonymous';
+    const result = await query(
+      `INSERT INTO comments (token_id, user_address, comment_text, created_at)
+       VALUES ($1, $2, $3, NOW())
+       RETURNING *`,
+      [tokenResult.rows[0].id, resolvedUser, text.trim()]
+    );
+    const comment = result.rows[0];
 
     return NextResponse.json({
       success: true,
       data: {
-        id: comment.id,
-        user: userAddress,
+        id: String(comment.id),
+        user: resolvedUser,
         text: comment.comment_text,
         timestamp: new Date(comment.created_at).toLocaleString(),
       },

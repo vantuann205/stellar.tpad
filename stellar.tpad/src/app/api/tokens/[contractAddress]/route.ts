@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { tokenStore } from '@/lib/stores';
+import { query } from '@/lib/db';
+import { ensureDatabaseSchema } from '@/lib/db-schema';
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: { contractAddress: string } },
 ) {
-  const { contractAddress } = params;
-  const token = tokenStore.get(contractAddress);
+  try {
+    await ensureDatabaseSchema();
+    const { contractAddress } = params;
 
-  if (!token) {
-    return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
+    const result = await query(
+      `SELECT * FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1`,
+      [contractAddress]
+    );
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Error fetching token:', error);
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
-
-  let current_price: number | undefined;
-  if (token.bonding_curve_registered && token.sold_supply) {
-    const soldRaw = BigInt(token.sold_supply);
-    const priceStroops = 100 + Number(soldRaw / 10_000_000n);
-    current_price = priceStroops / 1e7;
-  }
-
-  return NextResponse.json({ success: true, data: { ...token, current_price } });
 }
