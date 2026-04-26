@@ -16,6 +16,13 @@ export interface TokenRecord {
   owner: string;
   contract_address: string;
   created_at: string;
+  // Bonding curve fields
+  bonding_curve_contract?: string;
+  bonding_curve_registered?: boolean;
+  current_price?: number;    // XLM per token
+  volume_24h?: number;       // XLM
+  price_change_5m?: number;  // %
+  sold_supply?: string;      // raw units string
 }
 
 // Module-level in-memory store (survives hot-reload in dev via globalThis)
