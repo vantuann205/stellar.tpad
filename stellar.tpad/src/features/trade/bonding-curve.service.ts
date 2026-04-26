@@ -199,3 +199,126 @@ export async function getTokenState(tokenAddress: string): Promise<TokenCurveSta
     active: Boolean(raw.active),
   };
 }
+
+// ─── Execute Buy/Sell ─────────────────────────────────────────────────────────
+
+export interface BuyParams {
+  buyer: string;           // G... address
+  tokenAddress: string;    // C... contract address
+  tokenAmount: bigint;     // raw units (7 decimals)
+  signTransaction: (xdr: string, opts?: { networkPassphrase?: string }) => Promise<string>;
+}
+
+export interface SellParams {
+  seller: string;
+  tokenAddress: string;
+  tokenAmount: bigint;
+  signTransaction: (xdr: string, opts?: { networkPassphrase?: string }) => Promise<string>;
+}
+
+/**
+ * Execute buy on BondingCurve_Contract via Freighter.
+ * Applies 1% slippage automatically.
+ * Returns txHash after confirmation.
+ */
+export async function executeBuy(params: BuyParams): Promise<string> {
+  const { buyer, tokenAddress, tokenAmount, signTransaction } = params;
+  const rpc = getRpc();
+  const contract = new Contract(BONDING_CURVE_CONTRACT);
+
+  // Get cost first for slippage
+  const cost = await getBuyPrice(tokenAddress, tokenAmount);
+  const maxXlmIn = calcSlippageBuy(cost);
+
+  const account = await rpc.getAccount(buyer);
+
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
+  })
+    .addOperation(
+      contract.call(
+        'buy',
+        new Address(buyer).toScVal(),
+        new Address(tokenAddress).toScVal(),
+        nativeToScVal(tokenAmount, { type: 'i128' }),
+        nativeToScVal(maxXlmIn, { type: 'i128' }),
+      )
+    )
+    .setTimeout(30)
+    .build();
+
+  // Simulate to get footprint
+  const sim = await rpc.simulateTransaction(tx);
+  if (SorobanRpc.Api.isSimulationError(sim)) {
+    throw parseContractError(sim.error);
+  }
+
+  // Assemble with footprint
+  const assembled = SorobanRpc.assembleTransaction(tx, sim).build();
+  const signedXdr = await signTransaction(assembled.toXDR(), {
+    networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
+  });
+
+  const submitted = await rpc.sendTransaction(
+    TransactionBuilder.fromXDR(signedXdr, STELLAR_NETWORK_PASSPHRASE as string)
+  );
+
+  if (submitted.status === 'ERROR') {
+    throw parseContractError(submitted.errorResult?.toString() ?? 'Send failed');
+  }
+
+  return pollTransaction(rpc, submitted.hash);
+}
+
+/**
+ * Execute sell on BondingCurve_Contract via Freighter.
+ * Applies 1% slippage automatically.
+ * Returns txHash after confirmation.
+ */
+export async function executeSell(params: SellParams): Promise<string> {
+  const { seller, tokenAddress, tokenAmount, signTransaction } = params;
+  const rpc = getRpc();
+  const contract = new Contract(BONDING_CURVE_CONTRACT);
+
+  const proceeds = await getSellPrice(tokenAddress, tokenAmount);
+  const minXlmOut = calcSlippageSell(proceeds);
+
+  const account = await rpc.getAccount(seller);
+
+  const tx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
+  })
+    .addOperation(
+      contract.call(
+        'sell',
+        new Address(seller).toScVal(),
+        new Address(tokenAddress).toScVal(),
+        nativeToScVal(tokenAmount, { type: 'i128' }),
+        nativeToScVal(minXlmOut, { type: 'i128' }),
+      )
+    )
+    .setTimeout(30)
+    .build();
+
+  const sim = await rpc.simulateTransaction(tx);
+  if (SorobanRpc.Api.isSimulationError(sim)) {
+    throw parseContractError(sim.error);
+  }
+
+  const assembled = SorobanRpc.assembleTransaction(tx, sim).build();
+  const signedXdr = await signTransaction(assembled.toXDR(), {
+    networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
+  });
+
+  const submitted = await rpc.sendTransaction(
+    TransactionBuilder.fromXDR(signedXdr, STELLAR_NETWORK_PASSPHRASE as string)
+  );
+
+  if (submitted.status === 'ERROR') {
+    throw parseContractError(submitted.errorResult?.toString() ?? 'Send failed');
+  }
+
+  return pollTransaction(rpc, submitted.hash);
+}
