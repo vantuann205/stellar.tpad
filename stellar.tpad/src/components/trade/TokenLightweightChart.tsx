@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType } from 'lightweight-charts';
+import { 
+  createChart, 
+  ColorType, 
+  type IChartApi, 
+  type ISeriesApi,
+  CandlestickSeries,
+  type CandlestickData,
+  type Time
+} from 'lightweight-charts';
 import type { OHLCVRecord } from '@/types';
 
 interface TokenLightweightChartProps {
@@ -14,8 +22,8 @@ type Interval = typeof INTERVALS[number];
 
 export default function TokenLightweightChart({ tokenAddress, refreshKey }: TokenLightweightChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef     = useRef<ReturnType<typeof createChart> | null>(null);
-  const seriesRef    = useRef<any>(null);
+  const chartRef     = useRef<IChartApi | null>(null);
+  const seriesRef    = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
   const [interval, setIntervalState] = useState<Interval>('15m');
 
@@ -39,24 +47,15 @@ export default function TokenLightweightChart({ tokenAddress, refreshKey }: Toke
       height: 380,
     });
 
-    // lightweight-charts v5: addSeries with CandlestickSeries type
-    const series = (chart as any).addCandlestickSeries
-      ? (chart as any).addCandlestickSeries({
-          upColor:   '#26a69a',
-          downColor: '#ef5350',
-          borderUpColor:   '#26a69a',
-          borderDownColor: '#ef5350',
-          wickUpColor:   '#26a69a',
-          wickDownColor: '#ef5350',
-        })
-      : (chart as any).addSeries('Candlestick', {
-          upColor:   '#26a69a',
-          downColor: '#ef5350',
-          borderUpColor:   '#26a69a',
-          borderDownColor: '#ef5350',
-          wickUpColor:   '#26a69a',
-          wickDownColor: '#ef5350',
-        });
+    // lightweight-charts: use addSeries with CandlestickSeries
+    const series = chart.addSeries(CandlestickSeries, {
+      upColor:   '#26a69a',
+      downColor: '#ef5350',
+      borderUpColor:   '#26a69a',
+      borderDownColor: '#ef5350',
+      wickUpColor:   '#26a69a',
+      wickDownColor: '#ef5350',
+    });
 
     chartRef.current = chart;
     seriesRef.current = series;

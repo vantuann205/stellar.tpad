@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useReducer } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import Header, { type HeaderRef } from '@/components/layout/Header';
 import KingOfTheHill from '@/components/common/KingOfTheHill';
 import TrendingCoins from '@/components/common/TrendingCoins';
@@ -14,7 +15,6 @@ import { getWalletErrorMessage, stellarWalletService, WalletServiceError } from 
 import { initialWalletState, walletStateReducer } from '@/store/wallet.store';
 import { useRef } from 'react';
 
-const CoinDetail     = dynamic(() => import('@/components/common/CoinDetail'),     { ssr: false });
 const CreateCoinPage = dynamic(() => import('@/components/common/CreateCoinPage'), { ssr: false });
 const LivestreamsPage = dynamic(() => import('@/components/common/LivestreamsPage'), { ssr: false });
 const SupportPage    = dynamic(() => import('@/components/common/SupportPage'),    { ssr: false });
@@ -31,6 +31,7 @@ const formatChangeValue = (v: number | null) =>
   v === null || !Number.isFinite(v) ? '--' : formatPriceChange(v);
 
 export default function Home() {
+  const router = useRouter();
   const [viewState, setViewState]       = useState<ViewState>(ViewState.GRID);
   const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null);
   const [sortOption, setSortOption]     = useState<SortOption>('creationTime');
@@ -104,7 +105,12 @@ export default function Home() {
     });
   }, []);
 
-  const handleCoinClick = (coin: Coin) => { setSelectedCoin(coin); setViewState(ViewState.DETAIL); };
+  const handleCoinClick = (coin: Coin) => {
+    // Navigate to token page instead of showing CoinDetail
+    if (coin.contractAddress) {
+      router.push(`/token/${coin.contractAddress}`);
+    }
+  };
   const handleGoHome    = () => { setSelectedCoin(null); setViewState(ViewState.GRID); fetchTokens(); };
 
   const topCoin = useMemo(() =>
@@ -130,8 +136,8 @@ export default function Home() {
         onConnectWallet={handleConnectWallet}
         onDisconnectWallet={handleDisconnectWallet}
         onSelectToken={(addr) => {
-          const t = tokens.find(t => t.contractAddress === addr);
-          if (t) { setSelectedCoin(t); setViewState(ViewState.DETAIL); }
+          // Navigate to token page
+          router.push(`/token/${addr}`);
         }}
         walletConnected={walletState.status === 'connected'}
         walletAddress={walletState.address}
@@ -215,24 +221,14 @@ export default function Home() {
           </>
         )}
 
-        {viewState === ViewState.DETAIL && selectedCoin && (
-          <CoinDetail
-            coin={selectedCoin}
-            onBack={handleGoHome}
-            showToast={addToast}
-            removeToast={removeToast}
-          />
-        )}
-
         {viewState === ViewState.CREATE && (
           <CreateCoinPage
             onCancel={handleGoHome}
             onTokenCreated={async (addr, name, symbol) => {
               addToast('success', '🚀 Token Launched!', `${name} (${symbol}) deployed`);
               await fetchTokens();
-              const newToken = tokens.find(t => t.contractAddress === addr);
-              if (newToken) { setSelectedCoin(newToken); setViewState(ViewState.DETAIL); }
-              else handleGoHome();
+              // Navigate to new token page
+              router.push(`/token/${addr}`);
             }}
           />
         )}

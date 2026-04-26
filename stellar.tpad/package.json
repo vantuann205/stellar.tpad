@@ -18,6 +18,7 @@
     "@types/pg": "^8.20.0",
     "autoprefixer": "^10.0.1",
     "cloudinary": "^2.9.0",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
     "ethers": "^6.16.0",
     "lightweight-charts": "^5.1.0",
