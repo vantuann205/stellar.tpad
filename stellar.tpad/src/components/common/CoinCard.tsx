@@ -1,10 +1,12 @@
 import React from 'react';
 import { Coin } from '@/types';
 import { formatMarketCap } from '@/lib/helpers';
+import type { TokenRecord } from '@/app/api/tokens/route';
 
 interface CoinCardProps {
   coin: Coin;
   onClick: (coin: Coin) => void;
+  tokenRecord?: TokenRecord; // optional enriched data from API
 }
 
 const getTimeAgo = (timestamp: number) => {
@@ -17,10 +19,18 @@ const getTimeAgo = (timestamp: number) => {
   return `${diffInDays}d ago`;
 };
 
-const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick }) => {
-  const priceChange = coin.bondingCurveProgress || 0;
-  const progressCls = coin.bondingCurveProgress > 80 ? 'bg-yellow-400' : 'bg-pump-green';
-  const isBuy = coin.lastTradeType !== 'sell'; // default xanh nếu chưa có giao dịch
+const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick, tokenRecord }) => {
+  const priceChange = tokenRecord?.price_change_5m ?? coin.bondingCurveProgress ?? 0;
+  const progressPct = tokenRecord
+    ? (tokenRecord.sold_supply
+        ? Math.min(100, Number(BigInt(tokenRecord.sold_supply) * 10000n / (1_000_000_000n * 10_000_000n)) / 100)
+        : 0)
+    : coin.bondingCurveProgress;
+  const progressCls = progressPct > 80 ? 'bg-yellow-400' : 'bg-pump-green';
+  const isBuy = priceChange >= 0;
+
+  const currentPrice = tokenRecord?.current_price;
+  const volume24h    = tokenRecord?.volume_24h;
 
   return (
     <div
@@ -39,39 +49,47 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick }) => {
         <h3 className="font-bold text-gray-900 dark:text-white text-[15px] truncate">
           {coin.name}
         </h3>
-        
+
         <div className="text-gray-500 dark:text-gray-400 text-[13px] truncate -mt-0.5 mb-[2px]">
           {coin.ticker}
         </div>
 
         <div className="flex items-center text-gray-500 dark:text-gray-400 text-[12px] truncate space-x-[4px] mb-[3px]">
           <span className="text-[12px]">🐸</span>
-          <span className="truncate max-w-[80px]">
-            {coin.creator.slice(0, 6)}
-          </span>
+          <span className="truncate max-w-[80px]">{coin.creator.slice(0, 6)}</span>
           <span>{getTimeAgo(coin.createdAt)}</span>
         </div>
 
         <div className="flex items-center space-x-2 text-[12.5px] whitespace-nowrap mb-1">
-          <div className="flex items-center text-[13px]">
-            <span className="mr-[4px] font-medium text-gray-500 uppercase">MC</span>
-            <span className="font-bold text-gray-900 dark:text-white">{formatMarketCap(coin.marketCap)}</span>
-          </div>
+          {currentPrice !== undefined ? (
+            <div className="flex items-center text-[13px]">
+              <span className="mr-[4px] font-medium text-gray-500 uppercase">price</span>
+              <span className="font-bold text-white font-mono">{currentPrice.toFixed(6)} XLM</span>
+            </div>
+          ) : (
+            <div className="flex items-center text-[13px]">
+              <span className="mr-[4px] font-medium text-gray-500 uppercase">MC</span>
+              <span className="font-bold text-gray-900 dark:text-white">{formatMarketCap(coin.marketCap)}</span>
+            </div>
+          )}
 
           <div className="w-9 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-sm overflow-hidden flex-shrink-0">
-            <div 
-              className={`h-full ${progressCls}`}
-              style={{ width: `${coin.bondingCurveProgress}%` }}
-            />
+            <div className={`h-full ${progressCls}`} style={{ width: `${progressPct}%` }} />
           </div>
 
           <div className={`font-medium ${isBuy ? 'text-pump-green' : 'text-pump-red'}`}>
-            {isBuy ? '↑' : '↓'} {priceChange.toFixed(2)}%
+            {isBuy ? '↑' : '↓'} {Math.abs(priceChange).toFixed(2)}%
           </div>
         </div>
 
+        {volume24h !== undefined && (
+          <div className="text-gray-500 text-[11px] font-mono">
+            vol 24h: {volume24h.toFixed(2)} XLM
+          </div>
+        )}
+
         <div className="text-gray-500 dark:text-gray-400 text-[12px] truncate">
-          {coin.description ? coin.description : `https://axiom.trade/@${coin.ticker.toLowerCase()}`}
+          {coin.description || `https://axiom.trade/@${coin.ticker.toLowerCase()}`}
         </div>
       </div>
     </div>
