@@ -82,7 +82,21 @@ export async function GET() {
        ORDER BY t.created_at DESC`
     );
 
-    return NextResponse.json({ success: true, data: result.rows });
+    const normalizedRows = result.rows.map((row: any) => {
+      const createdAt = new Date(row.created_at);
+      if (Number.isNaN(createdAt.getTime())) return row;
+
+      // Backward-compat for rows previously saved with +7h offset (e.g. from local DB)
+      if (createdAt.getTime() > Date.now() + (30 * 60 * 1000)) {
+        return {
+          ...row,
+          created_at: new Date(createdAt.getTime() - (7 * 60 * 60 * 1000)).toISOString(),
+        };
+      }
+      return row;
+    });
+
+    return NextResponse.json({ success: true, data: normalizedRows });
   } catch (error) {
     console.error('Error fetching tokens:', error);
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
@@ -108,7 +122,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, data: existing.rows[0] });
     }
 
-    const INITIAL_PRICE = 0.05;
+    const INITIAL_PRICE = 0.0001;
     const supply = parseFloat(String(totalSupply || 0));
     const initialMarketcap = INITIAL_PRICE * supply;
 

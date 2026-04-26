@@ -44,7 +44,10 @@ export async function GET(request: NextRequest) {
         const result = await query(
             `WITH normalized AS (
                 SELECT
-                    created_at                                               AS trade_ts,
+                    CASE
+                        WHEN created_at > NOW() + INTERVAL '30 minutes' THEN created_at - INTERVAL '7 hours'
+                        ELSE created_at
+                    END                                                      AS trade_ts,
                     price_per_token::float                                   AS avg_price,
                     COALESCE(
                         quantity::float,

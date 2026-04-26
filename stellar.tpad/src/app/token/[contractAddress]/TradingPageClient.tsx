@@ -45,6 +45,19 @@ export default function TradingPageClient({ token: initialToken, contractAddress
   const [walletState, dispatchWallet] = useReducer(walletStateReducer, initialWalletState);
   const headerRef = useRef<HeaderRef>(null);
 
+  // fetch token data (current_price etc)
+  const fetchToken = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/tokens/${contractAddress}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setToken(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching token:', error);
+    }
+  }, [contractAddress]);
+
   // fetch sold_supply from contract
   const fetchSoldSupply = useCallback(async () => {
     try {
@@ -93,29 +106,33 @@ export default function TradingPageClient({ token: initialToken, contractAddress
   }, [contractAddress]);
 
   useEffect(() => {
+    fetchToken();
     fetchSoldSupply();
     fetchTokenMetrics();
     fetchComments();
     fetchBondingProgress();
 
     // Polling intervals
+    const tokenInterval = setInterval(fetchToken, 5000);
     const metricsInterval = setInterval(fetchTokenMetrics, 10000);
     const progressInterval = setInterval(fetchBondingProgress, 15000);
     const commentsInterval = setInterval(fetchComments, 20000);
 
     return () => {
+      clearInterval(tokenInterval);
       clearInterval(metricsInterval);
       clearInterval(progressInterval);
       clearInterval(commentsInterval);
     };
-  }, [fetchSoldSupply, fetchTokenMetrics, fetchComments, fetchBondingProgress]);
+  }, [fetchToken, fetchSoldSupply, fetchTokenMetrics, fetchComments, fetchBondingProgress]);
 
   const onTradeSuccess = useCallback(() => {
     setRefreshKey(k => k + 1);
+    fetchToken();
     fetchSoldSupply();
     fetchTokenMetrics();
     fetchBondingProgress();
-  }, [fetchSoldSupply, fetchTokenMetrics, fetchBondingProgress]);
+  }, [fetchToken, fetchSoldSupply, fetchTokenMetrics, fetchBondingProgress]);
 
   const handleAddComment = async (text: string) => {
     try {
