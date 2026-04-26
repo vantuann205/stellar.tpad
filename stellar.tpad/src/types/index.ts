@@ -62,3 +62,39 @@ declare global {
     rabet?: unknown;
   }
 }
+
+// Bonding curve state from BondingCurve_Contract
+export interface TokenCurveState {
+  token_address: string;
+  admin: string;
+  base_price: bigint;
+  slope: bigint;
+  total_supply: bigint;
+  sold_supply: bigint;
+  xlm_reserve: bigint;
+  active: boolean;
+}
+
+// Trade record stored in in-memory store
+export interface TradeRecord {
+  id: string;
+  tokenId: string;
+  type: 'buy' | 'sell';
+  tokenAmount: string;  // raw units string (7 decimals)
+  xlmAmount: string;    // stroops string
+  price: number;        // XLM per token (human-readable)
+  fee: string;          // stroops string
+  user: string;         // G... address
+  txHash: string;
+  timestamp: string;    // ISO 8601
+}
+
+// OHLCV candle record
+export interface OHLCVRecord {
+  time: number;    // Unix seconds (bucket start)
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;  // XLM (human-readable)
+}
