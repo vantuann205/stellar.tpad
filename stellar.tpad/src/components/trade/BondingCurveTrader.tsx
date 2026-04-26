@@ -8,14 +8,14 @@ import {
   signTransaction,
 } from '@stellar/freighter-api';
 import {
+  buyToken,
+  sellToken,
   getBuyPrice,
   getSellPrice,
   getTokenState,
   getWalletTokenBalance,
-  executeBuy,
-  executeSell,
   ContractError,
-} from '@/features/trade/bonding-curve.service';
+} from '@/features/bonding-curve/bonding-curve.service';
 import { STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
 
 interface BondingCurveTraderProps {
@@ -103,7 +103,10 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
     if (!tokenAddress) return;
     getTokenState(tokenAddress)
       .then(s => {
-        const priceStroops = s.base_price + s.slope * s.sold_supply / STROOPS;
+        const basePrice = BigInt(s.base_price);
+        const slope = BigInt(s.slope);
+        const soldSupply = BigInt(s.sold_supply);
+        const priceStroops = basePrice + slope * soldSupply / STROOPS;
         setCurrentPrice(stroopsToXlm(priceStroops));
       })
       .catch(() => {});
@@ -132,11 +135,13 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
       try {
         const rawAmount = BigInt(Math.floor(num * 1e7));
         if (nextMode === 'buy') {
-          const cost = await getBuyPrice(tokenAddress, rawAmount);
+          const costStr = await getBuyPrice(tokenAddress, String(rawAmount));
+          const cost = BigInt(costStr);
           const fee = BigInt(Math.floor(Number(cost) * TOTAL_FEE_RATE));
           setPreview({ cost, fee, total: cost + fee });
         } else {
-          const proceeds = await getSellPrice(tokenAddress, rawAmount);
+          const proceedsStr = await getSellPrice(tokenAddress, String(rawAmount));
+          const proceeds = BigInt(proceedsStr);
           const fee = BigInt(Math.floor(Number(proceeds) * TOTAL_FEE_RATE));
           setPreview({ cost: proceeds, fee, total: proceeds - fee });
         }
@@ -179,7 +184,8 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
       const mid = (low + high) / 2;
       try {
         const rawAmount = BigInt(Math.floor(mid * 1e7));
-        const cost = await getBuyPrice(tokenAddress, rawAmount);
+        const costStr = await getBuyPrice(tokenAddress, String(rawAmount));
+        const cost = BigInt(costStr);
         const totalXlm = (Number(cost) / 1e7) * (1 + TOTAL_FEE_RATE);
         if (totalXlm <= availableXlm) {
           best = mid;
@@ -225,10 +231,24 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
       const rawAmount = BigInt(Math.floor(num * 1e7));
       let txHash: string;
       if (mode === 'buy') {
-        txHash = await executeBuy({ buyer: userAddress, tokenAddress, tokenAmount: rawAmount, signTransaction: sign });
+        const maxXlmIn = preview ? String(preview.total * 105n / 100n) : String(rawAmount * 10000n); // 5% slippage
+        txHash = await buyToken({
+          buyerPublicKey: userAddress,
+          tokenAddress,
+          tokenAmount: String(rawAmount),
+          maxXlmIn,
+          signTransaction: sign,
+        });
         showToast('success', 'buy successful');
       } else {
-        txHash = await executeSell({ seller: userAddress, tokenAddress, tokenAmount: rawAmount, signTransaction: sign });
+        const minXlmOut = preview ? String(preview.total * 95n / 100n) : String(rawAmount * 100n); // 5% slippage
+        txHash = await sellToken({
+          sellerPublicKey: userAddress,
+          tokenAddress,
+          tokenAmount: String(rawAmount),
+          minXlmOut,
+          signTransaction: sign,
+        });
         showToast('success', 'sell successful');
       }
 

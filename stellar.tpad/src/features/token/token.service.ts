@@ -23,6 +23,7 @@ export interface CreateTokenParams {
   name: string;
   symbol: string;
   adminPublicKey: string;
+  bondingCurveAddress: string;
   wasmHash: string;
   signTransaction: (xdr: string) => Promise<string>;
 }
@@ -31,9 +32,10 @@ const rpc = new SorobanRpc.Server(STELLAR_TESTNET_RPC_URL, { allowHttp: false })
 
 /** Deploy a new token contract instance via Factory contract. Returns contract ID. */
 export async function deployAndInitToken(params: CreateTokenParams): Promise<string> {
-  const { name, symbol, adminPublicKey, wasmHash, signTransaction } = params;
+  const { name, symbol, adminPublicKey, bondingCurveAddress, wasmHash, signTransaction } = params;
 
   const adminAddress = new Address(adminPublicKey);
+  const bondingCurveAddr = new Address(bondingCurveAddress);
   const wasmHashBytes = hexToBytes(wasmHash);
   const salt = crypto.getRandomValues(new Uint8Array(32));
 
@@ -43,10 +45,10 @@ export async function deployAndInitToken(params: CreateTokenParams): Promise<str
   }
 
   // ── Build Factory Call ──────────────────────────────────────────────────
-  // Interface: create_token(wasm_hash: BytesN<32>, salt: BytesN<32>, admin: Address, name: String, symbol: String)
+  // Interface: create_token(wasm_hash, salt, admin, bonding_curve_address, name, symbol)
   const account = await rpc.getAccount(adminPublicKey);
   const factoryTx = new TransactionBuilder(account, {
-    fee: String(Number(BASE_FEE) * 100),
+    fee: String(Number(BASE_FEE) * 200),
     networkPassphrase: STELLAR_NETWORK_PASSPHRASE,
   })
     .addOperation(
@@ -55,6 +57,7 @@ export async function deployAndInitToken(params: CreateTokenParams): Promise<str
         xdr.ScVal.scvBytes(Buffer.from(wasmHashBytes)),
         xdr.ScVal.scvBytes(Buffer.from(salt)),
         adminAddress.toScVal(),
+        bondingCurveAddr.toScVal(),
         nativeToScVal(name, { type: 'string' }),
         nativeToScVal(symbol, { type: 'string' })
       )

@@ -16,10 +16,11 @@ const TREASURY: &str = "GCZ2IR57HR7JSKNA5ILVGBWJSUFUHPJHW35RXDQ7HTDBZ2QHURULFP63
 
 // Default bonding curve parameters
 // price(S) = base_price + slope * S_tokens
-// At 800k tokens sold: price ≈ 20,000 XLM/token
-// At 1M  tokens sold: price ≈ 25,000 XLM/token
+// At 100k tokens sold: price ≈ 0.25 XLM/token
+// At 500k tokens sold: price ≈ 1.25 XLM/token
+// At 1M  tokens sold: price ≈ 2.5 XLM/token
 const DEFAULT_BASE_PRICE: i128 = 1_000;        // 1,000 stroops = 0.0001 XLM (near-zero start)
-const DEFAULT_SLOPE: i128 = 250_000;           // 250,000 stroops per token
+const DEFAULT_SLOPE: i128 = 25_000;            // 25,000 stroops per token (10x slower growth)
 const DEFAULT_TOTAL_SUPPLY: i128 = 10_000_000_000_000_000; // 1B * 10^7
 
 #[contract]

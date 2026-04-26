@@ -12,9 +12,10 @@ import {
     CandlestickSeries,
     HistogramSeries,
 } from 'lightweight-charts';
+import { useTheme } from '@/hooks/useTheme';
 
 interface TokenLightweightChartProps {
-    tokenAddress: string;
+    tokenId: string | number;
     ticker: string;
     currentPrice?: number;
     createdAt?: number | string;
@@ -92,7 +93,7 @@ function formatTimeUtc7(time: Time, withDate = false): string {
 }
 
 export default function TokenLightweightChart({
-    tokenAddress,
+    tokenId,
     ticker,
     currentPrice: _currentPrice,
     createdAt,
@@ -100,7 +101,9 @@ export default function TokenLightweightChart({
 }: TokenLightweightChartProps) {
     const [mounted, setMounted] = useState(false);
     const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('dark');
-    const theme = systemTheme;
+    
+    const themeContext = useTheme();
+    const theme = themeContext?.theme || systemTheme;
     
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
@@ -159,9 +162,8 @@ export default function TokenLightweightChart({
     // ─── Build live candles - chuẩn TradingView ──────────────────────────────
     const buildLiveCandles = useCallback(
         (source: CandleWithVolume[]): CandleWithVolume[] => {
-            // Initial price for Stellar is 0.0001 XLM (from bonding curve state)
-            // If currentPrice is provided (e.g. from TradingPageClient), use it.
-            const cp = typeof _currentPrice === 'number' && _currentPrice > 0 ? _currentPrice : null;
+            const currentPriceNum = Number(_currentPrice);
+            const cp = Number.isFinite(currentPriceNum) && currentPriceNum > 0 ? currentPriceNum : null;
             const nowBucket = getBucketTime(nowSec, intervalSec);
             const createdAtSec = (() => {
                 if (typeof createdAt === 'number' && createdAt > 0) {
@@ -307,12 +309,12 @@ export default function TokenLightweightChart({
     // ─── Fetch OHLCV ─────────────────────────────────────────────────────────
     const fetchCandles = useCallback(
         async (showLoader = false) => {
-            if (!tokenAddress) { setCandles([]); setLoading(false); return; }
+            if (!tokenId) { setCandles([]); setLoading(false); return; }
             if (isFetchingRef.current) return;
             if (showLoader) setLoading(true);
             isFetchingRef.current = true;
             try {
-                const res = await fetch(`/api/ohlcv?tokenId=${tokenAddress}&interval=${interval}`);
+                const res = await fetch(`/api/ohlcv?tokenId=${tokenId}&interval=${interval}`);
                 const data = await res.json();
                 if (data.success && data.data.length > 0) {
                     setCandles(data.data);
@@ -332,7 +334,7 @@ export default function TokenLightweightChart({
                 if (showLoader) setLoading(false);
             }
         },
-        [tokenAddress, interval]
+        [tokenId, interval]
     );
 
     // ─── Init chart ───────────────────────────────────────────────────────────
@@ -525,7 +527,7 @@ export default function TokenLightweightChart({
     }, [buildLiveCandles, candles]);
 
     const liveCandles = buildLiveCandles(candles);
-    const symbol = `${ticker.toUpperCase()}/XLM`;
+    const symbol = `${ticker.toUpperCase()}/TEST`;
     const isPositive = priceChange >= 0;
 
     // Vol 24h — tổng volume 24h gần nhất từ candles gốc (không phải live)

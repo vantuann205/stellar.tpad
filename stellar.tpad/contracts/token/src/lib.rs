@@ -16,10 +16,11 @@ pub struct TokenContract;
 #[contractimpl]
 impl TokenContract {
     /// Constructor — called atomically by factory via deploy_v2.
-    /// Mint toàn bộ 1B supply cho admin ngay lập tức.
+    /// Mint toàn bộ 1B supply cho recipient (bonding curve pool).
     pub fn __constructor(
         env: Env,
         admin: Address,
+        recipient: Address,
         name: String,
         symbol: String,
     ) {
@@ -27,9 +28,10 @@ impl TokenContract {
         write_decimals(&env, 7);
         write_name(&env, &name);
         write_symbol(&env, &symbol);
-        write_balance(&env, &admin, DEFAULT_SUPPLY);
+        // Mint 1B supply cho recipient (bonding curve pool)
+        write_balance(&env, &recipient, DEFAULT_SUPPLY);
         env.events().publish(
-            (soroban_sdk::symbol_short!("mint"), admin.clone()),
+            (soroban_sdk::symbol_short!("mint"), recipient.clone()),
             DEFAULT_SUPPLY,
         );
     }
@@ -38,6 +40,7 @@ impl TokenContract {
     pub fn initialize(
         env: Env,
         admin: Address,
+        recipient: Address,
         name: String,
         symbol: String,
     ) {
@@ -48,9 +51,9 @@ impl TokenContract {
         write_decimals(&env, 7);
         write_name(&env, &name);
         write_symbol(&env, &symbol);
-        write_balance(&env, &admin, DEFAULT_SUPPLY);
+        write_balance(&env, &recipient, DEFAULT_SUPPLY);
         env.events().publish(
-            (soroban_sdk::symbol_short!("mint"), admin.clone()),
+            (soroban_sdk::symbol_short!("mint"), recipient.clone()),
             DEFAULT_SUPPLY,
         );
     }

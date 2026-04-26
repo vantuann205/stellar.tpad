@@ -33,11 +33,14 @@ interface Comment {
 
 const TOTAL_SUPPLY = 1_000_000_000n * 10_000_000n;
 const BONDING_TARGET = 10000; // XLM target for graduation
+const STROOPS = 10_000_000n;
+const INITIAL_LISTING_PRICE = 0.0001;
 
 export default function TradingPageClient({ token: initialToken, contractAddress }: TradingPageClientProps) {
   const router = useRouter();
   const [token, setToken] = useState<TokenRecord>(initialToken);
   const [soldSupply, setSoldSupply] = useState(0n);
+  const [curveFallbackPrice, setCurveFallbackPrice] = useState<number>(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [tokenMetrics, setTokenMetrics] = useState<any>(null);
@@ -63,6 +66,11 @@ export default function TradingPageClient({ token: initialToken, contractAddress
     try {
       const state = await getTokenState(contractAddress);
       setSoldSupply(state.sold_supply);
+      const priceStroops = state.base_price + (state.slope * state.sold_supply) / STROOPS;
+      const nextFallback = Number(priceStroops) / Number(STROOPS);
+      if (Number.isFinite(nextFallback) && nextFallback > 0) {
+        setCurveFallbackPrice(nextFallback);
+      }
     } catch { /* contract not yet registered */ }
   }, [contractAddress]);
 
@@ -175,7 +183,10 @@ export default function TradingPageClient({ token: initialToken, contractAddress
   }, []);
 
   const ticker = token?.symbol ?? '...';
-  const currentPrice = token?.current_price ?? 0;
+  const dbPriceNum = Number(token?.current_price);
+  const currentPrice = dbPriceNum > 0
+    ? dbPriceNum
+    : (curveFallbackPrice > 0 ? curveFallbackPrice : INITIAL_LISTING_PRICE);
   const progress = Math.min(100, (maxReserve / BONDING_TARGET) * 100);
   const pctRemaining = (100 - progress).toFixed(4);
 
@@ -221,7 +232,7 @@ export default function TradingPageClient({ token: initialToken, contractAddress
           {/* Left column - Chart & Bonding Curve & Transactions */}
           <div className="lg:col-span-8 xl:col-span-9 space-y-6">
             <TokenLightweightChart
-              tokenAddress={contractAddress}
+              tokenId={token?.id ?? contractAddress}
               ticker={ticker}
               currentPrice={currentPrice}
               createdAt={token?.created_at}

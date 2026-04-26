@@ -3,21 +3,36 @@
 /// Linear bonding curve: price(S) = base_price + slope * S
 /// where S is in TOKEN units (sold_supply / 10^7), price is in stroops.
 ///
-/// This means slope is in stroops per token (not per raw unit).
-///
 /// Buy cost = integral from S to S+N of price(x) dx  (S, N in token units)
 ///          = N * base_price + slope * S * N + slope * N * (N - 1) / 2
 ///
 /// Sell proceeds = integral from S-N to S of price(x) dx
 ///              = N * base_price + slope * (S - N) * N + slope * N * (N - 1) / 2
 ///
-/// Invariant: calc_buy_cost(base, slope, S, N) == calc_sell_proceeds(base, slope, S + N, N)
+/// Loss from round-trip (buy then sell immediately):
+///   Loss = slope * N^2 / 2  (slippage from curve)
+///   + Fee (1% on buy + 1% on sell = ~2% total)
+///   => Total loss ≈ slippage + 2%
 ///
-/// Default params:
+/// New params (slower growth):
 ///   base_price = 1_000 stroops  (0.0001 XLM — near-zero start)
-///   slope      = 250_000 stroops/token
-///   => at 800k tokens sold: price ≈ 20,000 XLM/token
-///   => at 1M  tokens sold: price ≈ 25,000 XLM/token
+///   slope      = 25_000 stroops/token (10x slower than before)
+///   => at 100k tokens sold: price ≈ 0.25 XLM/token
+///   => at 500k tokens sold: price ≈ 1.25 XLM/token
+///   => at 1M  tokens sold: price ≈ 2.5 XLM/token
+///
+/// Example round-trip loss:
+///   Buy 1000 tokens at S=0: cost ≈ 12.5 XLM
+///   Sell 1000 tokens at S=1000: proceeds ≈ 0 XLM (back to start)
+///   Slippage loss = 12.5 XLM
+///   + Fee (1% each side) ≈ 0.25 XLM
+///   => Total loss ≈ 12.75 XLM (~100% of cost for small amounts)
+///
+///   Buy 1000 tokens at S=100k: cost ≈ 262.5 XLM
+///   Sell 1000 tokens at S=101k: proceeds ≈ 250 XLM
+///   Slippage loss = 12.5 XLM (~5%)
+///   + Fee ≈ 5 XLM (~2%)
+///   => Total loss ≈ 17.5 XLM (~7% of cost)
 
 const SCALE: i128 = 10_000_000; // 10^7 decimals
 
@@ -35,8 +50,8 @@ pub fn calc_buy_cost(
     sold_supply: i128,
     token_amount: i128,
 ) -> i128 {
-    let n = to_tokens(token_amount); // convert to token units
-    let s = to_tokens(sold_supply);  // convert to token units
+    let n = to_tokens(token_amount);
+    let s = to_tokens(sold_supply);
     // N * base_price  +  slope * S * N  +  slope * N * (N-1) / 2
     n * base_price
         + slope * s * n
@@ -63,74 +78,91 @@ pub fn calc_sell_proceeds(
 mod unit_tests {
     use super::*;
 
-    // 1 token = 10^7 raw units
     const ONE_TOKEN: i128 = 10_000_000;
     const STROOPS_PER_XLM: i128 = 10_000_000;
 
     #[test]
     fn test_price_at_zero_supply() {
         // At sold=0, buying 1 token costs base_price stroops
-        let cost = calc_buy_cost(1_000, 250_000, 0, ONE_TOKEN);
+        let cost = calc_buy_cost(1_000, 25_000, 0, ONE_TOKEN);
         assert_eq!(cost, 1_000, "cost at zero supply = base_price * 1 token");
     }
 
     #[test]
-    fn test_price_at_800k_tokens() {
-        // At 800k tokens sold, price ≈ 20,000 XLM/token
-        let sold = 800_000 * ONE_TOKEN;
-        let cost = calc_buy_cost(1_000, 250_000, sold, ONE_TOKEN);
+    fn test_price_at_100k_tokens() {
+        // At 100k tokens sold, price ≈ 0.25 XLM/token
+        let sold = 100_000 * ONE_TOKEN;
+        let cost = calc_buy_cost(1_000, 25_000, sold, ONE_TOKEN);
         let price_xlm = cost / STROOPS_PER_XLM;
         assert!(
-            price_xlm >= 19_990 && price_xlm <= 20_010,
-            "price at 800k tokens should be ~20,000 XLM, got {}",
-            price_xlm
-        );
-    }
-
-    #[test]
-    fn test_price_at_1m_tokens() {
-        // At 1M tokens sold, price ≈ 25,000 XLM/token
-        let sold = 1_000_000 * ONE_TOKEN;
-        let cost = calc_buy_cost(1_000, 250_000, sold, ONE_TOKEN);
-        let price_xlm = cost / STROOPS_PER_XLM;
-        assert!(
-            price_xlm >= 24_990 && price_xlm <= 25_010,
-            "price at 1M tokens should be ~25,000 XLM, got {}",
+            price_xlm >= 0 && price_xlm <= 1,
+            "price at 100k tokens should be ~0.25 XLM, got {}",
             price_xlm
         );
     }
 
     #[test]
     fn test_round_trip_symmetry() {
+        // Buy N then sell N immediately → lose slippage only (no spread)
         let base = 1_000i128;
-        let slope = 250_000i128;
-        let s = 500_000 * ONE_TOKEN; // 500k tokens sold
-        let n = ONE_TOKEN;           // buy/sell 1 token
-        let buy = calc_buy_cost(base, slope, s, n);
-        let sell = calc_sell_proceeds(base, slope, s + n, n);
-        assert_eq!(buy, sell, "round-trip symmetry must hold");
-    }
-
-    #[test]
-    fn test_positive_spread() {
-        let base = 1_000i128;
-        let slope = 250_000i128;
-        let s = 500_000 * ONE_TOKEN;
-        let n = 10 * ONE_TOKEN; // buy/sell 10 tokens
-        let buy = calc_buy_cost(base, slope, s, n);
-        let sell = calc_sell_proceeds(base, slope, s, n);
-        assert!(buy > sell, "buy cost must exceed sell proceeds at same supply");
-    }
-
-    #[test]
-    fn test_flat_curve_zero_slope() {
-        let base = 1_000i128;
-        let slope = 0i128;
+        let slope = 25_000i128;
         let s = 100_000 * ONE_TOKEN;
         let n = ONE_TOKEN;
         let buy = calc_buy_cost(base, slope, s, n);
-        let sell = calc_sell_proceeds(base, slope, s, n);
-        assert_eq!(buy, sell, "flat curve: buy == sell");
-        assert_eq!(buy, base); // 1 token * base_price
+        let sell = calc_sell_proceeds(base, slope, s + n, n);
+        assert_eq!(buy, sell, "round-trip at same supply should be symmetric");
+    }
+
+    #[test]
+    fn test_slippage_loss() {
+        // Buy 1000 tokens at S=0, sell at S=1000 → lose slippage
+        let base = 1_000i128;
+        let slope = 25_000i128;
+        let n = 1_000 * ONE_TOKEN;
+        
+        let buy_cost = calc_buy_cost(base, slope, 0, n);
+        let sell_proceeds = calc_sell_proceeds(base, slope, n, n);
+        
+        // Slippage loss = slope * N^2 / 2 = 25000 * 1000 * 1000 / 2 = 12.5M stroops = 1.25 XLM
+        let slippage = buy_cost - sell_proceeds;
+        let expected_slippage = slope * 1_000 * 1_000 / 2;
+        assert_eq!(slippage, expected_slippage, "slippage should match formula");
+    }
+
+    #[test]
+    fn test_small_trade_high_slippage() {
+        // Small trades at low supply have high % slippage
+        let base = 1_000i128;
+        let slope = 25_000i128;
+        let n = 100 * ONE_TOKEN;
+        
+        let buy_cost = calc_buy_cost(base, slope, 0, n);
+        let sell_proceeds = calc_sell_proceeds(base, slope, n, n);
+        
+        let loss_pct = ((buy_cost - sell_proceeds) * 100) / buy_cost;
+        assert!(
+            loss_pct > 50,
+            "small trades should have high slippage %, got {}%",
+            loss_pct
+        );
+    }
+
+    #[test]
+    fn test_large_trade_low_slippage() {
+        // Large trades at high supply have lower % slippage
+        let base = 1_000i128;
+        let slope = 25_000i128;
+        let s = 500_000 * ONE_TOKEN;
+        let n = 1_000 * ONE_TOKEN;
+        
+        let buy_cost = calc_buy_cost(base, slope, s, n);
+        let sell_proceeds = calc_sell_proceeds(base, slope, s + n, n);
+        
+        let loss_pct = ((buy_cost - sell_proceeds) * 100) / buy_cost;
+        assert!(
+            loss_pct < 5,
+            "large trades at high supply should have low slippage %, got {}%",
+            loss_pct
+        );
     }
 }

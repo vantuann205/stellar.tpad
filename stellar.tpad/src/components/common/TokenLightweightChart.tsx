@@ -162,7 +162,8 @@ export default function TokenLightweightChart({
     // ─── Build live candles - chuẩn TradingView ──────────────────────────────
     const buildLiveCandles = useCallback(
         (source: CandleWithVolume[]): CandleWithVolume[] => {
-            const cp = typeof _currentPrice === 'number' && _currentPrice > 0 ? _currentPrice : null;
+            const currentPriceNum = Number(_currentPrice);
+            const cp = Number.isFinite(currentPriceNum) && currentPriceNum > 0 ? currentPriceNum : null;
             const nowBucket = getBucketTime(nowSec, intervalSec);
             const createdAtSec = (() => {
                 if (typeof createdAt === 'number' && createdAt > 0) {

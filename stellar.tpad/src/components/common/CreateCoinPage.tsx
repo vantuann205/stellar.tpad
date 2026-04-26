@@ -94,21 +94,24 @@ export default function CreateCoinPage({ onCancel, onTokenCreated }: CreateCoinP
 
       if (!WASM_HASH) throw new Error('NEXT_PUBLIC_TOKEN_WASM_HASH chưa được cấu hình trong .env.local');
 
-      // 2. Deploy contract
+      // 2. Deploy contract + register bonding curve (1 signature only)
       log('🚀 Deploying token contract on Stellar Testnet...');
       const { deployAndInitToken } = await import('@/features/token/token.service');
+
+      const bondingCurveId = process.env.NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID;
+      if (!bondingCurveId) throw new Error('NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID not configured');
 
       const newContractId = await deployAndInitToken({
         name: form.name.trim(),
         symbol: form.symbol.trim().toUpperCase(),
         adminPublicKey: publicKey,
+        bondingCurveAddress: bondingCurveId,
         wasmHash: WASM_HASH,
         signTransaction: async (txXdr: string) => {
           log('✍️ Vui lòng ký transaction trong Freighter...');
           const result = await signTransaction(txXdr, {
             networkPassphrase: 'Test SDF Network ; September 2015',
           });
-          // freighter-api v2+ returns { signedTxXdr, signerAddress }
           if (typeof result === 'string') return result;
           const xdrStr = (result as any).signedTxXdr;
           if (!xdrStr) throw new Error('Freighter không trả về signed XDR');
@@ -117,7 +120,8 @@ export default function CreateCoinPage({ onCancel, onTokenCreated }: CreateCoinP
       });
 
       log(`✅ Contract deployed: ${newContractId}`);
-      log('💰 1,000,000,000 tokens minted to your wallet!');
+      log('💰 1,000,000,000 tokens minted to bonding curve pool!');
+      log('📊 Token registered in bonding curve!');
 
       // 3. Save to DB
       log('💾 Lưu vào database...');
