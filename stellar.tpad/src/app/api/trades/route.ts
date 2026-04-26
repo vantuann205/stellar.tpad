@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { tradeStore } from '@/lib/stores';
 import type { TradeRecord } from '@/types';
-
-// in-memory store — persists across hot-reloads via globalThis
-const g = globalThis as any;
-if (!g.__tradeStore) g.__tradeStore = new Map<string, TradeRecord[]>();
-export const tradeStore: Map<string, TradeRecord[]> = g.__tradeStore;
 
 const REQUIRED = ['tokenId', 'type', 'tokenAmount', 'xlmAmount', 'price', 'fee', 'user', 'txHash', 'timestamp'] as const;
 
@@ -20,19 +16,19 @@ export async function POST(req: NextRequest) {
 
     const record: TradeRecord = {
       id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-      tokenId: body.tokenId,
-      type: body.type,
+      tokenId:     body.tokenId,
+      type:        body.type,
       tokenAmount: String(body.tokenAmount),
-      xlmAmount: String(body.xlmAmount),
-      price: Number(body.price),
-      fee: String(body.fee),
-      user: body.user,
-      txHash: body.txHash,
-      timestamp: body.timestamp,
+      xlmAmount:   String(body.xlmAmount),
+      price:       Number(body.price),
+      fee:         String(body.fee),
+      user:        body.user,
+      txHash:      body.txHash,
+      timestamp:   body.timestamp,
     };
 
     const existing = tradeStore.get(record.tokenId) ?? [];
-    existing.unshift(record); // newest first
+    existing.unshift(record);
     tradeStore.set(record.tokenId, existing);
 
     return NextResponse.json({ success: true, data: record }, { status: 201 });

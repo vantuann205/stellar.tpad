@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, CandlestickSeries } from 'lightweight-charts';
+import { createChart, ColorType } from 'lightweight-charts';
 import type { OHLCVRecord } from '@/types';
 
 interface TokenLightweightChartProps {
@@ -14,9 +14,10 @@ type Interval = typeof INTERVALS[number];
 
 export default function TokenLightweightChart({ tokenAddress, refreshKey }: TokenLightweightChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<ReturnType<typeof createChart> | null>(null);
-  const seriesRef = useRef<ReturnType<InstanceType<typeof CandlestickSeries>['applyOptions']> | null>(null);
-  const [interval, setInterval] = useState<Interval>('15m');
+  const chartRef     = useRef<ReturnType<typeof createChart> | null>(null);
+  const seriesRef    = useRef<any>(null);
+  const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [interval, setIntervalState] = useState<Interval>('15m');
 
   // init chart once
   useEffect(() => {
@@ -38,17 +39,27 @@ export default function TokenLightweightChart({ tokenAddress, refreshKey }: Toke
       height: 380,
     });
 
-    const series = chart.addCandlestickSeries({
-      upColor:   '#26a69a',
-      downColor: '#ef5350',
-      borderUpColor:   '#26a69a',
-      borderDownColor: '#ef5350',
-      wickUpColor:   '#26a69a',
-      wickDownColor: '#ef5350',
-    });
+    // lightweight-charts v5: addSeries with CandlestickSeries type
+    const series = (chart as any).addCandlestickSeries
+      ? (chart as any).addCandlestickSeries({
+          upColor:   '#26a69a',
+          downColor: '#ef5350',
+          borderUpColor:   '#26a69a',
+          borderDownColor: '#ef5350',
+          wickUpColor:   '#26a69a',
+          wickDownColor: '#ef5350',
+        })
+      : (chart as any).addSeries('Candlestick', {
+          upColor:   '#26a69a',
+          downColor: '#ef5350',
+          borderUpColor:   '#26a69a',
+          borderDownColor: '#ef5350',
+          wickUpColor:   '#26a69a',
+          wickDownColor: '#ef5350',
+        });
 
     chartRef.current = chart;
-    (seriesRef as any).current = series;
+    seriesRef.current = series;
 
     const ro = new ResizeObserver(() => {
       if (containerRef.current) chart.applyOptions({ width: containerRef.current.clientWidth });
@@ -61,42 +72,45 @@ export default function TokenLightweightChart({ tokenAddress, refreshKey }: Toke
     };
   }, []);
 
-  // fetch + update data
+  // fetch + auto-refresh
   useEffect(() => {
-    if (!tokenAddress || !(seriesRef as any).current) return;
+    if (!tokenAddress || !seriesRef.current) return;
 
     const load = async () => {
       try {
-        const res = await fetch(`/api/ohlcv?tokenId=${tokenAddress}&interval=${interval}`);
+        const res  = await fetch(`/api/ohlcv?tokenId=${tokenAddress}&interval=${interval}`);
         const json = await res.json();
         if (!json.success) return;
 
         const data = (json.data as OHLCVRecord[]).map(c => ({
-          time: c.time as any,
+          time:  c.time as any,
           open:  c.open,
           high:  c.high,
           low:   c.low,
           close: c.close,
         }));
 
-        (seriesRef as any).current.setData(data);
+        seriesRef.current.setData(data);
         if (data.length > 0) chartRef.current?.timeScale().fitContent();
       } catch { /* silent */ }
     };
 
     load();
-    const timer = setInterval(load, 10_000);
-    return () => clearInterval(timer);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(load, 10_000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [tokenAddress, interval, refreshKey]);
 
   return (
     <div className="bg-pump-card rounded-lg border border-gray-800 overflow-hidden">
-      {/* timeframe selector */}
       <div className="flex items-center gap-1 px-4 pt-3 pb-2">
         {INTERVALS.map(tf => (
           <button
             key={tf}
-            onClick={() => setInterval(tf)}
+            onClick={() => setIntervalState(tf)}
             className={`px-3 py-1 text-xs font-bold rounded transition-colors ${
               interval === tf ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
             }`}

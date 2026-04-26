@@ -1,7 +1,7 @@
 import React from 'react';
 import { Coin } from '@/types';
 import { formatMarketCap } from '@/lib/helpers';
-import type { TokenRecord } from '@/app/api/tokens/route';
+import type { TokenStoreRecord as TokenRecord } from '@/lib/stores';
 
 interface CoinCardProps {
   coin: Coin;
@@ -23,7 +23,7 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick, tokenRecord }) => {
   const priceChange = tokenRecord?.price_change_5m ?? coin.bondingCurveProgress ?? 0;
   const progressPct = tokenRecord
     ? (tokenRecord.sold_supply
-        ? Math.min(100, Number(BigInt(tokenRecord.sold_supply) * 10000n / (1_000_000_000n * 10_000_000n)) / 100)
+        ? Math.min(100, Number(BigInt(tokenRecord.sold_supply) * BigInt(10000) / (BigInt(1_000_000_000) * BigInt(10_000_000))) / 100)
         : 0)
     : coin.bondingCurveProgress;
   const progressCls = progressPct > 80 ? 'bg-yellow-400' : 'bg-pump-green';

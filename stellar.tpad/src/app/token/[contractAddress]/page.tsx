@@ -7,7 +7,7 @@ import TokenLightweightChart from '@/components/trade/TokenLightweightChart';
 import TransactionTable from '@/components/trade/TransactionTable';
 import BondingCurve from '@/components/trade/BondingCurve';
 import { getTokenState } from '@/features/trade/bonding-curve.service';
-import type { TokenRecord } from '@/app/api/tokens/route';
+import type { TokenStoreRecord as TokenRecord } from '@/lib/stores';
 
 interface PageProps {
   params: { contractAddress: string };
