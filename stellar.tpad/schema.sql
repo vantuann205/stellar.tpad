@@ -10,16 +10,20 @@ CREATE TABLE IF NOT EXISTS tokens (
   owner VARCHAR(255) NOT NULL,
   contract_address VARCHAR(255) NOT NULL UNIQUE,
   -- Market metrics
+  current_price NUMERIC(36, 18) DEFAULT 0,
   marketcap NUMERIC(36, 18) DEFAULT 0,
   volume_24h NUMERIC(36, 18) DEFAULT 0,
   price_change_5m NUMERIC(10, 4) DEFAULT 0,
   price_change_1h NUMERIC(10, 4) DEFAULT 0,
   price_change_4h NUMERIC(10, 4) DEFAULT 0,
   price_change_6h NUMERIC(10, 4) DEFAULT 0,
+  price_change_24h NUMERIC(10, 4) DEFAULT 0,
   trader_count INTEGER DEFAULT 0,
   -- Timestamp tracking for price changes
   price_snapshot_time TIMESTAMP,
   price_snapshot_value NUMERIC(36, 18),
+  -- Cache timestamp for metrics
+  metrics_updated_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -95,14 +99,24 @@ CREATE TABLE IF NOT EXISTS token_bonding_progress (
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_tokens_owner ON tokens(owner);
 CREATE INDEX IF NOT EXISTS idx_tokens_contract_address ON tokens(contract_address);
+CREATE INDEX IF NOT EXISTS idx_tokens_created_at ON tokens(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tokens_marketcap ON tokens(marketcap DESC);
+CREATE INDEX IF NOT EXISTS idx_tokens_metrics_updated ON tokens(metrics_updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tokens_current_price ON tokens(current_price DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_token_id ON transactions(token_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_from ON transactions(from_address);
 CREATE INDEX IF NOT EXISTS idx_transactions_to ON transactions(to_address);
+CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_purchases_token_id ON purchases(token_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_buyer ON purchases(buyer_address);
 CREATE INDEX IF NOT EXISTS idx_purchases_seller ON purchases(seller_address);
 CREATE INDEX IF NOT EXISTS idx_purchases_is_private ON purchases(is_private);
+CREATE INDEX IF NOT EXISTS idx_purchases_status ON purchases(status);
+CREATE INDEX IF NOT EXISTS idx_purchases_created_at ON purchases(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_purchases_token_status ON purchases(token_id, status);
+CREATE INDEX IF NOT EXISTS idx_purchases_token_status_created ON purchases(token_id, status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_wallets_address ON wallets(wallet_address);
 CREATE INDEX IF NOT EXISTS idx_wallets_display_name ON wallets(display_name);
-CREATE INDEX IF NOT EXISTS idx_price_snapshots_token_id ON price_snapshots(token_id, recorded_at);
-CREATE INDEX IF NOT EXISTS idx_comments_token_id ON comments(token_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_price_snapshots_token_id ON price_snapshots(token_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comments_token_id ON comments(token_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_token_bonding_progress_token_id ON token_bonding_progress(token_id);

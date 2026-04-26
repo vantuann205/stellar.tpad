@@ -232,23 +232,35 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
         showToast('success', 'sell successful');
       }
 
-      // record trade
+      // record trade in database
       if (preview) {
-        await fetch('/api/trades', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tokenId: tokenAddress,
-            type: mode,
-            tokenAmount: String(rawAmount),
-            xlmAmount: String(preview.cost),
-            price: Number(preview.cost) / 1e7 / num,
-            fee: String(preview.fee),
-            user: userAddress,
-            txHash,
-            timestamp: new Date().toISOString(),
-          }),
-        });
+        try {
+          // Get token_id from database
+          const tokenRes = await fetch(`/api/tokens/${tokenAddress}`);
+          const tokenData = await tokenRes.json();
+          
+          if (tokenData.success && tokenData.data) {
+            const pricePerToken = Number(preview.cost) / 1e7 / num;
+            const totalPrice = Number(preview.cost) / 1e7;
+            
+            await fetch('/api/purchases', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                token_id: tokenData.data.id,
+                buyer_address: mode === 'buy' ? userAddress : null,
+                seller_address: mode === 'sell' ? userAddress : null,
+                quantity: num,
+                price_per_token: pricePerToken,
+                total_price: totalPrice,
+                transaction_hash: txHash,
+                status: 'completed',
+              }),
+            });
+          }
+        } catch (err) {
+          console.error('Failed to record purchase:', err);
+        }
       }
 
       setAmount('');

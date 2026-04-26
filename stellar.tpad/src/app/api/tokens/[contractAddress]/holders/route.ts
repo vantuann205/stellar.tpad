@@ -20,24 +20,28 @@ export async function GET(
     const tokenId = token.id;
     const totalSupply = Number(token.total_supply || 0);
 
+    // Optimized query using CTE for better performance
     const result = await query(
-      `SELECT
-          address,
-          SUM(net_qty) AS net_qty
-       FROM (
-         SELECT buyer_address AS address, SUM(quantity::numeric) AS net_qty
+      `WITH holder_balances AS (
+         SELECT
+           COALESCE(buyer_address, seller_address) AS address,
+           SUM(CASE 
+             WHEN buyer_address IS NOT NULL THEN quantity::numeric
+             ELSE -quantity::numeric
+           END) AS net_qty
          FROM purchases
-         WHERE token_id = $1 AND buyer_address IS NOT NULL AND status = 'completed'
-         GROUP BY buyer_address
-         UNION ALL
-         SELECT seller_address AS address, -SUM(quantity::numeric) AS net_qty
-         FROM purchases
-         WHERE token_id = $1 AND seller_address IS NOT NULL AND status = 'completed'
-         GROUP BY seller_address
-       ) t
-       GROUP BY address
-       HAVING SUM(net_qty) > 0
-       ORDER BY SUM(net_qty) DESC
+         WHERE token_id = $1 
+           AND status = 'completed'
+           AND (buyer_address IS NOT NULL OR seller_address IS NOT NULL)
+         GROUP BY COALESCE(buyer_address, seller_address)
+         HAVING SUM(CASE 
+           WHEN buyer_address IS NOT NULL THEN quantity::numeric
+           ELSE -quantity::numeric
+         END) > 0
+       )
+       SELECT address, net_qty
+       FROM holder_balances
+       ORDER BY net_qty DESC
        LIMIT 50`,
       [tokenId]
     );

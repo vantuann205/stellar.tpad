@@ -9,6 +9,7 @@ import TrendingCoins from '@/components/common/TrendingCoins';
 import CoinCard from '@/components/common/CoinCard';
 import FilterBar from '@/components/common/FilterBar';
 import Toast, { ToastMessage } from '@/components/ui/Toast';
+import { ListSkeleton } from '@/components/skeleton';
 import { Coin, ViewState, SortOption } from '@/types';
 import { formatMarketCap, formatPriceChange, formatTraderCount, formatVolume } from '@/lib/helpers';
 import { getWalletErrorMessage, stellarWalletService, WalletServiceError } from '@/services/wallet.service';
@@ -169,60 +170,120 @@ export default function Home() {
               />
 
               {listMode === 'grid' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {sorted.map(coin => (
-                    <CoinCard key={coin.id} coin={coin} onClick={handleCoinClick} />
-                  ))}
-                  {!loading && sorted.length === 0 && (
-                    <div className="col-span-full py-20 text-center text-gray-500">
-                      Chưa có coin nào.{' '}
-                      <button onClick={() => setViewState(ViewState.CREATE)} className="text-emerald-400 hover:underline">
-                        Tạo coin đầu tiên →
-                      </button>
+                <>
+                  {loading ? (
+                    <ListSkeleton count={9} />
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {sorted.map(coin => (
+                        <CoinCard key={coin.id} coin={coin} onClick={handleCoinClick} />
+                      ))}
+                      {sorted.length === 0 && (
+                        <div className="col-span-full py-20 text-center text-gray-500">
+                          Chưa có coin nào.{' '}
+                          <button onClick={() => setViewState(ViewState.CREATE)} className="text-emerald-400 hover:underline">
+                            Tạo coin đầu tiên →
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
+                </>
               )}
 
               {listMode === 'table' && (
-                <div className="overflow-x-auto rounded-xl border border-gray-300/70 bg-white/80 shadow-lg dark:border-[#24324b] dark:bg-[#0b0f19]">
-                  <table className="w-full min-w-[700px] text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-200/80 bg-gradient-to-r from-slate-100 to-slate-50 text-xs uppercase tracking-wide text-gray-500 dark:border-[#22314a] dark:from-[#142238] dark:to-[#101a2d] dark:text-gray-400">
-                        <th className="px-4 py-3">#</th>
-                        <th className="px-4 py-3">Coin</th>
-                        <th className="px-4 py-3">Symbol</th>
-                        <th className="px-4 py-3">Age</th>
-                        <th className="px-4 py-3">Contract</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sorted.map((coin, idx) => (
-                        <tr
-                          key={coin.id}
-                          onClick={() => handleCoinClick(coin)}
-                          className="cursor-pointer border-b border-gray-200/60 text-gray-800 transition hover:bg-slate-100/70 dark:border-[#1c273a] dark:text-gray-100 dark:hover:bg-[#101726]"
-                        >
-                          <td className="px-4 py-3 text-gray-500">#{idx + 1}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <img src={coin.imageUrl} alt={coin.name} className="h-8 w-8 rounded-full object-cover" />
-                              <span className="font-semibold">{coin.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-emerald-400 font-mono">{coin.ticker}</td>
-                          <td className="px-4 py-3 text-gray-500">{getTimeAgoShort(coin.createdAt)}</td>
-                          <td className="px-4 py-3 font-mono text-xs text-gray-400">
-                            {coin.contractAddress ? `${coin.contractAddress.slice(0, 8)}...` : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                      {!loading && sorted.length === 0 && (
-                        <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">No tokens yet.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <>
+                  {loading ? (
+                    <div className="overflow-x-auto rounded-xl border border-gray-300/70 bg-white/80 shadow-lg dark:border-[#24324b] dark:bg-[#0b0f19]">
+                      <table className="w-full min-w-[700px] text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200/80 bg-gradient-to-r from-slate-100 to-slate-50 text-xs uppercase tracking-wide text-gray-500 dark:border-[#22314a] dark:from-[#142238] dark:to-[#101a2d] dark:text-gray-400">
+                            <th className="px-4 py-3">#</th>
+                            <th className="px-4 py-3">Coin</th>
+                            <th className="px-4 py-3">Symbol</th>
+                            <th className="px-4 py-3">Age</th>
+                            <th className="px-4 py-3">Contract</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.from({ length: 10 }).map((_, idx) => (
+                            <tr key={idx} className="border-b border-gray-200/60 dark:border-[#1c273a]">
+                              <td className="px-4 py-3">
+                                <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded h-4 w-8">
+                                  <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded-full h-8 w-8">
+                                    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
+                                  </div>
+                                  <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded h-4 w-32">
+                                    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded h-4 w-16">
+                                  <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded h-4 w-12">
+                                  <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded h-4 w-24">
+                                  <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-xl border border-gray-300/70 bg-white/80 shadow-lg dark:border-[#24324b] dark:bg-[#0b0f19]">
+                      <table className="w-full min-w-[700px] text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200/80 bg-gradient-to-r from-slate-100 to-slate-50 text-xs uppercase tracking-wide text-gray-500 dark:border-[#22314a] dark:from-[#142238] dark:to-[#101a2d] dark:text-gray-400">
+                            <th className="px-4 py-3">#</th>
+                            <th className="px-4 py-3">Coin</th>
+                            <th className="px-4 py-3">Symbol</th>
+                            <th className="px-4 py-3">Age</th>
+                            <th className="px-4 py-3">Contract</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sorted.map((coin, idx) => (
+                            <tr
+                              key={coin.id}
+                              onClick={() => handleCoinClick(coin)}
+                              className="cursor-pointer border-b border-gray-200/60 text-gray-800 transition hover:bg-slate-100/70 dark:border-[#1c273a] dark:text-gray-100 dark:hover:bg-[#101726]"
+                            >
+                              <td className="px-4 py-3 text-gray-500">#{idx + 1}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <img src={coin.imageUrl} alt={coin.name} className="h-8 w-8 rounded-full object-cover" />
+                                  <span className="font-semibold">{coin.name}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-emerald-400 font-mono">{coin.ticker}</td>
+                              <td className="px-4 py-3 text-gray-500">{getTimeAgoShort(coin.createdAt)}</td>
+                              <td className="px-4 py-3 font-mono text-xs text-gray-400">
+                                {coin.contractAddress ? `${coin.contractAddress.slice(0, 8)}...` : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                          {sorted.length === 0 && (
+                            <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">No tokens yet.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </>

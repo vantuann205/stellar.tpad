@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Users } from 'lucide-react';
 
 interface Holder {
   address: string;
@@ -39,7 +38,6 @@ export default function HoldersList({ tokenAddress, refreshKey = 0 }: HoldersLis
   return (
     <div className="bg-pump-card border border-gray-800 rounded-lg p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Users className="w-4 h-4 text-gray-400" />
         <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">
           Top Holders ({holders.length})
         </h3>
