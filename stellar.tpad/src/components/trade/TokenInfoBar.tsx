@@ -25,22 +25,28 @@ interface TokenInfoBarProps {
 }
 
 export default function TokenInfoBar({ token, currentPrice, metrics }: TokenInfoBarProps) {
-  const formatMarketCap = (value: number) => {
-    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
-    if (value >= 1_000) return `$${(value / 1_000).toFixed(2)}K`;
-    return `$${value.toFixed(2)}`;
+  const formatMarketCap = (value: any) => {
+    const num = Number(value);
+    if (!isFinite(num) || isNaN(num)) return '$0.00';
+    if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(2)}M`;
+    if (num >= 1_000) return `$${(num / 1_000).toFixed(2)}K`;
+    return `$${num.toFixed(2)}`;
   };
 
-  const formatVolume = (value: number) => {
-    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
-    if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
-    return value.toFixed(2);
+  const formatVolume = (value: any) => {
+    const num = Number(value);
+    if (!isFinite(num) || isNaN(num)) return '0.00';
+    if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
+    if (num >= 1_000) return `${(num / 1_000).toFixed(2)}K`;
+    return num.toFixed(2);
   };
 
-  const formatPrice = (price: number) => {
-    if (price < 0.00001) return price.toFixed(8);
-    if (price < 0.01) return price.toFixed(6);
-    return price.toFixed(8);
+  const formatPrice = (price: any) => {
+    const num = Number(price);
+    if (!isFinite(num) || isNaN(num)) return '0.00000000';
+    if (num < 0.00001) return num.toFixed(8);
+    if (num < 0.01) return num.toFixed(6);
+    return num.toFixed(8);
   };
 
   const getChangeColor = (change: number | null | undefined) => {
