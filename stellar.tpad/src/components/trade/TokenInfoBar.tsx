@@ -55,13 +55,13 @@ const TokenInfoBar: React.FC<TokenInfoBarProps> = ({ token, currentPrice, metric
     window.open(`${STELLAR_EXPLORER_URL}/${address}`, '_blank');
   };
 
-  const volume = metrics ? parseFloat(metrics.volume_24h) || 0 : 0;
-  const metricsPrice = metrics ? parseFloat(metrics.price_snapshot_value) || 0 : 0;
+  const volume = metrics?.volume_24h ?? token.volume_24h ?? 0;
+  const metricsPrice = metrics?.price_snapshot_value ?? token.current_price ?? 0;
   const price = currentPrice && currentPrice > 0 ? currentPrice : metricsPrice;
-  const marketCap = metrics ? parseFloat(metrics.marketcap) || 0 : 0;
-  const change5m = metrics ? parseFloat(metrics.price_change_5m) || 0 : 0;
-  const change1h = metrics ? parseFloat(metrics.price_change_1h) || 0 : 0;
-  const change6h = metrics ? parseFloat(metrics.price_change_6h) || 0 : 0;
+  const marketCap = metrics?.marketcap ?? token.marketcap ?? 0;
+  const change5m = metrics?.price_change_5m ?? token.price_change_5m ?? 0;
+  const change1h = metrics?.price_change_1h ?? token.price_change_1h ?? 0;
+  const change6h = metrics?.price_change_6h ?? token.price_change_6h ?? 0;
 
   return (
     <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white dark:bg-pump-card border border-gray-300 dark:border-gray-800 rounded-lg p-4 mb-4 gap-4 md:gap-8">
