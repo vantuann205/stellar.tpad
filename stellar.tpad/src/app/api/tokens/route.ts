@@ -28,7 +28,7 @@ export interface TokenRecord {
 // Module-level in-memory store (survives hot-reload in dev via globalThis)
 const g = globalThis as any;
 if (!g.__tokenStore) g.__tokenStore = new Map<string, TokenRecord>();
-const store: Map<string, TokenRecord> = g.__tokenStore;
+export const store: Map<string, TokenRecord> = g.__tokenStore;
 
 export async function GET() {
   const tokens = Array.from(store.values()).sort(
