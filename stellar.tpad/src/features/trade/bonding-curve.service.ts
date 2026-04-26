@@ -322,3 +322,88 @@ export async function executeSell(params: SellParams): Promise<string> {
 
   return pollTransaction(rpc, submitted.hash);
 }
+
+// ─── Register Token ───────────────────────────────────────────────────────────
+
+const TOTAL_LIQUIDITY = 1_000_000_000n * 10_000_000n; // 1B * 10^7
+
+/**
+ * Register a newly deployed token into BondingCurve_Contract,
+ * then transfer 1B tokens from admin to the contract as liquidity.
+ * Gracefully ignores TokenAlreadyRegistered (code 2).
+ */
+export async function registerToken(
+  tokenAddress: string,
+  adminPublicKey: string,
+  signTransaction: (xdr: string, opts?: { networkPassphrase?: string }) => Promise<string>,
+): Promise<void> {
+  const rpc = getRpc();
+  const bcContract = new Contract(BONDING_CURVE_CONTRACT);
+  const tokenContract = new Contract(tokenAddress);
+  const account = await rpc.getAccount(adminPublicKey);
+
+  // Step 1: register_token
+  const registerTx = new TransactionBuilder(account, {
+    fee: BASE_FEE,
+    networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
+  })
+    .addOperation(
+      bcContract.call(
+        'register_token',
+        new Address(tokenAddress).toScVal(),
+        new Address(adminPublicKey).toScVal(),
+      )
+    )
+    .setTimeout(30)
+    .build();
+
+  const simReg = await rpc.simulateTransaction(registerTx);
+  if (SorobanRpc.Api.isSimulationError(simReg)) {
+    const err = parseContractError(simReg.error);
+    if (err.code === 2) {
+      console.warn('[registerToken] TokenAlreadyRegistered — skipping');
+    } else {
+      throw err;
+    }
+  } else {
+    const assembledReg = SorobanRpc.assembleTransaction(registerTx, simReg).build();
+    const signedReg = await signTransaction(assembledReg.toXDR(), {
+      networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
+    });
+    const submittedReg = await rpc.sendTransaction(
+      TransactionBuilder.fromXDR(signedReg, STELLAR_NETWORK_PASSPHRASE as string)
+    );
+    if (submittedReg.status === 'ERROR') throw parseContractError(submittedReg.errorResult?.toString() ?? '');
+    await pollTransaction(rpc, submittedReg.hash);
+  }
+
+  // Step 2: transfer 1B tokens → BondingCurve_Contract as liquidity
+  const freshAccount = await rpc.getAccount(adminPublicKey);
+  const transferTx = new TransactionBuilder(freshAccount, {
+    fee: BASE_FEE,
+    networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
+  })
+    .addOperation(
+      tokenContract.call(
+        'transfer',
+        new Address(adminPublicKey).toScVal(),
+        new Address(BONDING_CURVE_CONTRACT).toScVal(),
+        nativeToScVal(TOTAL_LIQUIDITY, { type: 'i128' }),
+      )
+    )
+    .setTimeout(30)
+    .build();
+
+  const simTransfer = await rpc.simulateTransaction(transferTx);
+  if (SorobanRpc.Api.isSimulationError(simTransfer)) throw parseContractError(simTransfer.error);
+
+  const assembledTransfer = SorobanRpc.assembleTransaction(transferTx, simTransfer).build();
+  const signedTransfer = await signTransaction(assembledTransfer.toXDR(), {
+    networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
+  });
+  const submittedTransfer = await rpc.sendTransaction(
+    TransactionBuilder.fromXDR(signedTransfer, STELLAR_NETWORK_PASSPHRASE as string)
+  );
+  if (submittedTransfer.status === 'ERROR') throw parseContractError(submittedTransfer.errorResult?.toString() ?? '');
+  await pollTransaction(rpc, submittedTransfer.hash);
+}
