@@ -1,19 +1,24 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import Header, { type HeaderRef } from '@/components/layout/Header';
 import BondingCurveTrader from '@/components/trade/BondingCurveTrader';
 import TokenLightweightChart from '@/components/trade/TokenLightweightChart';
 import TransactionTable from '@/components/trade/TransactionTable';
 import BondingCurve from '@/components/trade/BondingCurve';
 import TokenInfoBar from '@/components/trade/TokenInfoBar';
-import TokenMetrics from '@/components/trade/TokenMetrics';
 import CommentSection from '@/components/trade/CommentSection';
 import HoldersList from '@/components/trade/HoldersList';
 import { getTokenState } from '@/features/trade/bonding-curve.service';
 import type { TokenRecord } from '@/types/token';
-import { stellarWalletService } from '@/services/wallet.service';
+import { stellarWalletService, WalletServiceError } from '@/services/wallet.service';
+import { getWalletErrorMessage } from '@/services/wallet.service';
+import { initialWalletState, walletStateReducer } from '@/store/wallet.store';
+import { ViewState } from '@/types';
+import { useReducer } from 'react';
 
 interface PageProps {
   params: { contractAddress: string };
@@ -31,6 +36,7 @@ const TOTAL_SUPPLY = 1_000_000_000n * 10_000_000n;
 const BONDING_TARGET = 10000; // XLM target for graduation
 
 export default function TradingPage({ params }: PageProps) {
+  const router = useRouter();
   const { contractAddress } = params;
   const [token, setToken] = useState<TokenRecord | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -39,6 +45,8 @@ export default function TradingPage({ params }: PageProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [tokenMetrics, setTokenMetrics] = useState<any>(null);
   const [maxReserve, setMaxReserve] = useState(0);
+  const [walletState, dispatchWallet] = useReducer(walletStateReducer, initialWalletState);
+  const headerRef = useRef<HeaderRef>(null);
 
   // fetch token info
   useEffect(() => {
@@ -139,6 +147,30 @@ export default function TradingPage({ params }: PageProps) {
     }
   };
 
+  // Wallet handlers
+  const handleConnectWallet = async () => {
+    dispatchWallet({ type: 'connecting' });
+    try {
+      const { provider, address } = await stellarWalletService.connect();
+      dispatchWallet({ type: 'connected', payload: { provider, address } });
+    } catch (error) {
+      const code = error instanceof WalletServiceError ? error.code : 'unknown';
+      dispatchWallet({ type: 'error', payload: { errorCode: code } });
+    }
+  };
+
+  const handleDisconnectWallet = async () => {
+    await stellarWalletService.disconnect();
+    dispatchWallet({ type: 'disconnected' });
+  };
+
+  useEffect(() => {
+    stellarWalletService.restoreSession().then(session => {
+      if (!session) return;
+      dispatchWallet({ type: 'connected', payload: { provider: session.provider, address: session.address } });
+    });
+  }, []);
+
   if (notFound) {
     return (
       <div className="min-h-screen bg-pump-bg flex flex-col items-center justify-center gap-4 text-gray-400">
@@ -154,12 +186,31 @@ export default function TradingPage({ params }: PageProps) {
   const pctRemaining = (100 - progress).toFixed(4);
 
   return (
-    <div className="min-h-screen bg-pump-bg text-white">
+    <div className="min-h-screen bg-white dark:bg-pump-bg text-gray-900 dark:text-white">
+      <Header
+        ref={headerRef}
+        onGoHome={() => router.push('/')}
+        onGoCreate={() => router.push('/?view=create')}
+        onGoLivestreams={() => router.push('/?view=livestreams')}
+        onGoSupport={() => router.push('/?view=support')}
+        onGoProfile={() => {
+          if (walletState.address) {
+            router.push(`/profile/${walletState.address}`);
+          }
+        }}
+        onConnectWallet={handleConnectWallet}
+        onDisconnectWallet={handleDisconnectWallet}
+        onSelectToken={(addr) => router.push(`/token/${addr}`)}
+        walletConnected={walletState.status === 'connected'}
+        walletAddress={walletState.address}
+        currentView={ViewState.DETAIL}
+      />
+
       <div className="container mx-auto px-4 py-4 max-w-[1600px] animate-fade-in">
         {/* Back button */}
         <Link 
           href="/"
-          className="flex items-center gap-2 text-gray-600 hover:text-white mb-4 text-sm font-bold uppercase transition-colors"
+          className="flex items-center gap-2 text-gray-600 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white mb-4 text-sm font-bold uppercase transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back to board
         </Link>
@@ -172,9 +223,6 @@ export default function TradingPage({ params }: PageProps) {
             metrics={tokenMetrics}
           />
         )}
-
-        {/* Token Metrics */}
-        <TokenMetrics metrics={tokenMetrics} />
 
         {/* Main Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

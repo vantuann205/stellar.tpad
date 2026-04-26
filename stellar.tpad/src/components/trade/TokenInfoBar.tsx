@@ -1,30 +1,18 @@
 'use client';
 
-import { ArrowDownRight, ArrowUpRight, ExternalLink } from 'lucide-react';
+import React from 'react';
+import { ExternalLink, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import type { TokenRecord } from '@/types/token';
 
 interface TokenInfoBarProps {
-  token: {
-    name: string;
-    symbol: string;
-    description?: string;
-    image_url?: string;
-    owner?: string;
-    created_at?: string;
-    marketcap?: number;
-    volume_24h?: number;
-    sold_supply?: string;
-    contract_address?: string;
-  };
+  token: TokenRecord;
   currentPrice?: number;
-  metrics?: {
-    price_change_5m?: number | null;
-    price_change_1h?: number | null;
-    price_change_6h?: number | null;
-    volume_24h?: number;
-  } | null;
+  metrics?: any;
 }
 
-export default function TokenInfoBar({ token, currentPrice, metrics }: TokenInfoBarProps) {
+const TokenInfoBar: React.FC<TokenInfoBarProps> = ({ token, currentPrice, metrics }) => {
+  const STELLAR_EXPLORER_URL = 'https://stellar.expert/explorer/testnet/account';
+
   const formatMarketCap = (value: any) => {
     const num = Number(value);
     if (!isFinite(num) || isNaN(num)) return '$0.00';
@@ -49,119 +37,128 @@ export default function TokenInfoBar({ token, currentPrice, metrics }: TokenInfo
     return num.toFixed(8);
   };
 
-  const getChangeColor = (change: number | null | undefined) => {
+  const getPriceChangeColor = (change: number | null | undefined) => {
     if (change === null || change === undefined) return 'text-gray-400';
     if (change > 0) return 'text-pump-green';
     if (change < 0) return 'text-pump-red';
     return 'text-gray-400';
   };
 
-  const getChangeIcon = (change: number | null | undefined) => {
+  const getPriceChangeIcon = (change: number | null | undefined) => {
     if (change === null || change === undefined) return null;
     if (change > 0) return <ArrowUpRight className="w-4 h-4 inline" />;
     if (change < 0) return <ArrowDownRight className="w-4 h-4 inline" />;
     return null;
   };
 
-  const openExplorer = (kind: 'account' | 'contract', value?: string) => {
-    if (!value) return;
-    const base = 'https://stellar.expert/explorer/testnet';
-    const suffix = kind === 'account' ? `account/${value}` : `contract/${value}`;
-    window.open(`${base}/${suffix}`, '_blank', 'noopener,noreferrer');
+  const openExplorer = (address: string) => {
+    window.open(`${STELLAR_EXPLORER_URL}/${address}`, '_blank');
   };
 
-  const soldSupply = Number(token.sold_supply || '0') / 1e7;
-  const effectivePrice = currentPrice ?? 0;
-  const marketCap = token.marketcap ?? soldSupply * effectivePrice;
-  const volume = metrics?.volume_24h ?? token.volume_24h ?? 0;
-  const change5m = metrics?.price_change_5m;
-  const change1h = metrics?.price_change_1h;
-  const change6h = metrics?.price_change_6h;
-  const creator = token.owner || '';
-  const contractAddress = token.contract_address || '';
+  const volume = metrics ? parseFloat(metrics.volume_24h) || 0 : 0;
+  const metricsPrice = metrics ? parseFloat(metrics.price_snapshot_value) || 0 : 0;
+  const price = currentPrice && currentPrice > 0 ? currentPrice : metricsPrice;
+  const marketCap = metrics ? parseFloat(metrics.marketcap) || 0 : 0;
+  const change5m = metrics ? parseFloat(metrics.price_change_5m) || 0 : 0;
+  const change1h = metrics ? parseFloat(metrics.price_change_1h) || 0 : 0;
+  const change6h = metrics ? parseFloat(metrics.price_change_6h) || 0 : 0;
 
   return (
     <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white dark:bg-pump-card border border-gray-300 dark:border-gray-800 rounded-lg p-4 mb-4 gap-4 md:gap-8">
+      {/* Left: Token Info */}
       <div className="flex items-center gap-4 flex-1">
-        {token.image_url && (
-          <img
-            src={token.image_url}
-            alt={token.name}
-            className="w-14 h-14 rounded-full object-cover"
-          />
-        )}
         <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{token.name}</h1>
-          <div className="text-lg text-gray-600 dark:text-gray-500 font-mono">{token.symbol}</div>
-          {token.description && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{token.description}</p>
-          )}
-          <div className="flex items-center gap-3 text-xs mt-2 flex-wrap">
-            {creator && (
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            {token.name}
+          </h1>
+          <div className="text-lg text-gray-600 dark:text-gray-500 font-mono">
+            {token.symbol}
+          </div>
+          <div className="flex items-center gap-3 text-xs mt-1">
+            <button
+              onClick={() => openExplorer(token.owner)}
+              className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+              title="View creator on Stellar Explorer"
+            >
+              {token.owner.slice(0, 6)}...{token.owner.slice(-4)} <ExternalLink className="w-3 h-3" />
+            </button>
+            {token.contract_address && (
               <button
-                onClick={() => openExplorer('account', creator)}
+                onClick={() => openExplorer(token.contract_address)}
                 className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
+                title="View contract on Stellar Explorer"
               >
-                {creator.slice(0, 6)}...{creator.slice(-4)} <ExternalLink className="w-3 h-3" />
+                {token.contract_address.slice(0, 6)}...{token.contract_address.slice(-4)} <ExternalLink className="w-3 h-3" />
               </button>
             )}
-            {contractAddress && (
-              <button
-                onClick={() => openExplorer('contract', contractAddress)}
-                className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-              >
-                {contractAddress.slice(0, 6)}...{contractAddress.slice(-4)} <ExternalLink className="w-3 h-3" />
-              </button>
-            )}
-            {token.created_at && (
-              <span className="text-gray-600 dark:text-gray-500">
-                Created {new Date(token.created_at).toLocaleDateString()}
-              </span>
-            )}
+            <span className="text-gray-600 dark:text-gray-500">
+              Created {new Date(token.created_at).toLocaleDateString()}
+            </span>
           </div>
         </div>
       </div>
 
+      {/* Right: Metrics */}
       <div className="flex gap-4 md:gap-6 flex-wrap md:flex-nowrap md:justify-end overflow-x-auto">
         <div className="flex flex-col justify-center min-w-fit">
-          <div className="text-[10px] text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wider">Market Cap</div>
-          <div className="text-lg font-bold text-gray-900 dark:text-white font-mono">{formatMarketCap(marketCap)}</div>
-        </div>
-
-        <div className="flex flex-col justify-center min-w-fit">
-          <div className="text-[10px] text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wider">Vol 24h</div>
-          <div className="text-lg font-bold text-gray-900 dark:text-white font-mono">{formatVolume(volume)}</div>
-        </div>
-
-        <div className="flex flex-col justify-center min-w-fit">
-          <div className="text-[10px] text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wider">Price</div>
-          <div className="text-lg font-bold text-gray-900 dark:text-white font-mono">{formatPrice(effectivePrice)}</div>
-        </div>
-
-        <div className="flex flex-col justify-center min-w-fit">
-          <div className="text-[10px] text-gray-400 uppercase font-semibold tracking-wider">5m</div>
-          <div className={`text-lg font-bold font-mono flex items-center gap-1 ${getChangeColor(change5m)}`}>
-            {getChangeIcon(change5m)}
-            {change5m === null || change5m === undefined ? '--' : `${change5m.toFixed(2)}%`}
+          <div className="text-[10px] text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wider">
+            Market Cap
+          </div>
+          <div className="text-lg font-bold text-gray-900 dark:text-white font-mono">
+            {marketCap ? `$${(marketCap / 1000000).toFixed(2)}M` : '$0.00M'}
           </div>
         </div>
 
         <div className="flex flex-col justify-center min-w-fit">
-          <div className="text-[10px] text-gray-400 uppercase font-semibold tracking-wider">1h</div>
-          <div className={`text-lg font-bold font-mono flex items-center gap-1 ${getChangeColor(change1h)}`}>
-            {getChangeIcon(change1h)}
-            {change1h === null || change1h === undefined ? '--' : `${change1h.toFixed(2)}%`}
+          <div className="text-[10px] text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wider">
+            Vol 24h
+          </div>
+          <div className="text-lg font-bold text-gray-900 dark:text-white font-mono">
+            {formatVolume(volume)}
           </div>
         </div>
 
         <div className="flex flex-col justify-center min-w-fit">
-          <div className="text-[10px] text-gray-400 uppercase font-semibold tracking-wider">6h</div>
-          <div className={`text-lg font-bold font-mono flex items-center gap-1 ${getChangeColor(change6h)}`}>
-            {getChangeIcon(change6h)}
-            {change6h === null || change6h === undefined ? '--' : `${change6h.toFixed(2)}%`}
+          <div className="text-[10px] text-gray-600 dark:text-gray-400 uppercase font-semibold tracking-wider">
+            Price
+          </div>
+          <div className="text-lg font-bold text-gray-900 dark:text-white font-mono">
+            {formatPrice(price)}
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center min-w-fit">
+          <div className="text-[10px] text-gray-400 uppercase font-semibold tracking-wider">
+            5m
+          </div>
+          <div className={`text-lg font-bold font-mono flex items-center gap-1 ${getPriceChangeColor(change5m)}`}>
+            {getPriceChangeIcon(change5m)}
+            {change5m.toFixed(2)}%
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center min-w-fit">
+          <div className="text-[10px] text-gray-400 uppercase font-semibold tracking-wider">
+            1h
+          </div>
+          <div className={`text-lg font-bold font-mono flex items-center gap-1 ${getPriceChangeColor(change1h)}`}>
+            {getPriceChangeIcon(change1h)}
+            {change1h.toFixed(2)}%
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center min-w-fit">
+          <div className="text-[10px] text-gray-400 uppercase font-semibold tracking-wider">
+            6h
+          </div>
+          <div className={`text-lg font-bold font-mono flex items-center gap-1 ${getPriceChangeColor(change6h)}`}>
+            {getPriceChangeIcon(change6h)}
+            {change6h.toFixed(2)}%
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default TokenInfoBar;
