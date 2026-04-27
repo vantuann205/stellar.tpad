@@ -1,1 +1,0 @@
-export const FREIGHTER_PROVIDER = 'freighter';

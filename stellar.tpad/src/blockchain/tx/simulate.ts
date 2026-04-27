@@ -1,1 +1,0 @@
-export const simulateTransaction = async (payload: Record<string, unknown>) => ({ ok: true, payload });

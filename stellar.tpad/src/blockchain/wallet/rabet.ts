@@ -1,1 +1,0 @@
-export const RABET_PROVIDER = 'rabet';

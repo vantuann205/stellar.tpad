@@ -1,1 +1,0 @@
-export const getSorobanRpcUrl = (): string => process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ?? '';
