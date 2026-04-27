@@ -31,14 +31,13 @@ async function getPriceAtWindow(
   tokenCreatedAt: string | Date,
   launchPrice: number
 ): Promise<number | null> {
-  // Get the price snapshot closest to (but before) the window start
-  // e.g. for 5m: get the snapshot recorded ~5 minutes ago
   const snapshotResult = await query(
-    `SELECT price
-     FROM price_snapshots
-     WHERE token_id = $1
-       AND recorded_at <= NOW() - ($2 * INTERVAL '1 minute')
-     ORDER BY recorded_at DESC
+    `SELECT ps.price
+     FROM price_snapshots ps
+     WHERE ps.token_id = $1
+       AND ps.recorded_at <= NOW() - ($2 * INTERVAL '1 minute')
+       AND ps.price > 0
+     ORDER BY ps.recorded_at DESC
      LIMIT 1`,
     [tokenId, minutes]
   );
@@ -47,17 +46,13 @@ async function getPriceAtWindow(
     return toNumber(snapshotResult.rows[0].price, 0);
   }
 
-  // No snapshot before the window — token is younger than the window
-  // Use launch price as the baseline (token just started)
+  // Token younger than window → use launch price as baseline
   const createdAtMs = new Date(tokenCreatedAt).getTime();
-  if (!Number.isNaN(createdAtMs)) {
-    const ageMs = Date.now() - createdAtMs;
-    if (ageMs < minutes * 60 * 1000) {
-      return launchPrice;
-    }
+  if (!Number.isNaN(createdAtMs) && Date.now() - createdAtMs < minutes * 60 * 1000) {
+    return launchPrice;
   }
 
-  // Token older than window but no snapshot — no data, show 0%
+  // No valid snapshot → show 0%
   return null;
 }
 
