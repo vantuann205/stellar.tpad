@@ -16,6 +16,7 @@ import { getWalletErrorMessage, stellarWalletService, WalletServiceError } from 
 import { initialWalletState, walletStateReducer } from '@/store/wallet.store';
 import { parsePossiblyUtc7Timestamp } from '@/lib/time';
 import { useRef } from 'react';
+import { useNetwork } from '@/hooks/useNetwork';
 
 const CreateCoinPage = dynamic(() => import('@/components/common/CreateCoinPage'), { ssr: false });
 const LivestreamsPage = dynamic(() => import('@/components/common/LivestreamsPage'), { ssr: false });
@@ -43,6 +44,7 @@ export default function Home() {
   const [tokens, setTokens]             = useState<Coin[]>([]);
   const [loading, setLoading]           = useState(false);
   const headerRef = useRef<HeaderRef>(null);
+  const { network, toggle: toggleNetwork } = useNetwork();
 
   const addToast = (type: ToastMessage['type'], title: string, message: string) => {
     const id = Date.now().toString();
@@ -156,6 +158,8 @@ export default function Home() {
         walletConnected={walletState.status === 'connected'}
         walletAddress={walletState.address}
         currentView={viewState}
+        network={network}
+        onToggleNetwork={toggleNetwork}
       />
 
       <div className="fixed top-20 right-4 z-[100] flex flex-col gap-2 w-full max-w-sm pointer-events-none">
@@ -163,7 +167,21 @@ export default function Home() {
       </div>
 
       <main className="container mx-auto px-4 py-6">
-        {viewState === ViewState.GRID && (
+        {viewState === ViewState.GRID && network === 'MAINNET' && (
+          <div className="min-h-[70vh] flex flex-col items-center justify-center select-none">
+            <div className="text-center">
+              <p className="text-xs font-black uppercase tracking-widest text-green-400 mb-4">MAINNET</p>
+              <h1 className="text-6xl md:text-8xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">
+                COMING SOON
+              </h1>
+              <p className="mt-4 text-gray-500 dark:text-gray-500 text-sm uppercase tracking-widest font-bold">
+                Stellar TPAD on Mainnet
+              </p>
+            </div>
+          </div>
+        )}
+
+        {viewState === ViewState.GRID && network === 'TESTNET' && (
           <>
             <KingOfTheHill coin={topCoin} onClick={handleCoinClick} />
             <TrendingCoins onClick={handleCoinClick} />

@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import { ViewState } from '@/types';
 import { stellarWalletService, WalletServiceError } from '@/services/wallet.service';
 import { initialWalletState, walletStateReducer } from '@/store/wallet.store';
+import { useNetwork } from '@/hooks/useNetwork';
 
 interface AppHeaderShellProps {
   currentView?: ViewState;
@@ -15,6 +16,7 @@ export default function AppHeaderShell({ currentView = ViewState.DETAIL }: AppHe
   const router = useRouter();
   const [walletState, dispatchWallet] = useReducer(walletStateReducer, initialWalletState);
 
+  const { network, toggle: toggleNetwork } = useNetwork();
   useEffect(() => {
     stellarWalletService.restoreSession().then((session) => {
       if (!session) return;
@@ -55,6 +57,8 @@ export default function AppHeaderShell({ currentView = ViewState.DETAIL }: AppHe
       walletConnected={walletState.status === 'connected'}
       walletAddress={walletState.address}
       currentView={currentView}
+      network={network}
+      onToggleNetwork={toggleNetwork}
     />
   );
 }

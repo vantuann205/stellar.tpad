@@ -12,8 +12,8 @@ export async function GET(
     const tokenResult = await query(
       `SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1`,
       [params.contractAddress]
-    );
-    if (tokenResult.rows.length === 0) {
+    ) as any;
+    if (!tokenResult?.rows || tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
     const tokenId = tokenResult.rows[0].id;
@@ -28,9 +28,9 @@ export async function GET(
        FROM purchases
        WHERE token_id = $1 AND status = 'completed'`,
       [tokenId]
-    );
+    ) as any;
 
-    const maxReserve = Number(reserveResult.rows[0]?.max_reserve || 0);
+    const maxReserve = Number(reserveResult?.rows?.[0]?.max_reserve || 0);
 
     return NextResponse.json({
       success: true,

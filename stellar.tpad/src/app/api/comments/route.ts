@@ -21,11 +21,11 @@ export async function GET(request: NextRequest) {
              WHERE c.token_id = $1
              ORDER BY c.created_at ASC`,
             [tokenId]
-        );
+        ) as any;
 
         return NextResponse.json({
             success: true,
-            data: result.rows,
+            data: result?.rows || [],
         });
     } catch (error) {
         console.error('Error fetching comments:', error);
@@ -57,11 +57,11 @@ export async function POST(request: NextRequest) {
              VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
              RETURNING *`,
             [tokenId, resolvedUser, text]
-        );
+        ) as any;
 
         return NextResponse.json({
             success: true,
-            data: result.rows[0],
+            data: result?.rows?.[0] || null,
         });
     } catch (error) {
         console.error('Error creating comment:', error);

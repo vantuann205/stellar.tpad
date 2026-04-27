@@ -23,12 +23,12 @@ export async function POST(request: NextRequest) {
              updated_at = CURRENT_TIMESTAMP
              RETURNING *`,
             [wallet_address, display_name || null, avatar_url || null, bio || null]
-        );
+        ) as any;
 
         return NextResponse.json({
             success: true,
             message: 'Wallet saved successfully',
-            wallet: result.rows[0],
+            wallet: result?.rows?.[0],
         });
     } catch (error) {
         console.error('Error saving wallet:', error);
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         const walletResult = await query(
             'SELECT id, wallet_address, display_name, avatar_url, bio, created_at, updated_at FROM wallets WHERE wallet_address = $1',
             [wallet_address]
-        );
+        ) as any;
 
         // Get tokens created by this wallet (minted_coins)
         let minted_coins: string[] = [];
@@ -65,8 +65,8 @@ export async function GET(request: NextRequest) {
             const mintedCoinsResult = await query(
                 `SELECT DISTINCT contract_address FROM tokens WHERE LOWER(owner) = LOWER($1) ORDER BY contract_address`,
                 [wallet_address]
-            );
-            minted_coins = mintedCoinsResult.rows?.map((row: any) => row.contract_address) || [];
+            ) as any;
+            minted_coins = mintedCoinsResult?.rows?.map((row: any) => row.contract_address) || [];
             console.log(`✅ Minted coins for ${wallet_address}:`, minted_coins);
         } catch (e) {
             console.error('Error fetching minted coins:', e);
@@ -83,14 +83,14 @@ export async function GET(request: NextRequest) {
                  AND COALESCE(p.quantity, 0) > 0 
                  ORDER BY t.contract_address`,
                 [wallet_address]
-            );
-            owned_coins = ownedCoinsResult.rows?.map((row: any) => row.contract_address) || [];
+            ) as any;
+            owned_coins = ownedCoinsResult?.rows?.map((row: any) => row.contract_address) || [];
             console.log(`✅ Owned coins for ${wallet_address}:`, owned_coins);
         } catch (e) {
             console.error('Error fetching owned coins:', e);
         }
 
-        if (walletResult.rows.length === 0) {
+            if (!walletResult?.rows || walletResult.rows.length === 0) {
             // Return profile-less wallet (will be created on first profile edit)
             return NextResponse.json({
                 success: true,
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
             success: true,
             wallet: {
-                ...walletResult.rows[0],
+                ...walletResult?.rows?.[0],
                 owned_coins,
                 minted_coins,
             },

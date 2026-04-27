@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
                created_at DESC
              LIMIT 10`,
             [searchTerm, searchQuery.trim()]
-        );
+        ) as any;
 
         // Search wallets by address or display name
         const walletsResult = await query(
@@ -49,13 +49,13 @@ export async function GET(request: NextRequest) {
                END
              LIMIT 10`,
             [searchTerm, searchQuery.trim()]
-        );
+        ) as any;
 
         return NextResponse.json({
             success: true,
             data: {
-                tokens: tokensResult.rows || [],
-                wallets: walletsResult.rows || [],
+                tokens: tokensResult?.rows || [],
+                wallets: walletsResult?.rows || [],
             },
         });
     } catch (error) {

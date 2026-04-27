@@ -13,8 +13,8 @@ export async function GET(
     const tokenResult = await query(
       'SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1',
       [params.contractAddress]
-    );
-    if (tokenResult.rows.length === 0) {
+    ) as any;
+    if (!tokenResult?.rows || tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
 
@@ -28,11 +28,11 @@ export async function GET(
        WHERE c.token_id = $1
        ORDER BY c.created_at ASC`,
       [tokenId]
-    );
+    ) as any;
     
     return NextResponse.json({
       success: true,
-      data: commentsResult.rows.map((c: any) => ({
+      data: (commentsResult?.rows || []).map((c: any) => ({
         id: String(c.id),
         user: c.username || c.user_address || 'Anonymous',
         avatarUrl: c.avatar_url || '',
@@ -62,8 +62,8 @@ export async function POST(
     const tokenResult = await query(
       'SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1',
       [params.contractAddress]
-    );
-    if (tokenResult.rows.length === 0) {
+    ) as any;
+    if (!tokenResult?.rows || tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
 
@@ -79,9 +79,9 @@ export async function POST(
       `INSERT INTO comments (token_id, user_address, comment_text, created_at)
        VALUES ($1, $2, $3, NOW())
        RETURNING *`,
-      [tokenResult.rows[0].id, resolvedUser, text.trim()]
-    );
-    const comment = result.rows[0];
+      [tokenResult?.rows?.[0]?.id, resolvedUser, text.trim()]
+    ) as any;
+    const comment = result?.rows?.[0];
 
     return NextResponse.json({
       success: true,

@@ -412,30 +412,28 @@ export default function BondingCurveTrader({
         </div>
 
         {/* preview */}
-        {(preview || previewLoading) && (
-          <div className="space-y-2 p-3 bg-gray-100 dark:bg-gray-900/50 rounded-lg text-xs border border-gray-300 dark:border-gray-800/50">
-            {previewLoading ? (
-              <div className="flex items-center gap-2 text-gray-500"><Loader2 className="w-3 h-3 animate-spin" /> calculating...</div>
-            ) : preview ? (
-              <>
-                <div className="flex justify-between text-gray-500">
-                  <span>base value</span>
-                  <span className="font-mono text-gray-400">{stroopsToXlm(preview.cost)} XLM</span>
-                </div>
-                <div className="flex justify-between text-gray-500">
-                  <span>fee (0.5%)</span>
-                  <span className="font-mono text-gray-400">{stroopsToXlm(preview.fee)} XLM</span>
-                </div>
-                <div className={`flex justify-between font-bold text-sm pt-2 border-t ${mode === 'buy' ? 'border-pump-green/20' : 'border-pump-red/20'}`}>
-                  <span className="text-gray-900 dark:text-white">{mode === 'buy' ? 'total cost:' : 'you receive:'}</span>
-                  <span className={`font-mono ${mode === 'buy' ? 'text-pump-green' : 'text-pump-red'}`}>
-                    {stroopsToXlm(preview.total)} XLM
-                  </span>
-                </div>
-              </>
-            ) : null}
-          </div>
-        )}
+        <div className="space-y-2 p-3 bg-gray-100 dark:bg-gray-900/50 rounded-lg text-xs border border-gray-300 dark:border-gray-800/50">
+          {previewLoading ? (
+            <div className="flex items-center gap-2 text-gray-500"><Loader2 className="w-3 h-3 animate-spin" /> calculating...</div>
+          ) : (
+            <>
+              <div className="flex justify-between text-gray-500">
+                <span>Base Value</span>
+                <span className="font-mono text-gray-400">{preview ? stroopsToXlm(preview.cost) : '0'} XLM</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>Fee (0.5%)</span>
+                <span className="font-mono text-gray-400">{preview ? stroopsToXlm(preview.fee) : '0'} XLM</span>
+              </div>
+              <div className={`flex justify-between font-bold text-sm pt-2 border-t ${mode === 'buy' ? 'border-pump-green/20' : 'border-pump-red/20'}`}>
+                <span className="text-gray-900 dark:text-white">{mode === 'buy' ? 'Total Cost:' : 'You Receive:'}</span>
+                <span className={`font-mono ${mode === 'buy' ? 'text-pump-green' : 'text-pump-red'}`}>
+                  {preview ? stroopsToXlm(preview.total) : '0'} XLM
+                </span>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* CTA — show trade button if wallet connected, else prompt to connect */}
         {isWalletReady ? (

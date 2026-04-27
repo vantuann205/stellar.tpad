@@ -12,9 +12,9 @@ export async function GET(request: NextRequest) {
         const supplyResult = await query(
             `SELECT total_supply FROM tokens WHERE id = $1`,
             [tokenId]
-        );
+        ) as any;
 
-        if (supplyResult.rows.length === 0) {
+        if (!supplyResult?.rows || supplyResult.rows.length === 0) {
             return NextResponse.json({ error: 'Token not found' }, { status: 404 });
         }
 
@@ -43,9 +43,9 @@ export async function GET(request: NextRequest) {
              ORDER BY SUM(net_qty) DESC
              LIMIT 10`,
             [tokenId]
-        );
+        ) as any;
 
-        const holders = result.rows.map((r: any, i: number) => {
+        const holders = result?.rows?.map((r: any, i: number) => {
             const qty = parseFloat(r.net_qty);
             // % = tokens held by wallet / total supply * 100
             const pct = totalSupply > 0 ? (qty / totalSupply) * 100 : 0;

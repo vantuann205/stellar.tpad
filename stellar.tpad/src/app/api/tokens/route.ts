@@ -30,9 +30,9 @@ export async function GET() {
        FROM tokens t
        LEFT JOIN token_bonding_progress bp ON bp.token_id = t.id
        ORDER BY t.created_at DESC`
-    );
+    ) as any;
 
-    return NextResponse.json({ success: true, data: result.rows });
+    return NextResponse.json({ success: true, data: result?.rows || [] });
   } catch (error) {
     console.error('Error fetching tokens:', error);
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
@@ -53,9 +53,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
-    const existing = await query('SELECT * FROM tokens WHERE contract_address = $1 LIMIT 1', [contractAddress]);
-    if (existing.rows.length > 0) {
-      return NextResponse.json({ success: true, data: existing.rows[0] });
+    const existing = await query('SELECT * FROM tokens WHERE contract_address = $1 LIMIT 1', [contractAddress]) as any;
+    if (existing?.rows && existing.rows.length > 0) {
+      return NextResponse.json({ success: true, data: existing?.rows?.[0] });
     }
 
     const INITIAL_PRICE = 0.0001;
@@ -99,15 +99,15 @@ export async function POST(req: NextRequest) {
         INITIAL_PRICE,
         DEFAULT_SLOPE,
       ]
-    );
+    ) as any;
 
     await query(
       `INSERT INTO price_snapshots (token_id, price, recorded_at)
        VALUES ($1, $2, NOW())`,
-      [result.rows[0].id, INITIAL_PRICE]
+      [result?.rows?.[0]?.id, INITIAL_PRICE]
     );
 
-    return NextResponse.json({ success: true, data: result.rows[0] }, { status: 201 });
+    return NextResponse.json({ success: true, data: result?.rows?.[0] }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }

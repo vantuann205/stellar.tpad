@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
                 transaction_hash || null,
                 status || 'completed',
             ]
-        );
+        ) as any;
 
         // Recalculate token metrics immediately so price/chart/market cap stay in sync after each trade.
         if ((status || 'completed') === 'completed') {
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        return NextResponse.json({ success: true, data: result.rows[0] });
+        return NextResponse.json({ success: true, data: result?.rows?.[0] });
     } catch (error) {
         console.error('Error creating purchase:', error);
         return NextResponse.json(
@@ -154,8 +154,8 @@ export async function GET(request: NextRequest) {
         if (conditions.length > 0) sql += ' WHERE ' + conditions.join(' AND ');
         sql += ' ORDER BY p.created_at DESC LIMIT 500';
 
-        const result = await query(sql, params.length > 0 ? params : undefined);
-        const response = NextResponse.json({ success: true, data: result.rows });
+        const result = await query(sql, params.length > 0 ? params : undefined) as any;
+        const response = NextResponse.json({ success: true, data: result?.rows || [] });
         // Cache purchases for 20 seconds to reduce database load
         response.headers.set('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=40');
         return response;

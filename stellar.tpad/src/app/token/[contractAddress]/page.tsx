@@ -26,13 +26,13 @@ async function getToken(contractAddress: string): Promise<TokenRecord | null> {
        WHERE LOWER(contract_address) = LOWER($1) 
        LIMIT 1`,
       [contractAddress]
-    );
+    ) as any;
     
-    if (result.rows.length === 0) {
+    if (!result?.rows || result.rows.length === 0) {
       return null;
     }
     
-    return result.rows[0] as TokenRecord;
+    return result?.rows?.[0] as TokenRecord;
   } catch (error) {
     console.error('Error fetching token:', error);
     return null;

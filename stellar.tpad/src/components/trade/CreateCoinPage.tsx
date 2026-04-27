@@ -31,12 +31,6 @@ export default function CreateCoinPage() {
     setTimeout(() => setToast(null), 5000);
   };
 
-  const sign = async (xdrStr: string) => {
-    const res = await signTransaction(xdrStr, { networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string });
-    if ('error' in res) throw new Error(res.error);
-    return res.signedTxXdr;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.symbol) { showToast('error', 'name and symbol are required'); return; }

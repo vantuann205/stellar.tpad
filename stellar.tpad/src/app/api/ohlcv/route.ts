@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
                 ? `SELECT id, base_price FROM tokens WHERE id = $1 LIMIT 1`
                 : `SELECT id, base_price FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1`,
             [tokenIdParam]
-        );
+        ) as any;
 
-        if (tokenRes.rows.length === 0) {
+        if (!tokenRes?.rows || tokenRes.rows.length === 0) {
             const emptyResponse = NextResponse.json({ success: true, data: [] });
             emptyResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
             return emptyResponse;
@@ -66,9 +66,9 @@ export async function GET(request: NextRequest) {
               AND status = 'completed'
             ORDER BY created_at ASC`,
             [dbTokenId, secs]
-        );
+        ) as any;
 
-        if (result.rows.length === 0) {
+        if (!result?.rows || result.rows.length === 0) {
             const emptyResponse = NextResponse.json({ success: true, data: [] });
             emptyResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
             return emptyResponse;

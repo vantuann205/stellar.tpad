@@ -11,6 +11,7 @@ import Header from '@/components/layout/Header';
 import { ViewState } from '@/types';
 import { stellarWalletService, WalletServiceError } from '@/services/wallet.service';
 import { initialWalletState, walletStateReducer } from '@/store/wallet.store';
+import { useNetwork } from '@/hooks/useNetwork';
 
 interface CoinCard {
   id: string;
@@ -25,6 +26,7 @@ interface CoinCard {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { network, toggle: toggleNetwork } = useNetwork();
   const [walletState, dispatchWallet] = useReducer(walletStateReducer, initialWalletState);
   const [view, setView] = useState<'home' | 'create'>('home');
   const [coins, setCoins] = useState<CoinCard[]>([]);
@@ -89,6 +91,8 @@ export default function DashboardPage() {
           walletConnected={walletState.status === 'connected'}
           walletAddress={walletState.address}
           currentView={ViewState.CREATE}
+          network={network}
+          onToggleNetwork={toggleNetwork}
         />
         <div className="pt-4">
           <CreateCoinPage
@@ -121,6 +125,8 @@ export default function DashboardPage() {
         walletConnected={walletState.status === 'connected'}
         walletAddress={walletState.address}
         currentView={ViewState.GRID}
+        network={network}
+        onToggleNetwork={toggleNetwork}
       />
 
       {/* Hero */}

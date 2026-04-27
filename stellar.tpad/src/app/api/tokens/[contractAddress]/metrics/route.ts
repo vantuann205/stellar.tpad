@@ -29,13 +29,13 @@ export async function GET(
       WHERE LOWER(contract_address) = LOWER($1) 
       LIMIT 1`,
       [params.contractAddress]
-    );
+    ) as any;
     
-    if (tokenResult.rows.length === 0) {
+    if (!tokenResult?.rows || tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
     
-    const token = tokenResult.rows[0];
+    const token = tokenResult?.rows?.[0];
     const tokenId = token.id;
     const metricsAge = token.metrics_updated_at 
       ? Date.now() - new Date(token.metrics_updated_at).getTime()

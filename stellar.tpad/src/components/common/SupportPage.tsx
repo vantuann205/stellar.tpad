@@ -8,9 +8,9 @@ const faqItems = [
             'At 100% bonding progress, soldSupply equals TOTAL_SUPPLY, so the token contract has no tokens left to sell and new buys revert with "Not enough tokens available". Holders can still sell back to the contract while sales remain enabled and reserveBalance is sufficient.'
     },
     {
-        question: 'How do I bridge funds to Oasis?',
+        question: 'How do I bridge funds to Stellar?',
         answer:
-            'In this app you trade on Oasis Sapphire Testnet (chainId 23295, RPC https://testnet.sapphire.oasis.io). Switch your wallet to Sapphire Testnet first, then fund that same wallet on Sapphire (bridge or testnet funding flow) and verify your TEST balance before placing trades.'
+            'In this app you trade on Stellar Sapphire Testnet (chainId 23295, RPC https://testnet.sapphire.oasis.io). Switch your wallet to Sapphire Testnet first, then fund that same wallet on Sapphire (bridge or testnet funding flow) and verify your TEST balance before placing trades.'
     },
     {
         question: 'Is there a developer wallet allocation?',
@@ -26,7 +26,7 @@ const faqItems = [
 
 const SupportPage: React.FC = () => {
   const [messages, setMessages] = useState<{id: number, text: string, sender: 'user' | 'agent'}[]>([
-    { id: 1, text: 'Hello! Welcome to Oasis Astra support. How can we help you today?', sender: 'agent' }
+    { id: 1, text: 'Hello! Welcome to Stellar support. How can we help you today?', sender: 'agent' }
   ]);
   const [inputText, setInputText] = useState('');
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
@@ -65,19 +65,16 @@ const SupportPage: React.FC = () => {
             {/* Quick Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-pump-card p-6 rounded-xl border border-gray-300 dark:border-gray-800 hover:border-blue-500/50 transition-colors group cursor-pointer">
-                    <Book className="w-8 h-8 text-blue-500 mb-4 group-hover:scale-110 transition-transform" />
                     <h3 className="font-bold text-gray-900 dark:text-white mb-2">How it works</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Learn about bonding curves, Oasis Sapphire, and fair launches.</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Learn about bonding curves, Stellar Sapphire, and fair launches.</p>
                 </div>
                 <div className="bg-white dark:bg-pump-card p-6 rounded-xl border border-gray-300 dark:border-gray-800 hover:border-green-500/50 transition-colors group cursor-pointer">
-                    <Shield className="w-8 h-8 text-green-500 mb-4 group-hover:scale-110 transition-transform" />
                     <h3 className="font-bold text-gray-900 dark:text-white mb-2">Safety</h3>
                     <p className="text-xs text-gray-600 dark:text-gray-400">How we prevent rugs and ensure fair distribution.</p>
                 </div>
                 <div className="bg-white dark:bg-pump-card p-6 rounded-xl border border-gray-300 dark:border-gray-800 hover:border-yellow-500/50 transition-colors group cursor-pointer">
-                    <Zap className="w-8 h-8 text-yellow-500 mb-4 group-hover:scale-110 transition-transform" />
                     <h3 className="font-bold text-gray-900 dark:text-white mb-2">Fees</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Understanding transaction costs on Oasis Sapphire.</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Understanding transaction costs on Stellar Sapphire.</p>
                 </div>
             </div>
 
@@ -119,7 +116,7 @@ const SupportPage: React.FC = () => {
             <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-300 dark:border-blue-500/20 rounded-xl p-6">
                 <h3 className="font-bold text-blue-700 dark:text-blue-400 mb-2">Contact Email</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">For partnership inquiries or serious bug reports.</p>
-                <code className="bg-gray-200 dark:bg-black/30 px-3 py-2 rounded text-blue-700 dark:text-blue-200 text-sm">support@oasis.astra</code>
+                <code className="bg-gray-200 dark:bg-black/30 px-3 py-2 rounded text-blue-700 dark:text-blue-200 text-sm">support@stellar.tpad</code>
             </div>
         </div>
 

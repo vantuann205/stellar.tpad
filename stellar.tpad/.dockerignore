@@ -1,5 +1,14 @@
+.git
+.gitignore
+.env.local
+.env*.local
 node_modules
 .next
-.env*
-*.log
-.git
+README.md
+*.md
+__tests__
+scripts
+contracts
+.kiro
+.vscode
+tsconfig.tsbuildinfo

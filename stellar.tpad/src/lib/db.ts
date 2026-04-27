@@ -19,7 +19,7 @@ pool.on('error', (err: Error) => {
  * Execute a query with automatic retry on connection timeout (Neon serverless cold start).
  * Retries up to 3 times with 2s delay.
  */
-export async function query(text: string, params?: any[]): Promise<ReturnType<Pool['query']>> {
+export async function query(text: string, params?: any[]): Promise<any> {
     const MAX_RETRIES = 3;
     let lastError: unknown;
 

@@ -40,9 +40,25 @@ const TrendingCoins: React.FC<TrendingCoinsProps> = ({ onClick }) => {
 
     const fetchTrending = async () => {
         try {
-            const res = await fetch('/api/trending?limit=10&window=24');
+            // Use /api/tokens sorted by volume — no separate trending endpoint needed
+            const res = await fetch('/api/tokens?limit=10&sort=volume');
             const data = await res.json();
-            if (data.success) setTokens(data.data);
+            if (data.success && data.data) {
+                setTokens(data.data.map((t: any) => ({
+                    id: t.id,
+                    name: t.name,
+                    ticker: t.symbol,
+                    imageUrl: t.image_url || '',
+                    creator: t.owner,
+                    contractAddress: t.contract_address,
+                    marketCap: parseFloat(t.marketcap || '0'),
+                    price: parseFloat(t.current_price || '0'),
+                    volume24h: parseFloat(t.volume_24h || '0'),
+                    bondingCurveProgress: 0,
+                    createdAt: new Date(t.created_at).getTime(),
+                    trendScore: parseFloat(t.volume_24h || '0'),
+                })));
+            }
         } catch { /* silent */ }
         finally { setLoading(false); }
     };

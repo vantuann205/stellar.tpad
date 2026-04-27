@@ -17,6 +17,7 @@ import type { TokenRecord } from '@/types/token';
 import { stellarWalletService, WalletServiceError } from '@/services/wallet.service';
 import { initialWalletState, walletStateReducer } from '@/store/wallet.store';
 import { ViewState } from '@/types';
+import { useNetwork } from '@/hooks/useNetwork';
 
 interface TradingPageClientProps {
   token: TokenRecord;
@@ -47,6 +48,8 @@ export default function TradingPageClient({ token: initialToken, contractAddress
   const [maxReserve, setMaxReserve] = useState(0);
   const [walletState, dispatchWallet] = useReducer(walletStateReducer, initialWalletState);
   const headerRef = useRef<HeaderRef>(null);
+
+  const { network, toggle: toggleNetwork } = useNetwork();
 
   // fetch token data (current_price etc)
   const fetchToken = useCallback(async () => {
@@ -209,6 +212,8 @@ export default function TradingPageClient({ token: initialToken, contractAddress
         walletConnected={walletState.status === 'connected'}
         walletAddress={walletState.address}
         currentView={ViewState.DETAIL}
+        network={network}
+        onToggleNetwork={toggleNetwork}
       />
 
       <div className="container mx-auto px-4 py-4 max-w-[1600px] animate-fade-in">

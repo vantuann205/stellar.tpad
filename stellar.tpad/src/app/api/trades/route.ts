@@ -14,9 +14,9 @@ export async function GET(request: NextRequest) {
     const tokenResult = await query(
       `SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1`,
       [tokenId]
-    );
+    ) as any;
 
-    if (tokenResult.rows.length === 0) {
+    if (!tokenResult?.rows || tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
 
@@ -41,9 +41,9 @@ export async function GET(request: NextRequest) {
       ORDER BY created_at DESC
       LIMIT 100`,
       [dbTokenId]
-    );
+    ) as any;
 
-    const trades = tradesResult.rows.map((row: any) => ({
+    const trades = (tradesResult?.rows || []).map((row: any) => ({
       id: row.id,
       user: row.user || 'Unknown',
       type: row.type,

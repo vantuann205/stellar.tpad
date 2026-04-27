@@ -12,11 +12,11 @@ export async function GET(
     const tokenResult = await query(
       `SELECT id, total_supply FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1`,
       [params.contractAddress]
-    );
-    if (tokenResult.rows.length === 0) {
+    ) as any;
+    if (!tokenResult?.rows || tokenResult.rows.length === 0) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
-    const token = tokenResult.rows[0];
+    const token = tokenResult?.rows?.[0];
     const tokenId = token.id;
     const totalSupply = Number(token.total_supply || 0);
 
@@ -44,9 +44,9 @@ export async function GET(
        ORDER BY net_qty DESC
        LIMIT 50`,
       [tokenId]
-    );
+    ) as any;
 
-    const holdersWithPercentage = result.rows.map((row: any) => {
+    const holdersWithPercentage = (result?.rows || []).map((row: any) => {
       const balance = Number(row.net_qty || 0);
       return {
         address: row.address,
