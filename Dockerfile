@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY stellar.tpad/package*.json ./
-RUN npm install --prefer-offline
+RUN npm install --legacy-peer-deps
 
 # Copy source and build
 COPY stellar.tpad/ .
