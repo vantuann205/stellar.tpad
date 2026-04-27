@@ -60,10 +60,10 @@ export async function GET(
       });
     }
 
-    // Recalculate — pass current_price so token-metrics can use it as hint
+    // Recalculate — do NOT pass current_price, let token-metrics pick from latest trade
     const metrics = await calculateAndStoreTokenMetrics({
       tokenId,
-      currentPrice: token.current_price,
+      currentPrice: null,
       recordSnapshot: false,
     });
 

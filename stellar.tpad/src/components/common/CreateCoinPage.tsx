@@ -78,28 +78,26 @@ export default function CreateCoinPage({ onCancel, onTokenCreated }: CreateCoinP
     const log = (msg: string) => setDeployLog(prev => [...prev, msg]);
 
     try {
-      // 1. Connect Freighter
-      log('🔌 Kết nối Freighter wallet...');
-      const { isConnected, requestAccess, getAddress, signTransaction } = await import('@stellar/freighter-api');
-      const connected = await isConnected();
-      if (!connected) throw new Error('Freighter chưa được cài đặt. Cài tại https://freighter.app');
+      // 1. Connect wallet (supports Freighter + Rabet via StellarWalletsKit)
+      log('🔌 Kết nối wallet...');
+      const { stellarWalletService } = await import('@/services/wallet.service');
 
-      // Request access if not already granted
-      await requestAccess();
-
-      const addrResult = await getAddress();
-      const publicKey = typeof addrResult === 'string' ? addrResult : (addrResult as any).address ?? '';
-      if (!publicKey) throw new Error('Không lấy được địa chỉ ví từ Freighter.');
+      let publicKey = await stellarWalletService.getPublicKey();
+      if (!publicKey) {
+        const result = await stellarWalletService.connect();
+        publicKey = result.address;
+      }
+      if (!publicKey) throw new Error('Không lấy được địa chỉ ví. Vui lòng kết nối ví trước.');
       log(`✅ Wallet: ${publicKey.slice(0, 8)}...${publicKey.slice(-4)}`);
 
       if (!WASM_HASH) throw new Error('NEXT_PUBLIC_TOKEN_WASM_HASH chưa được cấu hình trong .env.local');
 
+      const bondingCurveId = process.env.NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID;
+      if (!bondingCurveId) throw new Error('NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID not configured');
+
       // 2. Deploy contract + register bonding curve (1 signature only)
       log('🚀 Deploying token contract on Stellar Testnet...');
       const { deployAndInitToken } = await import('@/features/token/token.service');
-
-      const bondingCurveId = process.env.NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID;
-      if (!bondingCurveId) throw new Error('NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID not configured');
 
       const newContractId = await deployAndInitToken({
         name: form.name.trim(),
@@ -108,14 +106,12 @@ export default function CreateCoinPage({ onCancel, onTokenCreated }: CreateCoinP
         bondingCurveAddress: bondingCurveId,
         wasmHash: WASM_HASH,
         signTransaction: async (txXdr: string) => {
-          log('✍️ Vui lòng ký transaction trong Freighter...');
-          const result = await signTransaction(txXdr, {
+          log('✍️ Vui lòng ký transaction trong ví...');
+          const { signedTxXdr } = await stellarWalletService.signTransaction(txXdr, {
             networkPassphrase: 'Test SDF Network ; September 2015',
           });
-          if (typeof result === 'string') return result;
-          const xdrStr = (result as any).signedTxXdr;
-          if (!xdrStr) throw new Error('Freighter không trả về signed XDR');
-          return xdrStr;
+          if (!signedTxXdr) throw new Error('Ký transaction thất bại hoặc bị từ chối');
+          return signedTxXdr;
         },
       });
 
@@ -123,26 +119,45 @@ export default function CreateCoinPage({ onCancel, onTokenCreated }: CreateCoinP
       log('💰 1,000,000,000 tokens minted to bonding curve pool!');
       log('📊 Token registered in bonding curve!');
 
-      // 3. Save to DB
+      // 3. Save to DB — retry up to 3 times
       log('💾 Lưu vào database...');
-      try {
-        await fetch('/api/tokens', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: form.name.trim(),
-            symbol: form.symbol.trim().toUpperCase(),
-            description: form.description.trim(),
-            image_url: form.imageUrl,
-            social_link: form.twitter || form.telegram || form.website || '',
-            totalSupply: '1000000000',
-            owner: publicKey,
-            contractAddress: newContractId,
-          }),
-        });
-        log('✅ Đã lưu vào database.');
-      } catch {
-        log('⚠️ Lưu DB thất bại (contract vẫn deployed thành công).');
+      let saved = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const res = await fetch('/api/tokens', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: form.name.trim(),
+              symbol: form.symbol.trim().toUpperCase(),
+              description: form.description.trim(),
+              image_url: form.imageUrl,
+              social_link: form.twitter || form.telegram || form.website || '',
+              totalSupply: '1000000000',
+              owner: publicKey,
+              contractAddress: newContractId,
+              bonding_curve_contract: bondingCurveId,
+              bonding_curve_registered: true,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            log('✅ Đã lưu vào database.');
+            saved = true;
+            break;
+          } else {
+            throw new Error(data.error || `HTTP ${res.status}`);
+          }
+        } catch (dbErr) {
+          const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+          if (attempt < 3) {
+            log(`⚠️ Lưu DB thất bại (lần ${attempt}), thử lại... ${msg}`);
+            await new Promise(r => setTimeout(r, 2000));
+          } else {
+            log(`⚠️ Lưu DB thất bại sau 3 lần: ${msg}`);
+            log('ℹ️ Contract vẫn deployed thành công. Liên hệ admin để thêm thủ công.');
+          }
+        }
       }
 
       setContractId(newContractId);

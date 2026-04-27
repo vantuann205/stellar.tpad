@@ -107,31 +107,25 @@ export async function calculateAndStoreTokenMetrics({
   const token = tokenResult.rows[0] as TokenRow;
 
   // Resolve current price — priority order:
-  // 1. Explicitly passed-in price (from smart contract, most accurate)
-  // 2. Latest trade price from purchases table
+  // 1. Explicitly passed-in price (from smart contract after trade — most accurate)
+  // 2. Calculate from sold_supply in DB using bonding curve formula
+  //    (sold_supply is updated by purchases/route.ts after each trade)
   // 3. Current price already stored in DB
   // 4. Launch price fallback
-  // NOTE: We do NOT recalculate from sold_supply here because sold_supply in DB
-  // may lag behind the smart contract. The authoritative price comes from trades.
-  const latestTradeResult = await query(
-    `SELECT price_per_token
-     FROM purchases
-     WHERE token_id = $1
-       AND status = 'completed'
-     ORDER BY created_at DESC
-     LIMIT 1`,
-    [tokenId]
-  );
+  const BASE_PRICE_STROOPS = 1_000;
+  const SLOPE_STROOPS = 25_000;
+  const STROOPS_PER_XLM = 10_000_000;
 
-  const latestTradePrice = latestTradeResult.rows.length > 0
-    ? toNumber(latestTradeResult.rows[0].price_per_token, 0)
+  const soldSupplyTokens = toNumber(token.sold_supply, 0);
+  const priceFromCurve = soldSupplyTokens > 0
+    ? (BASE_PRICE_STROOPS + SLOPE_STROOPS * soldSupplyTokens) / STROOPS_PER_XLM
     : 0;
 
   const launchPrice = DEFAULT_INITIAL_PRICE;
 
   const resolvedCurrentPrice =
     toNumber(currentPrice, 0) ||
-    latestTradePrice ||
+    priceFromCurve ||
     toNumber(token.current_price, 0) ||
     launchPrice;
 
@@ -178,7 +172,9 @@ export async function calculateAndStoreTokenMetrics({
 
   const calcChange = (pastPrice: number | null): number => {
     if (!pastPrice || pastPrice <= 0 || resolvedCurrentPrice <= 0) return 0;
-    return round4(((resolvedCurrentPrice - pastPrice) / pastPrice) * 100);
+    const change = ((resolvedCurrentPrice - pastPrice) / pastPrice) * 100;
+    // Cap at ±99999.9999 to fit NUMERIC(10,4) column
+    return round4(Math.max(-99999, Math.min(99999, change)));
   };
 
   // Market cap = current_price × total_supply (standard definition)

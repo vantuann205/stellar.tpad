@@ -3,9 +3,14 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useReducer } from 'react';
 import { Rocket, TrendingUp, Wallet, Plus } from 'lucide-react';
 import CreateCoinPage from '@/components/common/CreateCoinPage';
-import Header from '@/components/layout/SimpleHeader';
+import Header from '@/components/layout/Header';
+import { ViewState } from '@/types';
+import { stellarWalletService, WalletServiceError } from '@/services/wallet.service';
+import { initialWalletState, walletStateReducer } from '@/store/wallet.store';
 
 interface CoinCard {
   id: string;
@@ -19,13 +24,38 @@ interface CoinCard {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const [walletState, dispatchWallet] = useReducer(walletStateReducer, initialWalletState);
   const [view, setView] = useState<'home' | 'create'>('home');
   const [coins, setCoins] = useState<CoinCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    stellarWalletService.restoreSession().then((session) => {
+      if (!session) return;
+      dispatchWallet({ type: 'connected', payload: { provider: session.provider, address: session.address } });
+    });
+  }, []);
+
+  useEffect(() => {
     fetchCoins();
   }, []);
+
+  const handleConnectWallet = async () => {
+    dispatchWallet({ type: 'connecting' });
+    try {
+      const { provider, address } = await stellarWalletService.connect();
+      dispatchWallet({ type: 'connected', payload: { provider, address } });
+    } catch (error) {
+      const code = error instanceof WalletServiceError ? error.code : 'unknown';
+      dispatchWallet({ type: 'error', payload: { errorCode: code } });
+    }
+  };
+
+  const handleDisconnectWallet = async () => {
+    await stellarWalletService.disconnect();
+    dispatchWallet({ type: 'disconnected' });
+  };
 
   const fetchCoins = async () => {
     setLoading(true);
@@ -43,7 +73,23 @@ export default function DashboardPage() {
   if (view === 'create') {
     return (
       <div className="min-h-screen bg-[#0b0f1a]">
-        <Header />
+        <Header
+          onGoHome={() => setView('home')}
+          onGoCreate={() => setView('create')}
+          onGoLivestreams={() => router.push('/?view=livestreams')}
+          onGoSupport={() => router.push('/?view=support')}
+          onGoProfile={() => {
+            if (walletState.address) {
+              router.push(`/profile/${walletState.address}`);
+            }
+          }}
+          onConnectWallet={handleConnectWallet}
+          onDisconnectWallet={handleDisconnectWallet}
+          onSelectToken={(addr) => router.push(`/token/${addr}`)}
+          walletConnected={walletState.status === 'connected'}
+          walletAddress={walletState.address}
+          currentView={ViewState.CREATE}
+        />
         <div className="pt-4">
           <CreateCoinPage
             onCancel={() => setView('home')}
@@ -59,7 +105,23 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0b0f1a]">
-      <Header />
+      <Header
+        onGoHome={() => setView('home')}
+        onGoCreate={() => setView('create')}
+        onGoLivestreams={() => router.push('/?view=livestreams')}
+        onGoSupport={() => router.push('/?view=support')}
+        onGoProfile={() => {
+          if (walletState.address) {
+            router.push(`/profile/${walletState.address}`);
+          }
+        }}
+        onConnectWallet={handleConnectWallet}
+        onDisconnectWallet={handleDisconnectWallet}
+        onSelectToken={(addr) => router.push(`/token/${addr}`)}
+        walletConnected={walletState.status === 'connected'}
+        walletAddress={walletState.address}
+        currentView={ViewState.GRID}
+      />
 
       {/* Hero */}
       <div className="max-w-6xl mx-auto px-4 pt-12 pb-8 text-center">

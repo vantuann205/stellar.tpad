@@ -84,14 +84,28 @@ const mapErrorCode = (error: unknown): WalletErrorCode => {
   return 'unknown';
 };
 
-const ensureTestnet = async (): Promise<void> => {
-  const network = await StellarWalletsKit.getNetwork();
+const TESTNET_PASSPHRASE = 'Test SDF Network ; September 2015';
 
-  if (network.networkPassphrase !== STELLAR_NETWORK_PASSPHRASE) {
-    throw new WalletServiceError(
-      'wrong_network',
-      `Expected ${STELLAR_NETWORK_PASSPHRASE}, got ${network.networkPassphrase}`,
-    );
+const ensureTestnet = async (): Promise<void> => {
+  try {
+    const network = await StellarWalletsKit.getNetwork();
+    const passphrase = network?.networkPassphrase || '';
+    // Accept both full passphrase and short "testnet" string (some wallets return short form)
+    const isTestnet =
+      passphrase === TESTNET_PASSPHRASE ||
+      passphrase.toLowerCase().includes('testnet') ||
+      passphrase === 'testnet';
+
+    if (!isTestnet) {
+      throw new WalletServiceError(
+        'wrong_network',
+        `Please switch your wallet to Stellar Testnet. Got: "${passphrase}"`,
+      );
+    }
+  } catch (err) {
+    if (err instanceof WalletServiceError) throw err;
+    // Some wallets (Rabet) may not support getNetwork — skip check
+    console.warn('[wallet] Could not verify network, proceeding:', err);
   }
 };
 
@@ -106,6 +120,10 @@ const initKit = (): void => {
     modules: [new FreighterModule(), new RabetModule()],
     selectedWalletId: session?.walletId,
     network: STELLAR_NETWORK_PASSPHRASE as Networks,
+    authModal: {
+      // Show all wallets even if extension not detected — user may have it but detection fails
+      hideUnsupportedWallets: false,
+    },
   });
 
   StellarWalletsKit.on(KitEventType.WALLET_SELECTED, (event) => {
@@ -205,6 +223,19 @@ export const stellarWalletService = {
     } catch {
       return null;
     }
+  },
+
+  async signTransaction(
+    xdr: string,
+    opts?: { networkPassphrase?: string; address?: string }
+  ): Promise<{ signedTxXdr: string }> {
+    initKit();
+    const result = await StellarWalletsKit.signTransaction(xdr, {
+      networkPassphrase: opts?.networkPassphrase,
+      address: opts?.address,
+    });
+    if (!result?.signedTxXdr) throw new Error('Signing failed or was rejected');
+    return { signedTxXdr: result.signedTxXdr };
   },
 
   getProviderName(provider: StellarWalletProvider): string {

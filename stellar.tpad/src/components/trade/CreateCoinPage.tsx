@@ -4,11 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import {
-  isConnected,
-  getAddress,
-  signTransaction,
-} from '@stellar/freighter-api';
-import {
   TransactionBuilder,
   BASE_FEE,
   Networks,
@@ -48,12 +43,23 @@ export default function CreateCoinPage() {
 
     setLoading(true);
     try {
-      // 1. check wallet
+      // 1. check wallet via stellarWalletService (supports Freighter + Rabet)
       setStep('checking wallet...');
-      const conn = await isConnected();
-      if (!conn.isConnected) { showToast('error', 'please connect freighter wallet first'); return; }
-      const addrRes = await getAddress();
-      const adminPublicKey = addrRes.address ?? '';
+      const { stellarWalletService } = await import('@/services/wallet.service');
+      let adminPublicKey = await stellarWalletService.getPublicKey();
+      if (!adminPublicKey) {
+        const result = await stellarWalletService.connect();
+        adminPublicKey = result.address;
+      }
+      if (!adminPublicKey) { showToast('error', 'please connect wallet first'); return; }
+
+      const sign = async (xdrStr: string) => {
+        const { signedTxXdr } = await stellarWalletService.signTransaction(xdrStr, {
+          networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
+        });
+        if (!signedTxXdr) throw new Error('Signing failed or rejected');
+        return signedTxXdr;
+      };
 
       // 2. pay mint fee 1 XLM → treasury
       setStep('paying 1 XLM mint fee...');
@@ -81,7 +87,6 @@ export default function CreateCoinPage() {
         showToast('error', 'mint fee payment failed');
         return;
       }
-      // wait for payment confirmation
       for (let i = 0; i < 20; i++) {
         await new Promise(r => setTimeout(r, 2000));
         const s = await rpc.getTransaction(paymentResp.hash);
@@ -115,23 +120,40 @@ export default function CreateCoinPage() {
         showToast('warn', 'token created but bonding curve registration failed');
       }
 
-      // 5. save to API
+      // 5. save to DB — retry up to 3 times
       setStep('saving token...');
-      await fetch('/api/tokens', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          symbol: form.symbol,
-          description: form.description,
-          image_url: form.imageUrl,
-          social_link: form.socialLink,
-          owner: adminPublicKey,
-          contractAddress: tokenAddress,
-          bonding_curve_contract: BONDING_CURVE_CONTRACT,
-          bonding_curve_registered: bcRegistered,
-        }),
-      });
+      let saved = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const res = await fetch('/api/tokens', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: form.name,
+              symbol: form.symbol,
+              description: form.description,
+              image_url: form.imageUrl,
+              social_link: form.socialLink,
+              totalSupply: '1000000000',
+              owner: adminPublicKey,
+              contractAddress: tokenAddress,
+              bonding_curve_contract: BONDING_CURVE_CONTRACT,
+              bonding_curve_registered: bcRegistered,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            saved = true;
+            break;
+          } else {
+            throw new Error(data.error || `HTTP ${res.status}`);
+          }
+        } catch (dbErr) {
+          console.error(`[CreateCoinPage] DB save attempt ${attempt} failed:`, dbErr);
+          if (attempt < 3) await new Promise(r => setTimeout(r, 2000));
+          else showToast('warn', `DB save failed: ${dbErr instanceof Error ? dbErr.message : dbErr}`);
+        }
+      }
 
       showToast('success', 'token created successfully!');
       router.push(`/token/${tokenAddress}`);

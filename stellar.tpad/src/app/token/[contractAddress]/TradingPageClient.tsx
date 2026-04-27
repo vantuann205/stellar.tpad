@@ -295,6 +295,7 @@ export default function TradingPageClient({ token: initialToken, contractAddress
             <BondingCurveTrader
               tokenAddress={contractAddress}
               ticker={ticker}
+              walletAddress={walletState.address || undefined}
               onTradeSuccess={onTradeSuccess}
             />
             

@@ -1,3 +1,11 @@
+import AppHeaderShell from '@/components/layout/AppHeaderShell';
+import { ViewState } from '@/types';
+
 export default function LoginPage() {
-  return <main className="p-6">Login Page</main>;
+  return (
+    <div className="min-h-screen bg-white dark:bg-pump-bg text-gray-900 dark:text-pump-text">
+      <AppHeaderShell currentView={ViewState.DETAIL} />
+      <main className="p-6">Login Page</main>
+    </div>
+  );
 }
