@@ -22,18 +22,25 @@ import {
   Account,
   scValToNative,
 } from '@stellar/stellar-sdk';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 
 const RPC_URL = 'https://soroban-testnet.stellar.org';
 const NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
 const rpc = new SorobanRpc.Server(RPC_URL, { allowHttp: false });
 
-// Contract IDs from .env.local
-const FACTORY_ID = 'CBTJIGONHNTVSGTWZZTTJF54X5Y5AFCA2YUAQEI26WYZG3XUL52SKHTC';
-const BONDING_CURVE_ID = 'CA6O4MTIA2I7ADDVT64RF6XQOUVJ4BG3LQV5TZXG42OKXSMS54JOUV52';
-const TOKEN_WASM_HASH = 'cfd5e1176fd87012cf2fc93cba87b2ca6b981bfbec226fffd63bf4eef313b649';
+// Load .env.local
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 
-// Deployer wallet (from .env.local)
-const DEPLOYER_SECRET = 'SBEC2YNDTABW5S4BSQTRDJWE5ZAZ3PRSHXS4HXBOZU545BO4BAUZJIO6';
+// Contract IDs from .env.local
+const FACTORY_ID = process.env.NEXT_PUBLIC_FACTORY_CONTRACT_ID!;
+const BONDING_CURVE_ID = process.env.NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID!;
+const TOKEN_WASM_HASH = process.env.NEXT_PUBLIC_TOKEN_WASM_HASH!;
+
+// Deployer wallet from .env.local — NEVER hardcode secrets in source files
+const DEPLOYER_SECRET = process.env.STELLAR_DEPLOYER_SECRET_KEY;
+if (!DEPLOYER_SECRET) throw new Error('STELLAR_DEPLOYER_SECRET_KEY not set in .env.local');
+
 const deployer = Keypair.fromSecret(DEPLOYER_SECRET);
 
 // Bonding curve parameters (from smart contract)
