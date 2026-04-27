@@ -7,25 +7,14 @@ pub mod state;
 mod test;
 
 use soroban_sdk::{contract, contractimpl, panic_with_error, symbol_short, Address, Env};
-
 use math::{calc_buy_cost, calc_sell_proceeds};
 use state::{ContractError, DataKey, TokenCurveState};
 
-// Treasury address that receives all fees
 const TREASURY: &str = "GB7Q3MPI4YAZ27X3XJ2KQ2LVFGLOPNQIV3CXT352GPM36CDIYJLI4AVJ";
-
-// Default bonding curve parameters
-// price(S) = base_price + slope * S_tokens
-// Target: at 1M tokens sold → price ≈ 0.075 XLM/token
-// At 1M  tokens sold: price ≈ 0.075 XLM/token
-// At 10M tokens sold: price ≈ 0.75 XLM/token
-// At 100M tokens sold: price ≈ 7.5 XLM/token
-const DEFAULT_BASE_PRICE: i128 = 10;           // 10 stroops = 0.000001 XLM
-const DEFAULT_SLOPE: i128 = 750;               // 750 stroops per token
-const DEFAULT_TOTAL_SUPPLY: i128 = 10_000_000_000_000_000; // 1B * 10^7
-
-// Fee: 0.5% per transaction (50 basis points)
-const FEE_BPS: i128 = 50;
+const DEFAULT_BASE_PRICE: i128 = 10;
+const DEFAULT_SLOPE: i128 = 750;
+const DEFAULT_TOTAL_SUPPLY: i128 = 10_000_000_000_000_000;
+const FEE_BPS: i128 = 50;    // 0.5%
 const FEE_DENOM: i128 = 10_000;
 
 #[contract]
@@ -33,7 +22,6 @@ pub struct BondingCurveContract;
 
 #[contractimpl]
 impl BondingCurveContract {
-    /// Initialize the contract once. Stores admin and treasury in instance storage.
     pub fn initialize(env: Env, admin: Address) {
         if env.storage().instance().has(&DataKey::Admin) {
             panic_with_error!(&env, ContractError::AlreadyInitialized);
@@ -43,8 +31,6 @@ impl BondingCurveContract {
         env.storage().instance().set(&DataKey::Treasury, &treasury);
     }
 
-    /// Register a new token into the bonding curve.
-    /// Creates a fresh TokenCurveState with default parameters.
     pub fn register_token(env: Env, token_address: Address, token_admin: Address) {
         if env.storage().persistent().has(&DataKey::Token(token_address.clone())) {
             panic_with_error!(&env, ContractError::TokenAlreadyRegistered);
@@ -63,7 +49,6 @@ impl BondingCurveContract {
         env.events().publish((symbol_short!("register"), token_address), ());
     }
 
-    /// Get the bonding curve state for a token.
     pub fn get_token_state(env: Env, token_address: Address) -> TokenCurveState {
         env.storage()
             .persistent()
@@ -71,48 +56,28 @@ impl BondingCurveContract {
             .unwrap_or_else(|| panic_with_error!(&env, ContractError::TokenNotFound))
     }
 
-    /// Current price in stroops = base_price + slope * (sold_supply / 10^7).
     pub fn get_price(env: Env, token_address: Address) -> i128 {
         let s = Self::get_token_state(env, token_address);
         s.base_price + s.slope * (s.sold_supply / 10_000_000)
     }
 
-    /// Total XLM cost (stroops) to buy token_amount raw units (before fee).
     pub fn get_buy_price(env: Env, token_address: Address, token_amount: i128) -> i128 {
-        if token_amount <= 0 {
-            panic_with_error!(&env, ContractError::InvalidAmount);
-        }
+        if token_amount <= 0 { panic_with_error!(&env, ContractError::InvalidAmount); }
         let s = Self::get_token_state(env.clone(), token_address);
         calc_buy_cost(s.base_price, s.slope, s.sold_supply, token_amount)
     }
 
-    /// Total XLM proceeds (stroops) from selling token_amount raw units (before fee).
     pub fn get_sell_price(env: Env, token_address: Address, token_amount: i128) -> i128 {
-        if token_amount <= 0 {
-            panic_with_error!(&env, ContractError::InvalidAmount);
-        }
+        if token_amount <= 0 { panic_with_error!(&env, ContractError::InvalidAmount); }
         let s = Self::get_token_state(env.clone(), token_address);
         calc_sell_proceeds(s.base_price, s.slope, s.sold_supply, token_amount)
     }
 
-    /// Buy token_amount raw units. Transfers XLM from buyer, tokens to buyer.
-    /// max_xlm_in is slippage protection (in stroops).
-    pub fn buy(
-        env: Env,
-        buyer: Address,
-        token_address: Address,
-        token_amount: i128,
-        max_xlm_in: i128,
-    ) {
+    pub fn buy(env: Env, buyer: Address, token_address: Address, token_amount: i128, max_xlm_in: i128) {
         buyer.require_auth();
+        if token_amount <= 0 { panic_with_error!(&env, ContractError::InvalidAmount); }
 
-        if token_amount <= 0 {
-            panic_with_error!(&env, ContractError::InvalidAmount);
-        }
-
-        let mut s: TokenCurveState = env
-            .storage()
-            .persistent()
+        let mut s: TokenCurveState = env.storage().persistent()
             .get(&DataKey::Token(token_address.clone()))
             .unwrap_or_else(|| panic_with_error!(&env, ContractError::TokenNotFound));
 
@@ -121,97 +86,57 @@ impl BondingCurveContract {
         }
 
         let cost = calc_buy_cost(s.base_price, s.slope, s.sold_supply, token_amount);
-        let fee = cost * FEE_BPS / FEE_DENOM; // 0.5%
+        let fee = cost * FEE_BPS / FEE_DENOM;
         let total_xlm = cost + fee;
 
-        if total_xlm > max_xlm_in {
-            panic_with_error!(&env, ContractError::SlippageExceeded);
-        }
+        if total_xlm > max_xlm_in { panic_with_error!(&env, ContractError::SlippageExceeded); }
 
         let treasury: Address = env.storage().instance().get(&DataKey::Treasury).unwrap();
+        let xlm = soroban_sdk::token::Client::new(&env, &get_xlm_address(&env));
+        xlm.transfer(&buyer, &env.current_contract_address(), &total_xlm);
+        xlm.transfer(&env.current_contract_address(), &treasury, &fee);
 
-        // Transfer XLM: buyer → contract (cost), contract → treasury (fee)
-        let xlm_client = soroban_sdk::token::Client::new(&env, &get_xlm_address(&env));
-        xlm_client.transfer(&buyer, &env.current_contract_address(), &total_xlm);
-        xlm_client.transfer(&env.current_contract_address(), &treasury, &fee);
+        let token = soroban_sdk::token::Client::new(&env, &token_address);
+        token.transfer(&env.current_contract_address(), &buyer, &token_amount);
 
-        // Transfer tokens: contract → buyer
-        let token_client = soroban_sdk::token::Client::new(&env, &token_address);
-        token_client.transfer(&env.current_contract_address(), &buyer, &token_amount);
-
-        // Update state
         s.sold_supply += token_amount;
         s.xlm_reserve += cost;
         env.storage().persistent().set(&DataKey::Token(token_address.clone()), &s);
-
-        env.events().publish(
-            (symbol_short!("buy"), buyer, token_address),
-            (token_amount, cost, fee),
-        );
+        env.events().publish((symbol_short!("buy"), buyer, token_address), (token_amount, cost, fee));
     }
 
-    /// Sell token_amount raw units. Transfers tokens from seller, XLM to seller.
-    /// min_xlm_out is slippage protection (in stroops).
-    pub fn sell(
-        env: Env,
-        seller: Address,
-        token_address: Address,
-        token_amount: i128,
-        min_xlm_out: i128,
-    ) {
+    pub fn sell(env: Env, seller: Address, token_address: Address, token_amount: i128, min_xlm_out: i128) {
         seller.require_auth();
+        if token_amount <= 0 { panic_with_error!(&env, ContractError::InvalidAmount); }
 
-        if token_amount <= 0 {
-            panic_with_error!(&env, ContractError::InvalidAmount);
-        }
-
-        let mut s: TokenCurveState = env
-            .storage()
-            .persistent()
+        let mut s: TokenCurveState = env.storage().persistent()
             .get(&DataKey::Token(token_address.clone()))
             .unwrap_or_else(|| panic_with_error!(&env, ContractError::TokenNotFound));
 
-        if s.sold_supply < token_amount {
-            panic_with_error!(&env, ContractError::InsufficientLiquidity);
-        }
+        if s.sold_supply < token_amount { panic_with_error!(&env, ContractError::InsufficientLiquidity); }
 
         let proceeds = calc_sell_proceeds(s.base_price, s.slope, s.sold_supply, token_amount);
-        let fee = proceeds * FEE_BPS / FEE_DENOM; // 0.5%
+        let fee = proceeds * FEE_BPS / FEE_DENOM;
         let payout = proceeds - fee;
 
-        if s.xlm_reserve < proceeds {
-            panic_with_error!(&env, ContractError::InsufficientReserve);
-        }
-
-        if payout < min_xlm_out {
-            panic_with_error!(&env, ContractError::SlippageExceeded);
-        }
+        if s.xlm_reserve < proceeds { panic_with_error!(&env, ContractError::InsufficientReserve); }
+        if payout < min_xlm_out { panic_with_error!(&env, ContractError::SlippageExceeded); }
 
         let treasury: Address = env.storage().instance().get(&DataKey::Treasury).unwrap();
+        let token = soroban_sdk::token::Client::new(&env, &token_address);
+        token.transfer(&seller, &env.current_contract_address(), &token_amount);
 
-        // Transfer tokens: seller → contract
-        let token_client = soroban_sdk::token::Client::new(&env, &token_address);
-        token_client.transfer(&seller, &env.current_contract_address(), &token_amount);
+        let xlm = soroban_sdk::token::Client::new(&env, &get_xlm_address(&env));
+        xlm.transfer(&env.current_contract_address(), &seller, &payout);
+        xlm.transfer(&env.current_contract_address(), &treasury, &fee);
 
-        // Transfer XLM: contract → seller (payout), contract → treasury (fee)
-        let xlm_client = soroban_sdk::token::Client::new(&env, &get_xlm_address(&env));
-        xlm_client.transfer(&env.current_contract_address(), &seller, &payout);
-        xlm_client.transfer(&env.current_contract_address(), &treasury, &fee);
-
-        // Update state
         s.sold_supply -= token_amount;
         s.xlm_reserve -= proceeds;
         env.storage().persistent().set(&DataKey::Token(token_address.clone()), &s);
-
-        env.events().publish(
-            (symbol_short!("sell"), seller, token_address),
-            (token_amount, proceeds, fee),
-        );
+        env.events().publish((symbol_short!("sell"), seller, token_address), (token_amount, proceeds, fee));
     }
 }
 
-/// Returns the native XLM Stellar Asset Contract (SAC) address for Stellar testnet.
 fn get_xlm_address(env: &Env) -> Address {
-    // Native XLM SAC on Stellar testnet (generated via `stellar contract id asset --asset native`)
     Address::from_str(env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC")
 }

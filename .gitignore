@@ -1,22 +1,22 @@
 # Dependencies
 node_modules/
-frontend/node_modules/
+stellar.tpad/node_modules/
 
 # Next.js
-frontend/.next/
-frontend/out/
+stellar.tpad/.next/
+stellar.tpad/out/
 
-# Build
-frontend/build/
-frontend/dist/
+# Build artifacts
+stellar.tpad/build/
+stellar.tpad/dist/
+stellar.tpad/tsconfig.tsbuildinfo
 
-# Env files
+# Env files — never commit secrets
 .env
 .env.local
 .env.*.local
-frontend/.env
-frontend/.env.local
-frontend/.env.*.local
+stellar.tpad/.env.local
+stellar.tpad/.env.*.local
 
 # Logs
 *.log
@@ -26,16 +26,20 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# TypeScript
-frontend/tsconfig.tsbuildinfo
-
 # IDE
 .vscode/
 .idea/
 
-# Kiro spec files
+# Kiro internal
 .kiro/
 
 # Rust build artifacts
 target/
 **/target/
+
+# Test snapshots (generated)
+**/test_snapshots/
+**/proptest-regressions/
+
+# Cargo lock files for contracts (not needed in git)
+stellar.tpad/contracts/*/Cargo.lock
