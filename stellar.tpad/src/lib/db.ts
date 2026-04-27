@@ -5,29 +5,50 @@ const pool = new Pool({
     ssl: {
         rejectUnauthorized: false,
     },
-    max: 20, // Maximum number of clients in the pool
-    idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-    connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
-    maxUses: 7500, // Close (and replace) a connection after it has been used 7500 times
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000, // 10s — enough for Neon serverless cold start
+    maxUses: 7500,
 });
 
 pool.on('error', (err: Error) => {
     console.error('Unexpected error on idle client', err);
 });
 
-export async function query(text: string, params?: any[]) {
-    const start = Date.now();
-    try {
-        const result = await pool.query(text, params);
-        const duration = Date.now() - start;
-        if (duration > 1000) {
-            console.warn('Slow query detected', { text: text.substring(0, 100), duration, rows: result.rowCount });
+/**
+ * Execute a query with automatic retry on connection timeout (Neon serverless cold start).
+ * Retries up to 3 times with 2s delay.
+ */
+export async function query(text: string, params?: any[]): Promise<ReturnType<Pool['query']>> {
+    const MAX_RETRIES = 3;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            const start = Date.now();
+            const result = await pool.query(text, params);
+            const duration = Date.now() - start;
+            if (duration > 1000) {
+                console.warn('Slow query detected', { text: text.substring(0, 100), duration, rows: result.rowCount });
+            }
+            return result;
+        } catch (error: unknown) {
+            lastError = error;
+            const msg = error instanceof Error ? error.message : String(error);
+            const isTimeout = msg.includes('timeout') || msg.includes('ETIMEDOUT') || msg.includes('Connection terminated');
+
+            if (isTimeout && attempt < MAX_RETRIES) {
+                console.warn(`[db] Connection timeout (attempt ${attempt}/${MAX_RETRIES}), retrying in 2s...`);
+                await new Promise(r => setTimeout(r, 2000));
+                continue;
+            }
+
+            console.error('Database query error:', error);
+            throw error;
         }
-        return result;
-    } catch (error) {
-        console.error('Database query error:', error);
-        throw error;
     }
+
+    throw lastError;
 }
 
 export async function getClient() {

@@ -350,31 +350,41 @@ async function main() {
     
     // Register token in database (simulate what frontend does after create)
     console.log('\n💾 Registering token in database...');
-    try {
-      const saveRes = await fetch('http://localhost:3000/api/tokens', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'Test Token',
-          symbol: 'TEST',
-          description: 'Bonding curve flow test token',
-          image_url: '',
-          social_link: '',
-          totalSupply: 1_000_000_000, // 1B tokens
-          owner: deployer.publicKey(),
-          contractAddress: tokenAddress,
-          bonding_curve_contract: BONDING_CURVE_ID,
-          bonding_curve_registered: true,
-        }),
-      });
-      const saveData = await saveRes.json();
-      if (saveData.success || saveData.data) {
-        log('Save Token to DB', 'PASS', `Token saved to database with id=${saveData.data?.id}`);
-      } else {
-        log('Save Token to DB', 'FAIL', `Failed: ${JSON.stringify(saveData)}`);
+    let saved = false;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        const saveRes = await fetch('http://localhost:3000/api/tokens', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'Test Token',
+            symbol: 'TEST',
+            description: 'Bonding curve flow test token',
+            image_url: '',
+            social_link: '',
+            totalSupply: 1_000_000_000,
+            owner: deployer.publicKey(),
+            contractAddress: tokenAddress,
+            bonding_curve_contract: BONDING_CURVE_ID,
+            bonding_curve_registered: true,
+          }),
+        });
+        const saveData = await saveRes.json();
+        if (saveData.success || saveData.data) {
+          log('Save Token to DB', 'PASS', `Token saved to database with id=${saveData.data?.id}`);
+          saved = true;
+          break;
+        } else {
+          throw new Error(JSON.stringify(saveData));
+        }
+      } catch (err) {
+        if (attempt < 5) {
+          console.log(`   ⏳ DB save attempt ${attempt} failed (cold start?), retrying in 3s...`);
+          await new Promise(r => setTimeout(r, 3000));
+        } else {
+          log('Save Token to DB', 'FAIL', `Failed after 5 attempts: ${err}`);
+        }
       }
-    } catch (err) {
-      log('Save Token to DB', 'FAIL', `Error: ${err}`);
     }
     
     await new Promise(r => setTimeout(r, 1000));

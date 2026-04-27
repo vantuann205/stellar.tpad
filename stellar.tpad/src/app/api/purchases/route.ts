@@ -69,20 +69,24 @@ export async function POST(request: NextRequest) {
         // Recalculate token metrics immediately so price/chart/market cap stay in sync after each trade.
         if ((status || 'completed') === 'completed') {
             try {
-                if (sold_supply !== undefined && sold_supply !== null) {
+                // sold_supply MUST be updated — it's the source of truth for price calculation
+                if (sold_supply !== undefined && sold_supply !== null && Number(sold_supply) >= 0) {
                     await query(
                         `UPDATE tokens
                          SET sold_supply = $2,
                              updated_at = NOW()
                          WHERE id = $1`,
-                        [Number(token_id), sold_supply]
+                        [Number(token_id), Number(sold_supply)]
                     );
+                    console.log(`[purchases] Updated sold_supply=${sold_supply} for token_id=${token_id}`);
+                } else {
+                    console.warn(`[purchases] sold_supply not provided for token_id=${token_id} — price may be stale`);
                 }
 
                 await calculateAndStoreTokenMetrics({
                     tokenId: Number(token_id),
                     currentPrice: price_per_token,
-                    recordSnapshot: true, // always record snapshot so price_change windows work
+                    recordSnapshot: true,
                 });
             } catch (metricsError) {
                 console.warn('Purchase saved, but metrics update failed:', metricsError);

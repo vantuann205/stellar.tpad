@@ -12,16 +12,21 @@ use math::{calc_buy_cost, calc_sell_proceeds};
 use state::{ContractError, DataKey, TokenCurveState};
 
 // Treasury address that receives all fees
-const TREASURY: &str = "GCZ2IR57HR7JSKNA5ILVGBWJSUFUHPJHW35RXDQ7HTDBZ2QHURULFP63";
+const TREASURY: &str = "GB7Q3MPI4YAZ27X3XJ2KQ2LVFGLOPNQIV3CXT352GPM36CDIYJLI4AVJ";
 
 // Default bonding curve parameters
 // price(S) = base_price + slope * S_tokens
-// At 100k tokens sold: price ≈ 0.25 XLM/token
-// At 500k tokens sold: price ≈ 1.25 XLM/token
-// At 1M  tokens sold: price ≈ 2.5 XLM/token
-const DEFAULT_BASE_PRICE: i128 = 1_000;        // 1,000 stroops = 0.0001 XLM (near-zero start)
-const DEFAULT_SLOPE: i128 = 25_000;            // 25,000 stroops per token (10x slower growth)
+// Target: at 1M tokens sold → price ≈ 0.075 XLM/token
+// At 1M  tokens sold: price ≈ 0.075 XLM/token
+// At 10M tokens sold: price ≈ 0.75 XLM/token
+// At 100M tokens sold: price ≈ 7.5 XLM/token
+const DEFAULT_BASE_PRICE: i128 = 10;           // 10 stroops = 0.000001 XLM
+const DEFAULT_SLOPE: i128 = 750;               // 750 stroops per token
 const DEFAULT_TOTAL_SUPPLY: i128 = 10_000_000_000_000_000; // 1B * 10^7
+
+// Fee: 0.5% per transaction (50 basis points)
+const FEE_BPS: i128 = 50;
+const FEE_DENOM: i128 = 10_000;
 
 #[contract]
 pub struct BondingCurveContract;
@@ -116,7 +121,7 @@ impl BondingCurveContract {
         }
 
         let cost = calc_buy_cost(s.base_price, s.slope, s.sold_supply, token_amount);
-        let fee = cost / 100; // 1%
+        let fee = cost * FEE_BPS / FEE_DENOM; // 0.5%
         let total_xlm = cost + fee;
 
         if total_xlm > max_xlm_in {
@@ -171,7 +176,7 @@ impl BondingCurveContract {
         }
 
         let proceeds = calc_sell_proceeds(s.base_price, s.slope, s.sold_supply, token_amount);
-        let fee = proceeds / 100; // 1%
+        let fee = proceeds * FEE_BPS / FEE_DENOM; // 0.5%
         let payout = proceeds - fee;
 
         if s.xlm_reserve < proceeds {

@@ -34,7 +34,7 @@ interface Preview {
 }
 
 const STROOPS = 10_000_000n;
-const TOTAL_FEE_RATE = 0.011; // 1.1% total fee
+const TOTAL_FEE_RATE = 0.005; // 0.5% fee per transaction
 const GAS_RESERVE_XLM = 0.3;
 const HORIZON_FALLBACK = 'https://horizon-testnet.stellar.org';
 
@@ -232,40 +232,42 @@ export default function BondingCurveTrader({
             return;
           }
 
-          // Calculate price from preview (most reliable — no extra RPC call needed)
-          // price_per_token = average price of this trade = total_cost / quantity
-          let currentPriceXlm: number;
-          let totalPrice: number;
+          // CRITICAL: Get exact post-trade state from chain (with retry)
+          // sold_supply and price MUST come from chain — not from preview
+          let currentPriceXlm = 0;
           let soldSupplyTokens = 0;
+          let gotChainState = false;
 
-          if (preview) {
-            totalPrice = Number(preview.cost) / 1e7;
-            currentPriceXlm = totalPrice / num; // average price per token
-          } else {
-            totalPrice = 0;
-            currentPriceXlm = 0;
-          }
-
-          // Try to get exact post-trade price from chain (with retry)
-          for (let attempt = 1; attempt <= 3; attempt++) {
+          for (let attempt = 1; attempt <= 5; attempt++) {
             try {
               const state = await getTokenState(tokenAddress);
-              const basePrice = BigInt(String(state.base_price).replace('n', ''));
-              const slope = BigInt(String(state.slope).replace('n', ''));
-              const soldSupply = BigInt(String(state.sold_supply).replace('n', ''));
+              const basePrice = BigInt(String(state.base_price).replace(/n$/, ''));
+              const slope = BigInt(String(state.slope).replace(/n$/, ''));
+              const soldSupply = BigInt(String(state.sold_supply).replace(/n$/, ''));
               const soldTokens = soldSupply / STROOPS;
               currentPriceXlm = Number(basePrice + slope * soldTokens) / 1e7;
               soldSupplyTokens = Number(soldSupply) / 1e7;
-              if (!preview) totalPrice = num * currentPriceXlm;
+              gotChainState = true;
               console.log('[trade] Chain state OK: price=', currentPriceXlm, 'sold_supply=', soldSupplyTokens);
               break;
             } catch (e) {
-              console.warn(`[trade] getTokenState attempt ${attempt} failed:`, e);
-              if (attempt < 3) await new Promise(r => setTimeout(r, 2000));
+              console.warn(`[trade] getTokenState attempt ${attempt}/5 failed:`, e);
+              if (attempt < 5) await new Promise(r => setTimeout(r, 2000));
             }
           }
 
-          console.log('[trade] Saving purchase: price=', currentPriceXlm, 'total=', totalPrice);
+          // total_price = XLM value of this trade (from preview)
+          const totalPrice = preview ? Number(preview.cost) / 1e7 : 0;
+
+          if (!gotChainState) {
+            // Fallback: estimate price from preview if chain unavailable
+            // For buy: cost/qty = average buy price (slightly below post-trade price)
+            // For sell: proceeds/qty = average sell price (slightly above post-trade price)
+            currentPriceXlm = totalPrice > 0 && num > 0 ? totalPrice / num : 0;
+            console.warn('[trade] Using fallback price from preview:', currentPriceXlm);
+          }
+
+          console.log('[trade] Saving: mode=', mode, 'price=', currentPriceXlm, 'sold_supply=', soldSupplyTokens, 'total=', totalPrice);
 
           const saveRes = await fetch('/api/purchases', {
             method: 'POST',
@@ -275,7 +277,7 @@ export default function BondingCurveTrader({
               buyer_address: mode === 'buy' ? walletAddress : null,
               seller_address: mode === 'sell' ? walletAddress : null,
               quantity: num,
-              sold_supply: soldSupplyTokens || undefined,
+              sold_supply: soldSupplyTokens > 0 ? soldSupplyTokens : undefined,
               price_per_token: currentPriceXlm,
               total_price: totalPrice,
               transaction_hash: txHash,
@@ -288,11 +290,10 @@ export default function BondingCurveTrader({
             console.error('[trade] Purchase save failed:', saveData);
           } else {
             console.log('[trade] Purchase saved OK, id=', saveData.data?.id, 'price=', currentPriceXlm);
-            // Trigger UI refresh after DB is updated
             refreshPrice();
             onTradeSuccess();
 
-            // After first buy — prompt Freighter to add token to wallet
+            // After buy — prompt Freighter to add token to wallet
             if (mode === 'buy' && freighterAddToken) {
               try {
                 await freighterAddToken({
@@ -300,7 +301,7 @@ export default function BondingCurveTrader({
                   networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,
                 });
               } catch {
-                // Non-critical — user can add manually
+                // Non-critical
               }
             }
           }
@@ -422,7 +423,7 @@ export default function BondingCurveTrader({
                   <span className="font-mono text-gray-400">{stroopsToXlm(preview.cost)} XLM</span>
                 </div>
                 <div className="flex justify-between text-gray-500">
-                  <span>fee (1.1%)</span>
+                  <span>fee (0.5%)</span>
                   <span className="font-mono text-gray-400">{stroopsToXlm(preview.fee)} XLM</span>
                 </div>
                 <div className={`flex justify-between font-bold text-sm pt-2 border-t ${mode === 'buy' ? 'border-pump-green/20' : 'border-pump-red/20'}`}>

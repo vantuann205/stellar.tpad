@@ -31,6 +31,8 @@ async function getPriceAtWindow(
   tokenCreatedAt: string | Date,
   launchPrice: number
 ): Promise<number | null> {
+  // Get the price snapshot closest to (but before) the window start
+  // e.g. for 5m: get the snapshot recorded ~5 minutes ago
   const snapshotResult = await query(
     `SELECT price
      FROM price_snapshots
@@ -45,18 +47,17 @@ async function getPriceAtWindow(
     return toNumber(snapshotResult.rows[0].price, 0);
   }
 
-  // Only use launch price if token is younger than the window
-  // (i.e. token was just created, so price change from launch is meaningful)
+  // No snapshot before the window — token is younger than the window
+  // Use launch price as the baseline (token just started)
   const createdAtMs = new Date(tokenCreatedAt).getTime();
   if (!Number.isNaN(createdAtMs)) {
     const ageMs = Date.now() - createdAtMs;
     if (ageMs < minutes * 60 * 1000) {
-      // Token younger than window — use launch price for % change
       return launchPrice;
     }
   }
 
-  // No snapshot found and token is older than window — return null (show 0%)
+  // Token older than window but no snapshot — no data, show 0%
   return null;
 }
 
@@ -112,8 +113,8 @@ export async function calculateAndStoreTokenMetrics({
   //    (sold_supply is updated by purchases/route.ts after each trade)
   // 3. Current price already stored in DB
   // 4. Launch price fallback
-  const BASE_PRICE_STROOPS = 1_000;
-  const SLOPE_STROOPS = 25_000;
+  const BASE_PRICE_STROOPS = 10;       // 10 stroops = 0.000001 XLM
+  const SLOPE_STROOPS = 750;           // 750 stroops/token → 0.075 XLM at 1M tokens
   const STROOPS_PER_XLM = 10_000_000;
 
   const soldSupplyTokens = toNumber(token.sold_supply, 0);

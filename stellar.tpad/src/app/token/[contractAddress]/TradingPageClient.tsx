@@ -32,9 +32,9 @@ interface Comment {
 }
 
 const TOTAL_SUPPLY = 1_000_000_000n * 10_000_000n;
-const BONDING_TARGET = 10000; // XLM target for graduation
+const BONDING_TARGET = 100_000; // 100,000 XLM target for graduation
 const STROOPS = 10_000_000n;
-const INITIAL_LISTING_PRICE = 0.0001;
+const INITIAL_LISTING_PRICE = 0.000001;
 
 export default function TradingPageClient({ token: initialToken, contractAddress }: TradingPageClientProps) {
   const router = useRouter();

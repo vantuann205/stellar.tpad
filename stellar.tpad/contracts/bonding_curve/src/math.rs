@@ -11,28 +11,15 @@
 ///
 /// Loss from round-trip (buy then sell immediately):
 ///   Loss = slope * N^2 / 2  (slippage from curve)
-///   + Fee (1% on buy + 1% on sell = ~2% total)
-///   => Total loss ≈ slippage + 2%
+///   + Fee (0.5% on buy + 0.5% on sell = ~1% total)
+///   => Total loss ≈ slippage + 1%
 ///
-/// New params (slower growth):
-///   base_price = 1_000 stroops  (0.0001 XLM — near-zero start)
-///   slope      = 25_000 stroops/token (10x slower than before)
-///   => at 100k tokens sold: price ≈ 0.25 XLM/token
-///   => at 500k tokens sold: price ≈ 1.25 XLM/token
-///   => at 1M  tokens sold: price ≈ 2.5 XLM/token
-///
-/// Example round-trip loss:
-///   Buy 1000 tokens at S=0: cost ≈ 12.5 XLM
-///   Sell 1000 tokens at S=1000: proceeds ≈ 0 XLM (back to start)
-///   Slippage loss = 12.5 XLM
-///   + Fee (1% each side) ≈ 0.25 XLM
-///   => Total loss ≈ 12.75 XLM (~100% of cost for small amounts)
-///
-///   Buy 1000 tokens at S=100k: cost ≈ 262.5 XLM
-///   Sell 1000 tokens at S=101k: proceeds ≈ 250 XLM
-///   Slippage loss = 12.5 XLM (~5%)
-///   + Fee ≈ 5 XLM (~2%)
-///   => Total loss ≈ 17.5 XLM (~7% of cost)
+/// Params (very slow growth, graduate at 100k XLM):
+///   base_price = 10 stroops    (0.000001 XLM — near-zero start)
+///   slope      = 750 stroops/token
+///   => at 1M tokens sold:   price ≈ 0.075 XLM/token
+///   => at 10M tokens sold:  price ≈ 0.75 XLM/token
+///   => at 100M tokens sold: price ≈ 7.5 XLM/token
 
 const SCALE: i128 = 10_000_000; // 10^7 decimals
 
