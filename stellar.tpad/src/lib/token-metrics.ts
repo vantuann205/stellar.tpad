@@ -31,15 +31,30 @@ async function getPriceAtWindow(
   tokenCreatedAt: string | Date,
   launchPrice: number
 ): Promise<number | null> {
+  // Get the first trade price — snapshots below this are stale launch-price noise
+  const firstTradeResult = await query(
+    `SELECT MIN(price_per_token::numeric) as min_trade_price
+     FROM purchases
+     WHERE token_id = $1 AND status = 'completed'`,
+    [tokenId]
+  );
+  const minTradePrice = firstTradeResult.rows[0]?.min_trade_price
+    ? parseFloat(firstTradeResult.rows[0].min_trade_price)
+    : 0;
+
+  // Only consider snapshots at or above the minimum trade price
+  // This filters out stale 0.0001 launch-price snapshots
+  const priceFloor = minTradePrice > 0 ? minTradePrice * 0.5 : 0;
+
   const snapshotResult = await query(
     `SELECT ps.price
      FROM price_snapshots ps
      WHERE ps.token_id = $1
        AND ps.recorded_at <= NOW() - ($2 * INTERVAL '1 minute')
-       AND ps.price > 0
+       AND ps.price > $3
      ORDER BY ps.recorded_at DESC
      LIMIT 1`,
-    [tokenId, minutes]
+    [tokenId, minutes, priceFloor]
   );
 
   if (snapshotResult.rows.length > 0) {

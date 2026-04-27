@@ -69,19 +69,21 @@ export async function POST(request: NextRequest) {
         // Recalculate token metrics immediately so price/chart/market cap stay in sync after each trade.
         if ((status || 'completed') === 'completed') {
             try {
-                // sold_supply MUST be updated — it's the source of truth for price calculation
                 if (sold_supply !== undefined && sold_supply !== null && Number(sold_supply) >= 0) {
                     await query(
-                        `UPDATE tokens
-                         SET sold_supply = $2,
-                             updated_at = NOW()
-                         WHERE id = $1`,
+                        `UPDATE tokens SET sold_supply = $2, updated_at = NOW() WHERE id = $1`,
                         [Number(token_id), Number(sold_supply)]
                     );
-                    console.log(`[purchases] Updated sold_supply=${sold_supply} for token_id=${token_id}`);
-                } else {
-                    console.warn(`[purchases] sold_supply not provided for token_id=${token_id} — price may be stale`);
                 }
+
+                // Delete stale launch-price snapshots (price <= 0.0001) now that we have real trades
+                // This prevents 5m/1h/6h from comparing against the wrong baseline
+                await query(
+                    `DELETE FROM price_snapshots
+                     WHERE token_id = $1
+                       AND price <= 0.0001`,
+                    [Number(token_id)]
+                );
 
                 await calculateAndStoreTokenMetrics({
                     tokenId: Number(token_id),
