@@ -7,7 +7,7 @@ RUN apk add --no-cache libc6-compat python3 make g++
 
 # Install dependencies
 COPY stellar.tpad/package*.json ./
-RUN npm install --legacy-peer-deps --no-audit --no-fund
+RUN npm install --legacy-peer-deps --no-audit --no-fund --ignore-scripts
 
 # Copy source and build
 COPY stellar.tpad/ .
