@@ -107,35 +107,30 @@ export async function calculateAndStoreTokenMetrics({
 
   const token = tokenResult.rows[0] as TokenRow;
 
-  // Resolve current price — ONLY update if explicitly passed (from a trade).
-  // Never recalculate from sold_supply during polling — that causes price to reset
-  // if sold_supply is stale/zero in DB.
-  const BASE_PRICE_STROOPS = 10;
-  const SLOPE_STROOPS = 750;
-  const STROOPS_PER_XLM = 10_000_000;
+  // current_price = price_per_token of the latest trade in purchases.
+  // If no trade yet, keep existing price. Never recalculate from sold_supply.
+  const latestTradeResult = await query(
+    `SELECT price_per_token
+     FROM purchases
+     WHERE token_id = $1 AND status = 'completed'
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [tokenId]
+  );
 
-  const soldSupplyTokens = toNumber(token.sold_supply, 0);
+  const latestTradePrice = latestTradeResult.rows.length > 0
+    ? toNumber(latestTradeResult.rows[0].price_per_token, 0)
+    : 0;
+
   const storedPrice = toNumber(token.current_price, 0);
   const launchPrice = DEFAULT_INITIAL_PRICE;
 
-  // Price from bonding curve (only used when explicitly passed via trade)
-  const priceFromCurve = soldSupplyTokens > 0
-    ? (BASE_PRICE_STROOPS + SLOPE_STROOPS * soldSupplyTokens) / STROOPS_PER_XLM
-    : 0;
-
-  let resolvedCurrentPrice: number;
-
-  if (toNumber(currentPrice, 0) > 0) {
-    // Trade just happened — use the passed-in price (most accurate)
-    resolvedCurrentPrice = toNumber(currentPrice, 0);
-  } else if (storedPrice > 0) {
-    // No trade — keep existing price, never downgrade
-    // But if sold_supply gives a higher price, use that (handles edge cases)
-    resolvedCurrentPrice = priceFromCurve > storedPrice ? priceFromCurve : storedPrice;
-  } else {
-    // Brand new token with no trades yet
-    resolvedCurrentPrice = priceFromCurve > 0 ? priceFromCurve : launchPrice;
-  }
+  // Priority: passed-in price (from trade) > latest trade in DB > stored price > launch
+  const resolvedCurrentPrice =
+    toNumber(currentPrice, 0) ||
+    latestTradePrice ||
+    storedPrice ||
+    launchPrice;
 
   const [volumeResult, traderResult, p5m, p1h, p4h, p6h, p24h] = await Promise.all([
     // Volume 24h = sum of tokens traded (quantity bought + sold)
