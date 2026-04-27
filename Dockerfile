@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY stellar.tpad/package*.json ./
-RUN npm ci --frozen-lockfile
+RUN npm install --prefer-offline
 
 # Copy source and build
 COPY stellar.tpad/ .

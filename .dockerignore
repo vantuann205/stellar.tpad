@@ -1,0 +1,13 @@
+.git
+.gitignore
+.kiro
+.vscode
+*.md
+stellar.tpad/node_modules
+stellar.tpad/.next
+stellar.tpad/.env.local
+stellar.tpad/.env*.local
+stellar.tpad/contracts
+stellar.tpad/scripts
+stellar.tpad/__tests__
+stellar.tpad/tsconfig.tsbuildinfo
