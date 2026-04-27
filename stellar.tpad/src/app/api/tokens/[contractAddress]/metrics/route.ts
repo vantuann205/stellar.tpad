@@ -10,11 +10,11 @@ export async function GET(
   try {
     await ensureDatabaseSchema();
 
-    // First, try to get cached metrics from tokens table
     const tokenResult = await query(
       `SELECT 
         id, 
         current_price,
+        sold_supply,
         marketcap,
         volume_24h,
         price_change_5m,
@@ -60,6 +60,7 @@ export async function GET(
       });
     }
 
+    // Recalculate — pass current_price so token-metrics can use it as hint
     const metrics = await calculateAndStoreTokenMetrics({
       tokenId,
       currentPrice: token.current_price,

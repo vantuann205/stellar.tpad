@@ -2,23 +2,47 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
 /**
- * OHLCV API for TradingView-style charts
+ * OHLCV API for TradingView-style charts.
+ * tokenId param accepts either a numeric DB id or a contract address string.
+ *
+ * Candle logic:
+ * - open  = price_per_token of the FIRST trade in the bucket (or previous close)
+ * - close = price_per_token of the LAST trade in the bucket
+ * - high  = max price seen in bucket
+ * - low   = min price seen in bucket (always >= 0)
+ * - volume = sum of quantity traded in bucket
+ *
+ * price_per_token is the post-trade price from the bonding curve — always positive.
+ * We do NOT reconstruct pre-trade price from slope (that caused negative candles).
  */
 
 export async function GET(request: NextRequest) {
     try {
-        const tokenId = request.nextUrl.searchParams.get('tokenId');
+        const tokenIdParam = request.nextUrl.searchParams.get('tokenId');
         const interval = request.nextUrl.searchParams.get('interval') || '5m';
 
-        if (!tokenId) {
+        if (!tokenIdParam) {
             return NextResponse.json({ error: 'Missing tokenId' }, { status: 400 });
         }
 
-        // Fetch token-specific slope and base_price for accurate wick calculation
-        const tokenRes = await query(`SELECT slope, base_price FROM tokens WHERE id = $1 OR contract_address = $1 LIMIT 1`, [tokenId]);
-        const tokenData = tokenRes.rows[0];
-        // Default to a sensible slope if not found (matching contract)
-        const TOKEN_SLOPE = tokenData ? parseFloat(tokenData.slope) / 1e7 : 0.0025;
+        // Resolve to numeric DB id — accept both integer id and contract address
+        const isNumeric = /^\d+$/.test(tokenIdParam);
+        const tokenRes = await query(
+            isNumeric
+                ? `SELECT id, base_price FROM tokens WHERE id = $1 LIMIT 1`
+                : `SELECT id, base_price FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1`,
+            [tokenIdParam]
+        );
+
+        if (tokenRes.rows.length === 0) {
+            const emptyResponse = NextResponse.json({ success: true, data: [] });
+            emptyResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            return emptyResponse;
+        }
+
+        const tokenRow = tokenRes.rows[0];
+        const dbTokenId: number = tokenRow.id;
+        const launchPrice: number = parseFloat(tokenRow.base_price || '0') || 0.0001;
 
         const intervalSeconds: Record<string, number> = {
             '1m': 60, '5m': 300, '15m': 900,
@@ -26,38 +50,22 @@ export async function GET(request: NextRequest) {
         };
         const secs = intervalSeconds[interval] ?? 300;
 
-        // Build candles from completed trades. `price_per_token` is the post-trade price,
-        // so we reconstruct the pre-trade edge from quantity and bonding slope.
+        // Fetch all trades ordered by time
         const result = await query(
             `SELECT
                 (FLOOR(EXTRACT(EPOCH FROM created_at) / $2) * $2)::bigint AS bucket,
-                price_per_token::float                                     AS end_price,
-                COALESCE(
-                    quantity::float,
-                    CASE
-                        WHEN price_per_token::float = 0 THEN 0
-                        ELSE total_price::float / price_per_token::float
-                    END
-                )                                                          AS qty,
-                total_price::float                                         AS total_price,
+                price_per_token::float                                     AS price,
+                COALESCE(quantity::float, 0)                               AS qty,
                 buyer_address,
                 seller_address,
                 created_at
             FROM purchases
-            WHERE (
-                    token_id = $1
-                    OR token_id = (
-                        SELECT id
-                        FROM tokens
-                        WHERE contract_address = $1
-                        LIMIT 1
-                    )
-                )
+            WHERE token_id = $1
               AND price_per_token IS NOT NULL
               AND price_per_token::float > 0
               AND status = 'completed'
             ORDER BY created_at ASC`,
-            [tokenId, secs]
+            [dbTokenId, secs]
         );
 
         if (result.rows.length === 0) {
@@ -66,49 +74,51 @@ export async function GET(request: NextRequest) {
             return emptyResponse;
         }
 
-        // Group by bucket, calculate OHLCV with buy/sell direction using post-trade price.
+        // Build candles — open = previous close (or launch price for first candle)
         const bucketMap = new Map<number, {
             open: number; close: number;
             high: number; low: number; volume: number;
+            tradeCount: number;
         }>();
+
+        let prevClose = launchPrice;
 
         for (const row of result.rows) {
             const bucket = parseInt(row.bucket);
-            const endPrice = parseFloat(row.end_price);
+            const price = parseFloat(row.price);
             const qty = parseFloat(row.qty) || 0;
-            const isBuy = !!row.buyer_address && !row.seller_address;
-            const priceDelta = qty * TOKEN_SLOPE;
-            const startPrice = isBuy ? endPrice - priceDelta : endPrice + priceDelta;
-            const hi = Math.max(startPrice, endPrice);
-            const lo = Math.min(startPrice, endPrice);
 
             if (!bucketMap.has(bucket)) {
+                // New candle: open = previous candle's close
                 bucketMap.set(bucket, {
-                    open: startPrice,
-                    close: endPrice,
-                    high: hi,
-                    low: lo,
+                    open: prevClose,
+                    close: price,
+                    high: Math.max(prevClose, price),
+                    low: Math.min(prevClose, price),
                     volume: qty,
+                    tradeCount: 1,
                 });
             } else {
                 const b = bucketMap.get(bucket)!;
-                b.high = Math.max(b.high, hi);
-                b.low = Math.min(b.low, lo);
+                b.close = price;
+                b.high = Math.max(b.high, price);
+                b.low = Math.min(b.low, price);
                 b.volume += qty;
-                b.close = endPrice;
+                b.tradeCount++;
             }
+
+            prevClose = price;
         }
 
-        // Sort and build candles
         const candles = Array.from(bucketMap.entries())
             .sort(([a], [b]) => a - b)
             .map(([bucket, c]) => ({
                 time: bucket,
-                open: c.open,
-                high: c.high,
-                low: c.low,
-                close: c.close,
-                volume: c.volume,
+                open: parseFloat(c.open.toFixed(8)),
+                high: parseFloat(c.high.toFixed(8)),
+                low: parseFloat(c.low.toFixed(8)),
+                close: parseFloat(c.close.toFixed(8)),
+                volume: parseFloat(c.volume.toFixed(4)),
             }));
 
         const response = NextResponse.json({ success: true, data: candles });

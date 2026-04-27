@@ -11,6 +11,7 @@ type CalculateMetricsInput = {
 type TokenRow = {
   id: number;
   total_supply: string | number | null;
+  sold_supply: string | number | null;
   current_price: string | number | null;
   price_snapshot_value: string | number | null;
   created_at: string | Date;
@@ -44,14 +45,18 @@ async function getPriceAtWindow(
     return toNumber(snapshotResult.rows[0].price, 0);
   }
 
+  // Only use launch price if token is younger than the window
+  // (i.e. token was just created, so price change from launch is meaningful)
   const createdAtMs = new Date(tokenCreatedAt).getTime();
   if (!Number.isNaN(createdAtMs)) {
     const ageMs = Date.now() - createdAtMs;
     if (ageMs < minutes * 60 * 1000) {
+      // Token younger than window — use launch price for % change
       return launchPrice;
     }
   }
 
+  // No snapshot found and token is older than window — return null (show 0%)
   return null;
 }
 
@@ -88,7 +93,7 @@ export async function calculateAndStoreTokenMetrics({
   recordSnapshot = false,
 }: CalculateMetricsInput) {
   const tokenResult = await query(
-    `SELECT id, total_supply, current_price, price_snapshot_value, created_at, base_price
+    `SELECT id, total_supply, sold_supply, current_price, price_snapshot_value, created_at, base_price
      FROM tokens
      WHERE id = $1
      LIMIT 1`,
@@ -101,6 +106,13 @@ export async function calculateAndStoreTokenMetrics({
 
   const token = tokenResult.rows[0] as TokenRow;
 
+  // Resolve current price — priority order:
+  // 1. Explicitly passed-in price (from smart contract, most accurate)
+  // 2. Latest trade price from purchases table
+  // 3. Current price already stored in DB
+  // 4. Launch price fallback
+  // NOTE: We do NOT recalculate from sold_supply here because sold_supply in DB
+  // may lag behind the smart contract. The authoritative price comes from trades.
   const latestTradeResult = await query(
     `SELECT price_per_token
      FROM purchases
@@ -115,30 +127,18 @@ export async function calculateAndStoreTokenMetrics({
     ? toNumber(latestTradeResult.rows[0].price_per_token, 0)
     : 0;
 
-  const launchPrice = toNumber(token.base_price, 0)
-    || toNumber(token.price_snapshot_value, 0)
-    || DEFAULT_INITIAL_PRICE;
+  const launchPrice = DEFAULT_INITIAL_PRICE;
 
-  const resolvedCurrentPrice = toNumber(currentPrice, 0)
-    || latestTradePrice
-    || toNumber(token.current_price, 0)
-    || toNumber(token.price_snapshot_value, 0)
-    || launchPrice;
+  const resolvedCurrentPrice =
+    toNumber(currentPrice, 0) ||
+    latestTradePrice ||
+    toNumber(token.current_price, 0) ||
+    launchPrice;
 
   const [volumeResult, traderResult, p5m, p1h, p4h, p6h, p24h] = await Promise.all([
+    // Volume 24h = sum of tokens traded (quantity bought + sold)
     query(
-      `SELECT COALESCE(
-         SUM(
-           COALESCE(
-             quantity::numeric,
-             CASE
-               WHEN price_per_token::numeric = 0 THEN 0
-               ELSE total_price::numeric / price_per_token::numeric
-             END
-           )
-         ),
-         0
-       ) AS volume_24h
+      `SELECT COALESCE(SUM(quantity::numeric), 0) AS volume_24h
        FROM purchases
        WHERE token_id = $1
          AND status = 'completed'
@@ -181,10 +181,12 @@ export async function calculateAndStoreTokenMetrics({
     return round4(((resolvedCurrentPrice - pastPrice) / pastPrice) * 100);
   };
 
+  // Market cap = current_price × total_supply (standard definition)
   const totalSupply = toNumber(token.total_supply, 0);
+  const marketcap = resolvedCurrentPrice * totalSupply;
   const metrics = {
     current_price: resolvedCurrentPrice,
-    marketcap: resolvedCurrentPrice * totalSupply,
+    marketcap,
     volume_24h: toNumber(volumeResult.rows[0]?.volume_24h, 0),
     price_change_5m: calcChange(p5m),
     price_change_1h: calcChange(p1h),

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trade } from '@/types';
+import { formatUtc7DateTime } from '@/lib/time';
 
 interface TransactionTableProps {
   trades: Trade[];
@@ -7,61 +8,13 @@ interface TransactionTableProps {
 
 const TransactionTable: React.FC<TransactionTableProps> = ({ trades }) => {
   const OASIS_TX_EXPLORER_URL = 'https://testnet.explorer.sapphire.oasis.io/tx';
-  const vnDateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
 
   const formatTradeTime = (timestampStr: string) => {
     if (!timestampStr) return '-';
-
-    if (timestampStr.includes(':') && !timestampStr.includes('T') && !timestampStr.includes('-')) {
-      const [hourStr, minuteStr, secondStr = '00'] = timestampStr.split(':');
-      const hour = Number(hourStr);
-      const minute = Number(minuteStr);
-      const second = Number(secondStr);
-
-      if ([hour, minute, second].some((value) => Number.isNaN(value))) {
-        return timestampStr;
-      }
-
-      const shiftedHour = (hour + 7) % 24;
-      const pad = (value: number) => value.toString().padStart(2, '0');
-      return `${pad(shiftedHour)}:${pad(minute)}:${pad(second)}`;
-    }
-
-    const numericTimestamp = Number(timestampStr);
-    let parsedDate: Date;
-
-    if (!Number.isNaN(numericTimestamp)) {
-      parsedDate = new Date(numericTimestamp);
-    } else {
-      const hasTimeZone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(timestampStr);
-      const normalized = timestampStr.replace(' ', 'T');
-
-      if (!hasTimeZone && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(normalized)) {
-        const [datePart, timePart] = normalized.split('T');
-        const [year, month, day] = datePart.split('-').map(Number);
-        const [hour, minute, second] = timePart.split(':').map(Number);
-        parsedDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
-      } else {
-        parsedDate = new Date(timestampStr);
-      }
-    }
-
-    if (Number.isNaN(parsedDate.getTime())) {
-      return timestampStr;
-    }
-
-    const parts = vnDateTimeFormatter.formatToParts(parsedDate);
-    const byType = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-    return `${byType.year}-${byType.month}-${byType.day} ${byType.hour}:${byType.minute}:${byType.second}`;
+    const formatted = formatUtc7DateTime(timestampStr);
+    if (formatted === '--') return timestampStr;
+    // Return as YYYY-MM-DD HH:mm:ss
+    return formatted.replace(/(\d{2})\/(\d{2})\/(\d{4}),\s*/, '$3-$2-$1 ');
   };
 
   return (

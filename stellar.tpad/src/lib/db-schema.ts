@@ -1,5 +1,7 @@
 import { query } from '@/lib/db';
 
+// All timestamp columns use TIMESTAMPTZ so Postgres always stores UTC
+// and returns ISO strings with timezone info (e.g. 2026-04-27T04:23:40.277+00:00)
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS tokens (
   id SERIAL PRIMARY KEY,
@@ -19,17 +21,17 @@ CREATE TABLE IF NOT EXISTS tokens (
   price_change_6h NUMERIC(10, 4) DEFAULT 0,
   price_change_24h NUMERIC(10, 4) DEFAULT 0,
   trader_count INTEGER DEFAULT 0,
-  price_snapshot_time TIMESTAMP,
+  price_snapshot_time TIMESTAMPTZ,
   price_snapshot_value NUMERIC(36, 18),
-  metrics_updated_at TIMESTAMP,
+  metrics_updated_at TIMESTAMPTZ,
   bonding_curve_contract VARCHAR(255),
   bonding_curve_registered BOOLEAN DEFAULT FALSE,
   sold_supply NUMERIC(36, 18) DEFAULT 0,
   current_price NUMERIC(36, 18) DEFAULT 0,
   base_price NUMERIC(36, 18) DEFAULT 0.0001,
   slope NUMERIC(36, 18) DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS transactions (
@@ -39,7 +41,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   to_address VARCHAR(255) NOT NULL,
   amount NUMERIC(36, 18) NOT NULL,
   transaction_hash VARCHAR(255) UNIQUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS purchases (
@@ -55,8 +57,8 @@ CREATE TABLE IF NOT EXISTS purchases (
   total_price NUMERIC(36, 18) NOT NULL,
   transaction_hash VARCHAR(255),
   status VARCHAR(50) DEFAULT 'completed',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS wallets (
@@ -67,15 +69,15 @@ CREATE TABLE IF NOT EXISTS wallets (
   bio TEXT,
   owned_coins TEXT[] DEFAULT ARRAY[]::TEXT[],
   minted_coins TEXT[] DEFAULT ARRAY[]::TEXT[],
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS price_snapshots (
   id SERIAL PRIMARY KEY,
   token_id INTEGER NOT NULL REFERENCES tokens(id) ON DELETE CASCADE,
   price NUMERIC(36, 18) NOT NULL,
-  recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  recorded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS comments (
@@ -83,13 +85,13 @@ CREATE TABLE IF NOT EXISTS comments (
   token_id INTEGER NOT NULL REFERENCES tokens(id) ON DELETE CASCADE,
   user_address VARCHAR(255) NOT NULL,
   comment_text TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS token_bonding_progress (
   token_id INTEGER PRIMARY KEY REFERENCES tokens(id) ON DELETE CASCADE,
   max_reserve NUMERIC(30, 18) NOT NULL DEFAULT 0,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_tokens_owner ON tokens(owner);
@@ -122,13 +124,75 @@ export async function ensureDatabaseSchema(): Promise<void> {
 
   await schemaPromise;
 
-  // Run migrations for existing tables
+  // Migrations: add missing columns + convert TIMESTAMP → TIMESTAMPTZ for correct UTC storage
   try {
     await query(`
       ALTER TABLE tokens ADD COLUMN IF NOT EXISTS base_price NUMERIC(36, 18) DEFAULT 0.0001;
       ALTER TABLE tokens ADD COLUMN IF NOT EXISTS slope NUMERIC(36, 18) DEFAULT 0;
       ALTER TABLE tokens ADD COLUMN IF NOT EXISTS price_change_24h NUMERIC(10, 4) DEFAULT 0;
-      ALTER TABLE tokens ADD COLUMN IF NOT EXISTS metrics_updated_at TIMESTAMP;
+      ALTER TABLE tokens ADD COLUMN IF NOT EXISTS metrics_updated_at TIMESTAMPTZ;
+    `);
+
+    // Convert existing TIMESTAMP columns to TIMESTAMPTZ (idempotent — no-op if already TIMESTAMPTZ)
+    // We interpret existing values as UTC+7 local time and convert to UTC
+    await query(`
+      DO $$
+      BEGIN
+        -- tokens
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name='tokens' AND column_name='created_at'
+            AND data_type='timestamp without time zone'
+        ) THEN
+          ALTER TABLE tokens
+            ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'Asia/Ho_Chi_Minh',
+            ALTER COLUMN updated_at TYPE TIMESTAMPTZ USING updated_at AT TIME ZONE 'Asia/Ho_Chi_Minh',
+            ALTER COLUMN price_snapshot_time TYPE TIMESTAMPTZ USING price_snapshot_time AT TIME ZONE 'Asia/Ho_Chi_Minh',
+            ALTER COLUMN metrics_updated_at TYPE TIMESTAMPTZ USING metrics_updated_at AT TIME ZONE 'Asia/Ho_Chi_Minh';
+        END IF;
+
+        -- purchases
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name='purchases' AND column_name='created_at'
+            AND data_type='timestamp without time zone'
+        ) THEN
+          ALTER TABLE purchases
+            ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'Asia/Ho_Chi_Minh',
+            ALTER COLUMN updated_at TYPE TIMESTAMPTZ USING updated_at AT TIME ZONE 'Asia/Ho_Chi_Minh';
+        END IF;
+
+        -- price_snapshots
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name='price_snapshots' AND column_name='recorded_at'
+            AND data_type='timestamp without time zone'
+        ) THEN
+          ALTER TABLE price_snapshots
+            ALTER COLUMN recorded_at TYPE TIMESTAMPTZ USING recorded_at AT TIME ZONE 'Asia/Ho_Chi_Minh';
+        END IF;
+
+        -- wallets
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name='wallets' AND column_name='created_at'
+            AND data_type='timestamp without time zone'
+        ) THEN
+          ALTER TABLE wallets
+            ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'Asia/Ho_Chi_Minh',
+            ALTER COLUMN updated_at TYPE TIMESTAMPTZ USING updated_at AT TIME ZONE 'Asia/Ho_Chi_Minh';
+        END IF;
+
+        -- comments
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name='comments' AND column_name='created_at'
+            AND data_type='timestamp without time zone'
+        ) THEN
+          ALTER TABLE comments
+            ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'Asia/Ho_Chi_Minh';
+        END IF;
+      END $$;
     `);
   } catch (err) {
     console.error('Migration error:', err);

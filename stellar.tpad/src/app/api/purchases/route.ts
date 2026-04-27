@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
                 await calculateAndStoreTokenMetrics({
                     tokenId: Number(token_id),
                     currentPrice: price_per_token,
-                    recordSnapshot: true,
+                    recordSnapshot: true, // always record snapshot so price_change windows work
                 });
             } catch (metricsError) {
                 console.warn('Purchase saved, but metrics update failed:', metricsError);

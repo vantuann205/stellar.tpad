@@ -1,13 +1,17 @@
 export const UTC7_TIME_ZONE = 'Asia/Ho_Chi_Minh';
 
 function hasExplicitTimezone(value: string): boolean {
-  return /(?:Z|[+-]\d{2}:\d{2})$/i.test(value.trim());
+  return /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value.trim());
 }
 
-function normalizeTimestampInput(value: string): string {
-  return value.trim().replace(' ', 'T');
-}
-
+/**
+ * Parse a timestamp from any source into a JS Date (always UTC internally).
+ *
+ * Rules:
+ * - If value already has timezone info (Z, +07:00, etc.) → parse as-is
+ * - If value has NO timezone → treat as UTC (Postgres stores UTC without suffix)
+ * - Numbers → treat as unix seconds if < 1e12, else milliseconds
+ */
 export function parsePossiblyUtc7Timestamp(value: string | number | Date | null | undefined): Date | null {
   if (value instanceof Date) {
     return Number.isNaN(value.getTime()) ? null : value;
@@ -23,11 +27,14 @@ export function parsePossiblyUtc7Timestamp(value: string | number | Date | null 
     return null;
   }
 
-  const normalized = normalizeTimestampInput(value);
-  const isoLike = hasExplicitTimezone(normalized)
+  const normalized = value.trim().replace(' ', 'T');
+
+  // If no timezone suffix → assume UTC (Postgres TIMESTAMP WITHOUT TIME ZONE stores UTC)
+  const withTz = hasExplicitTimezone(normalized)
     ? normalized
-    : `${normalized}+07:00`;
-  const date = new Date(isoLike);
+    : `${normalized}Z`;
+
+  const date = new Date(withTz);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -39,6 +46,7 @@ export function parsePossiblyUtc7TimestampToUnixSeconds(
   return Math.floor(date.getTime() / 1000);
 }
 
+/** Format a UTC timestamp as a date string in UTC+7 (Vietnam time) */
 export function formatUtc7Date(
   value: string | number | Date | null | undefined,
   options?: Intl.DateTimeFormatOptions
@@ -55,6 +63,7 @@ export function formatUtc7Date(
   }).format(date);
 }
 
+/** Format a UTC timestamp as a date+time string in UTC+7 (Vietnam time) */
 export function formatUtc7DateTime(
   value: string | number | Date | null | undefined,
   options?: Intl.DateTimeFormatOptions

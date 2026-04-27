@@ -201,7 +201,14 @@ export async function getWalletTokenBalance(tokenAddress: string, walletAddress:
 export async function buyToken(params: BuyTokenParams): Promise<string> {
   const { buyerPublicKey, tokenAddress, tokenAmount, maxXlmIn, signTransaction } = params;
 
+  if (!buyerPublicKey || buyerPublicKey.length < 10) throw new Error('Wallet not connected — please connect Freighter first');
+  if (!tokenAddress || tokenAddress.length < 10) throw new Error('Invalid token address');
+
+  console.log('[buyToken] buyer:', buyerPublicKey, 'token:', tokenAddress, 'amount:', tokenAmount, 'maxXlmIn:', maxXlmIn);
+
   const account = await rpc.getAccount(buyerPublicKey);
+  console.log('[buyToken] account loaded, seq:', account.sequenceNumber());
+
   const buyerAddress = new Address(buyerPublicKey);
   const tokenAddr = new Address(tokenAddress);
 
@@ -222,12 +229,17 @@ export async function buyToken(params: BuyTokenParams): Promise<string> {
     .build();
 
   const simulation = await rpc.simulateTransaction(tx);
+  console.log('[buyToken] simulation status:', SorobanRpc.Api.isSimulationError(simulation) ? 'ERROR: ' + (simulation as any).error : 'OK');
   if (SorobanRpc.Api.isSimulationError(simulation)) {
     throw new Error(`Buy simulation failed: ${simulation.error}`);
   }
 
   const preparedTx = SorobanRpc.assembleTransaction(tx, simulation).build();
+  console.log('[buyToken] sending to Freighter for signing...');
   const signedXdr = await signTransaction(preparedTx.toXDR());
+  console.log('[buyToken] signedXdr type:', typeof signedXdr, 'length:', signedXdr?.length);
+  if (!signedXdr) throw new Error('Transaction signing failed or was rejected');
+
   const signedTx = TransactionBuilder.fromXDR(signedXdr, STELLAR_NETWORK_PASSPHRASE);
 
   const resp = await rpc.sendTransaction(signedTx);
@@ -235,12 +247,24 @@ export async function buyToken(params: BuyTokenParams): Promise<string> {
     throw new Error(`Buy tx error: ${JSON.stringify(resp.errorResult)}`);
   }
 
-  return resp.hash;
+  // Wait for confirmation
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+    const status = await rpc.getTransaction(resp.hash);
+    if (status.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) return resp.hash;
+    if (status.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
+      throw new Error(`Buy transaction failed on chain: ${resp.hash}`);
+    }
+  }
+  throw new Error(`Buy transaction timeout: ${resp.hash}`);
 }
 
 /** Sell tokens via bonding curve */
 export async function sellToken(params: SellTokenParams): Promise<string> {
   const { sellerPublicKey, tokenAddress, tokenAmount, minXlmOut, signTransaction } = params;
+
+  if (!sellerPublicKey || sellerPublicKey.length < 10) throw new Error('Wallet not connected — please connect Freighter first');
+  if (!tokenAddress || tokenAddress.length < 10) throw new Error('Invalid token address');
 
   const account = await rpc.getAccount(sellerPublicKey);
   const sellerAddress = new Address(sellerPublicKey);
@@ -269,6 +293,8 @@ export async function sellToken(params: SellTokenParams): Promise<string> {
 
   const preparedTx = SorobanRpc.assembleTransaction(tx, simulation).build();
   const signedXdr = await signTransaction(preparedTx.toXDR());
+  if (!signedXdr) throw new Error('Transaction signing failed or was rejected');
+
   const signedTx = TransactionBuilder.fromXDR(signedXdr, STELLAR_NETWORK_PASSPHRASE);
 
   const resp = await rpc.sendTransaction(signedTx);
@@ -276,7 +302,16 @@ export async function sellToken(params: SellTokenParams): Promise<string> {
     throw new Error(`Sell tx error: ${JSON.stringify(resp.errorResult)}`);
   }
 
-  return resp.hash;
+  // Wait for confirmation
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+    const status = await rpc.getTransaction(resp.hash);
+    if (status.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) return resp.hash;
+    if (status.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
+      throw new Error(`Sell transaction failed on chain: ${resp.hash}`);
+    }
+  }
+  throw new Error(`Sell transaction timeout: ${resp.hash}`);
 }
 
 /** Register a new token in bonding curve (called after token creation) */

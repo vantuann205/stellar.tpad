@@ -69,8 +69,11 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
         const conn = await isConnected();
         if (conn.isConnected) {
           const addr = await getAddress();
-          setConnected(true);
-          setUserAddress(addr.address ?? '');
+          const address = addr.address || (addr as any).publicKey || '';
+          if (address) {
+            setConnected(true);
+            setUserAddress(address);
+          }
         }
       } catch { /* freighter not installed */ }
     })();
@@ -98,26 +101,27 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
     }
   }, [tokenAddress]);
 
-  // ── fetch current price + balances ────────────────────────────────────────
-  useEffect(() => {
+  // ── fetch current price ───────────────────────────────────────────────────
+  const refreshPrice = useCallback(() => {
     if (!tokenAddress) return;
     getTokenState(tokenAddress)
       .then(s => {
         const basePrice = BigInt(s.base_price);
         const slope = BigInt(s.slope);
         const soldSupply = BigInt(s.sold_supply);
-        // Current price formula: base_price + slope * (sold_supply / 10^7)
-        // sold_supply is in raw units (with 7 decimals), so divide by 10^7 to get token units
         const soldTokens = soldSupply / STROOPS;
         const priceStroops = basePrice + slope * soldTokens;
         setCurrentPrice(stroopsToXlm(priceStroops));
       })
       .catch(() => {});
+  }, [tokenAddress]);
 
+  useEffect(() => {
+    refreshPrice();
     if (connected && userAddress) {
       loadBalances(userAddress);
     }
-  }, [connected, loadBalances, tokenAddress, userAddress]);
+  }, [connected, loadBalances, refreshPrice, tokenAddress, userAddress]);
 
   useEffect(() => {
     if (!connected || !userAddress) return;
@@ -165,10 +169,18 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
   };
 
   // ── sign helper ───────────────────────────────────────────────────────────
-  const sign = async (xdr: string) => {
+  const sign = async (xdr: string): Promise<string> => {
+    console.log('[sign] Requesting Freighter signature...');
     const res = await signTransaction(xdr, { networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string });
-    if ('error' in res) throw new Error(res.error);
-    return res.signedTxXdr;
+    console.log('[sign] Freighter response:', typeof res, JSON.stringify(res)?.slice(0, 200));
+    // Freighter API v2+ returns { signedTxXdr, signerAddress } or { error }
+    if (typeof res === 'object' && res !== null) {
+      if ('error' in res && res.error) throw new Error(String(res.error));
+      if ('signedTxXdr' in res && res.signedTxXdr) return res.signedTxXdr as string;
+    }
+    // Older API returns string directly
+    if (typeof res === 'string' && res) return res;
+    throw new Error('Signing failed or was rejected by wallet');
   };
 
   const computeMaxBuyAmount = useCallback(async () => {
@@ -229,6 +241,11 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
   const handleTrade = async () => {
     const num = parseFloat(amount);
     if (!num || num <= 0) return;
+    console.log('[handleTrade] userAddress:', userAddress, 'connected:', connected, 'mode:', mode, 'amount:', amount);
+    if (!userAddress) {
+      showToast('error', 'wallet not connected — please connect Freighter first');
+      return;
+    }
     setLoading(true);
     try {
       const rawAmount = BigInt(Math.floor(num * 1e7));
@@ -255,51 +272,56 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
         showToast('success', 'sell successful');
       }
 
-      // record trade in database
-      if (preview) {
-        try {
-          // Get token_id and current state from database
-          const tokenRes = await fetch(`/api/tokens/${tokenAddress}`);
-          const tokenData = await tokenRes.json();
+      // record trade in database — always, regardless of preview state
+      try {
+        const tokenRes = await fetch(`/api/tokens/${tokenAddress}`);
+        const tokenData = await tokenRes.json();
+        
+        if (tokenData.success && tokenData.data) {
+          // Get updated bonding curve state after trade — chain already confirmed
+          const updatedState = await getTokenState(tokenAddress);
+          const basePrice = BigInt(updatedState.base_price);
+          const slope = BigInt(updatedState.slope);
+          const soldSupply = BigInt(updatedState.sold_supply);
           
-          if (tokenData.success && tokenData.data) {
-            // Get updated bonding curve state after trade to get EXACT current price
-            const updatedState = await getTokenState(tokenAddress);
-            const basePrice = BigInt(updatedState.base_price);
-            const slope = BigInt(updatedState.slope);
-            const soldSupply = BigInt(updatedState.sold_supply);
-            
-            // Calculate current price AFTER trade: base_price + slope * (sold_supply / 10^7)
-            const soldTokens = soldSupply / STROOPS;
-            const currentPriceStroops = basePrice + slope * soldTokens;
-            const currentPriceXlm = Number(currentPriceStroops) / 1e7;
-            
-            const totalPrice = Number(preview.cost) / 1e7;
-            
-            await fetch('/api/purchases', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                token_id: tokenData.data.id,
-                buyer_address: mode === 'buy' ? userAddress : null,
-                seller_address: mode === 'sell' ? userAddress : null,
-                quantity: num,
-                sold_supply: soldSupply.toString(),
-                price_per_token: currentPriceXlm, // Use CURRENT price from smart contract
-                total_price: totalPrice,
-                transaction_hash: txHash,
-                status: 'completed',
-              }),
-            });
+          // price = base_price + slope * (sold_supply / 10^7)  [in stroops → XLM]
+          const soldTokens = soldSupply / STROOPS;
+          const currentPriceStroops = basePrice + slope * soldTokens;
+          const currentPriceXlm = Number(currentPriceStroops) / 1e7;
+          
+          // total_price = base XLM value of the trade (from preview or estimate)
+          const totalPrice = preview ? Number(preview.cost) / 1e7 : num * currentPriceXlm;
+          
+          const saveRes = await fetch('/api/purchases', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              token_id: tokenData.data.id,
+              buyer_address: mode === 'buy' ? userAddress : null,
+              seller_address: mode === 'sell' ? userAddress : null,
+              quantity: num,
+              sold_supply: Number(soldSupply) / 1e7,
+              price_per_token: currentPriceXlm,
+              total_price: totalPrice,
+              transaction_hash: txHash,
+              status: 'completed',
+            }),
+          });
+          
+          if (!saveRes.ok) {
+            console.error('[trade] Failed to save purchase:', await saveRes.text());
+          } else {
+            console.log('[trade] Purchase saved, price:', currentPriceXlm, 'XLM');
           }
-        } catch (err) {
-          console.error('Failed to record purchase:', err);
         }
+      } catch (err) {
+        console.error('[trade] Failed to record purchase:', err);
       }
 
       setAmount('');
       setPreview(null);
-      onTradeSuccess();
+      refreshPrice();       // update price display immediately
+      onTradeSuccess();     // trigger chart + metrics refresh
       loadBalances(userAddress);
     } catch (err) {
       if (err instanceof ContractError) {
@@ -317,8 +339,9 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
 
   const amountNum = parseFloat(amount) || 0;
   const tokenBalanceNum = Number(tokenBalance) / 1e7;
-  const buyDisabled  = loading || !connected || amountNum <= 0;
-  const sellDisabled = loading || !connected || amountNum <= 0 || amountNum > tokenBalanceNum;
+  const isWalletReady = connected && !!userAddress;
+  const buyDisabled  = loading || !isWalletReady || amountNum <= 0;
+  const sellDisabled = loading || !isWalletReady || amountNum <= 0 || amountNum > tokenBalanceNum;
 
   return (
     <div className="bg-white dark:bg-pump-card border border-gray-300 dark:border-gray-800 rounded-lg overflow-hidden shadow-lg">
@@ -430,7 +453,7 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
         )}
 
         {/* cta */}
-        {connected ? (
+        {isWalletReady ? (
           <button
             onClick={handleTrade}
             disabled={mode === 'buy' ? buyDisabled : sellDisabled}
@@ -447,11 +470,14 @@ export default function BondingCurveTrader({ tokenAddress, ticker, onTradeSucces
             onClick={async () => {
               try {
                 const addr = await getAddress();
-                setConnected(true);
-                setUserAddress(addr.address ?? '');
-                if (addr.address) {
-                  loadBalances(addr.address);
+                const address = addr.address || (addr as any).publicKey || '';
+                if (!address) {
+                  showToast('error', 'could not get wallet address — unlock Freighter first');
+                  return;
                 }
+                setConnected(true);
+                setUserAddress(address);
+                loadBalances(address);
               } catch { showToast('error', 'freighter not found'); }
             }}
             className="w-full py-4 rounded-lg text-sm font-bold uppercase tracking-widest bg-gray-700 hover:bg-gray-600 text-white transition-colors"
