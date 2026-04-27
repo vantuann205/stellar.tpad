@@ -2,12 +2,16 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Install build tools for native modules
+RUN apk add --no-cache libc6-compat python3 make g++
+
 # Install dependencies
 COPY stellar.tpad/package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps --no-audit --no-fund
 
 # Copy source and build
 COPY stellar.tpad/ .
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # ── Stage 2: Production runner ─────────────────────────────────────────────────
@@ -17,6 +21,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
