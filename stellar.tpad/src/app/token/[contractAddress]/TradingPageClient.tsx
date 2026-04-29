@@ -33,7 +33,7 @@ interface Comment {
 }
 
 const TOTAL_SUPPLY = 1_000_000_000n * 10_000_000n;
-const BONDING_TARGET = 100_000; // 100,000 XLM target for graduation
+const BONDING_TARGET = 10_000; // 10,000 XLM target for graduation
 const STROOPS = 10_000_000n;
 const INITIAL_LISTING_PRICE = 0.000001;
 
@@ -262,7 +262,7 @@ export default function TradingPageClient({ token: initialToken, contractAddress
               </div>
 
               {/* Progress bar */}
-              <BondingCurve soldSupply={soldSupply} totalSupply={TOTAL_SUPPLY} />
+              <BondingCurve maxReserve={maxReserve} bondingTarget={BONDING_TARGET} />
 
               {/* Stats row */}
               <div className="mt-3 grid grid-cols-2 gap-4 text-xs font-mono">

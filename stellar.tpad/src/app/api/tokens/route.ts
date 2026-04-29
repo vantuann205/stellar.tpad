@@ -26,9 +26,15 @@ export async function GET() {
     const result = await query(
       `SELECT
           t.*,
-          COALESCE(bp.max_reserve, 0) AS max_reserve
+          COALESCE(
+            (SELECT GREATEST(
+                COALESCE(SUM(CASE WHEN buyer_address IS NOT NULL THEN total_price ELSE 0 END), 0)
+                - COALESCE(SUM(CASE WHEN seller_address IS NOT NULL THEN total_price ELSE 0 END), 0),
+                0
+            ) FROM purchases WHERE token_id = t.id AND status = 'completed'),
+            0
+          ) AS max_reserve
        FROM tokens t
-       LEFT JOIN token_bonding_progress bp ON bp.token_id = t.id
        ORDER BY t.created_at DESC`
     ) as any;
 

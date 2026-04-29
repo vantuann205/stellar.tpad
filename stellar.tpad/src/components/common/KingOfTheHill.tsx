@@ -120,7 +120,7 @@ const KingOfTheHill: React.FC<KingOfTheHillProps> = ({ coin, onClick }) => {
                 />
               </div>
               <p className="text-xs text-yellow-700 dark:text-yellow-500/70 font-medium">
-                There are {amountInCurve} TEST in the BONDING CURVE
+                There are {amountInCurve} XLM in the BONDING CURVE
               </p>
             </div>
           </div>

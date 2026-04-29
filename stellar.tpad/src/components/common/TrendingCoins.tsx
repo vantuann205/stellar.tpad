@@ -44,7 +44,10 @@ const TrendingCoins: React.FC<TrendingCoinsProps> = ({ onClick }) => {
             const res = await fetch('/api/tokens?limit=10&sort=volume');
             const data = await res.json();
             if (data.success && data.data) {
-                setTokens(data.data.map((t: any) => ({
+                setTokens(data.data.map((t: any) => {
+                    const maxReserve = parseFloat(t.max_reserve || '0');
+                    const BONDING_TARGET = 10_000;
+                    return {
                     id: t.id,
                     name: t.name,
                     ticker: t.symbol,
@@ -54,10 +57,11 @@ const TrendingCoins: React.FC<TrendingCoinsProps> = ({ onClick }) => {
                     marketCap: parseFloat(t.marketcap || '0'),
                     price: parseFloat(t.current_price || '0'),
                     volume24h: parseFloat(t.volume_24h || '0'),
-                    bondingCurveProgress: 0,
+                    bondingCurveProgress: Math.min(100, (maxReserve / BONDING_TARGET) * 100),
                     createdAt: new Date(t.created_at).getTime(),
                     trendScore: parseFloat(t.volume_24h || '0'),
-                })));
+                    };
+                }));
             }
         } catch { /* silent */ }
         finally { setLoading(false); }

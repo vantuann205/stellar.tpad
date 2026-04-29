@@ -20,17 +20,13 @@ const getTimeAgo = (timestamp: number) => {
 };
 
 const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick, tokenRecord }) => {
-  const priceChange = tokenRecord?.price_change_5m ?? coin.bondingCurveProgress ?? 0;
-  const progressPct = tokenRecord
-    ? (tokenRecord.sold_supply
-        ? Math.min(100, Number(BigInt(tokenRecord.sold_supply) * BigInt(10000) / (BigInt(1_000_000_000) * BigInt(10_000_000))) / 100)
-        : 0)
-    : coin.bondingCurveProgress;
+  const priceChange = Number(tokenRecord?.price_change_5m ?? coin.priceChange5m ?? 0);
+  const progressPct = coin.bondingCurveProgress ?? 0;
   const progressCls = progressPct > 80 ? 'bg-yellow-400' : 'bg-pump-green';
   const isBuy = priceChange >= 0;
 
-  const currentPrice = tokenRecord?.current_price;
-  const volume24h    = tokenRecord?.volume_24h;
+  const currentPrice = tokenRecord?.current_price ?? (coin.priceHistory?.length ? coin.priceHistory[coin.priceHistory.length - 1].price : undefined);
+  const volume24h    = tokenRecord?.volume_24h ?? coin.volume24h;
 
   return (
     <div
@@ -61,21 +57,18 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick, tokenRecord }) => {
         </div>
 
         <div className="flex items-center space-x-2 text-[12.5px] whitespace-nowrap mb-1">
-          {currentPrice !== undefined ? (
-            <div className="flex items-center text-[13px]">
-              <span className="mr-[4px] font-medium text-gray-500 uppercase">price</span>
-              <span className="font-bold text-white font-mono">{currentPrice.toFixed(6)} XLM</span>
-            </div>
-          ) : (
-            <div className="flex items-center text-[13px]">
-              <span className="mr-[4px] font-medium text-gray-500 uppercase">MC</span>
-              <span className="font-bold text-gray-900 dark:text-white">{formatMarketCap(coin.marketCap)}</span>
-            </div>
-          )}
+          <div className="flex items-center text-[13px]">
+            <span className="mr-[4px] font-medium text-gray-500 uppercase">MC</span>
+            <span className="font-bold text-gray-900 dark:text-white">{formatMarketCap(coin.marketCap)}</span>
+          </div>
 
           <div className="w-9 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-sm overflow-hidden flex-shrink-0">
             <div className={`h-full ${progressCls}`} style={{ width: `${progressPct}%` }} />
           </div>
+
+          <span className="text-[11px] font-mono text-pump-green font-semibold">
+            {progressPct.toFixed(2)}%
+          </span>
 
           <div className={`font-medium ${isBuy ? 'text-pump-green' : 'text-pump-red'}`}>
             {isBuy ? '↑' : '↓'} {Math.abs(priceChange).toFixed(2)}%
@@ -84,7 +77,7 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick, tokenRecord }) => {
 
         {volume24h !== undefined && (
           <div className="text-gray-500 text-[11px] font-mono">
-            vol 24h: {volume24h.toFixed(2)} XLM
+            vol 24h: {Number(volume24h).toFixed(2)} XLM
           </div>
         )}
 

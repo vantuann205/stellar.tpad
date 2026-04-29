@@ -66,9 +66,11 @@ export default function Home() {
           // Parse metrics from API
           const currentPrice = Number(t.current_price) || 0.0001; // launch price fallback
           const marketcap = Number(t.marketcap) || (currentPrice * Number(t.total_supply || 1_000_000_000));
-          const soldSupply = Number(t.sold_supply) || 0;
-          const totalSupply = Number(t.total_supply) || 1_000_000_000;
-          const bondingProgress = totalSupply > 0 ? Math.min(100, (soldSupply / totalSupply) * 100) : 0;
+
+          // Bonding curve progress: max_reserve (XLM collected) vs 10,000 XLM target
+          const BONDING_TARGET = 10_000; // 10,000 XLM graduation target
+          const maxReserve = Number(t.max_reserve) || 0;
+          const bondingProgress = Math.min(100, (maxReserve / BONDING_TARGET) * 100);
 
           return {
             id: t.id || String(i),
@@ -78,6 +80,7 @@ export default function Home() {
             imageUrl: t.image_url || `https://picsum.photos/200/200?random=${i}`,
             creator: t.owner,
             marketCap: marketcap,
+            maxReserve: maxReserve,
             replies: 0,
             bondingCurveProgress: bondingProgress,
             createdAt: createdAtMs,

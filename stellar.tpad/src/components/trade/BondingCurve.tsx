@@ -1,31 +1,20 @@
 interface BondingCurveProps {
-  soldSupply: bigint;
-  totalSupply: bigint;
+  maxReserve: number;   // XLM collected so far
+  bondingTarget: number; // XLM target for graduation (e.g. 10,000)
 }
 
-export default function BondingCurve({ soldSupply, totalSupply }: BondingCurveProps) {
-  const progress = totalSupply > 0n
-    ? Number((soldSupply * 10000n) / totalSupply) / 100
-    : 0;
-
-  const pct = Math.min(100, Math.max(0, progress));
+export default function BondingCurve({ maxReserve, bondingTarget }: BondingCurveProps) {
+  const pct = Math.min(100, Math.max(0, (maxReserve / bondingTarget) * 100));
 
   return (
-    <div className="bg-pump-card border border-gray-800 rounded-lg p-4 space-y-2">
-      <div className="flex justify-between text-xs text-gray-500">
-        <span className="font-medium text-gray-300">bonding curve progress</span>
-        <span className="font-mono text-pump-green">{pct.toFixed(2)}%</span>
-      </div>
-      <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+    <div className="space-y-2">
+      {/* Progress bar */}
+      <div className="w-full bg-gray-300 dark:bg-gray-800 rounded-full h-2.5 overflow-hidden">
         <div
-          className="h-2 rounded-full bg-pump-green transition-all duration-500"
+          className="h-2.5 rounded-full bg-pump-green transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-xs text-gray-600">
-        {(Number(soldSupply) / 1e7).toLocaleString(undefined, { maximumFractionDigits: 0 })} /{' '}
-        {(Number(totalSupply) / 1e7).toLocaleString(undefined, { maximumFractionDigits: 0 })} tokens sold
-      </p>
     </div>
   );
 }

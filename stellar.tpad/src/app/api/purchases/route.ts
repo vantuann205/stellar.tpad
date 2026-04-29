@@ -76,6 +76,23 @@ export async function POST(request: NextRequest) {
                     );
                 }
 
+                // Update token_bonding_progress based on real trade volume in DB
+                await query(
+                    `INSERT INTO token_bonding_progress (token_id, max_reserve, updated_at)
+                     VALUES (
+                       $1,
+                       (SELECT GREATEST(
+                          COALESCE(SUM(CASE WHEN buyer_address IS NOT NULL THEN total_price ELSE 0 END), 0)
+                          - COALESCE(SUM(CASE WHEN seller_address IS NOT NULL THEN total_price ELSE 0 END), 0),
+                          0
+                       ) FROM purchases WHERE token_id = $1 AND status = 'completed'),
+                       NOW()
+                     )
+                     ON CONFLICT (token_id) DO UPDATE
+                     SET max_reserve = EXCLUDED.max_reserve, updated_at = NOW()`,
+                    [Number(token_id)]
+                );
+
                 // Delete stale launch-price snapshots (price <= 0.0001) now that we have real trades
                 // This prevents 5m/1h/6h from comparing against the wrong baseline
                 await query(
