@@ -63,6 +63,13 @@ export default function Home() {
           const createdAt = parsePossiblyUtc7Timestamp(t.created_at);
           const createdAtMs = createdAt?.getTime() ?? Date.now();
 
+          // Parse metrics from API
+          const currentPrice = Number(t.current_price) || 0.0001; // launch price fallback
+          const marketcap = Number(t.marketcap) || (currentPrice * Number(t.total_supply || 1_000_000_000));
+          const soldSupply = Number(t.sold_supply) || 0;
+          const totalSupply = Number(t.total_supply) || 1_000_000_000;
+          const bondingProgress = totalSupply > 0 ? Math.min(100, (soldSupply / totalSupply) * 100) : 0;
+
           return {
             id: t.id || String(i),
             name: t.name,
@@ -70,14 +77,20 @@ export default function Home() {
             description: t.description || '',
             imageUrl: t.image_url || `https://picsum.photos/200/200?random=${i}`,
             creator: t.owner,
-            marketCap: 0,
+            marketCap: marketcap,
             replies: 0,
-            bondingCurveProgress: 0,
+            bondingCurveProgress: bondingProgress,
             createdAt: createdAtMs,
             lastReply: createdAtMs,
-            priceHistory: [],
+            priceHistory: currentPrice > 0 ? [{ time: new Date(createdAtMs).toISOString(), price: currentPrice }] : [],
             tokenAddress: t.contract_address,
             contractAddress: t.contract_address,
+            volume24h: Number(t.volume_24h) || 0,
+            priceChange5m: Number(t.price_change_5m) || 0,
+            priceChange1h: Number(t.price_change_1h) || 0,
+            priceChange4h: Number(t.price_change_4h) || 0,
+            priceChange6h: Number(t.price_change_6h) || 0,
+            traderCount: Number(t.trader_count) || 0,
           };
         }));
       }
