@@ -51,6 +51,12 @@ Testnet accounts used for demo and testing:
 
 **Feedback Form (Excel/Google Sheet):** [Open Feedback Sheet](https://docs.google.com/spreadsheets/d/1VCt3XFTEFzilO3JXc9C7jStOINJ5Z-U4mrHIEyYR-oQ/edit?resourcekey=&gid=1510160419#gid=1510160419)
 
+### Future Improvements & Evolution
+Based on collected user feedback, we are actively improving and evolving the project. In the next phase, we plan to focus on:
+- **Enhanced Data Accuracy & UX:** Synchronize frontend visual indicators (like the bonding curve progress) directly with database state to ensure real-time accuracy (completed based on feedback from `ttgaming1246@gmail.com` - see commit [63db900e42354b0efe0ca4564877cb52568b93bf](https://github.com/vantuann205/stellar.tpad/commit/63db900e42354b0efe0ca4564877cb52568b93bf)).
+- **Improved Performance:** Optimize database queries for trade processing and OHLCV chart data loading.
+- **Advanced Trading Tools:** Build out more robust charting and trading interface elements directly addressing trader requests.
+
 ---
 
 ## Architecture
@@ -125,78 +131,152 @@ stellar-tpad/
 ├── Dockerfile                        # Multi-stage Docker build
 ├── railway.toml                      # Railway deployment config
 │
-├── stellar.tpad/                     # Next.js 14 application
-│   ├── src/
-│   │   ├── app/                      # App Router pages
-│   │   │   ├── (dashboard)/          # Main dashboard
-│   │   │   ├── api/                  # API route handlers
-│   │   │   │   ├── tokens/           # Token CRUD + listing
-│   │   │   │   ├── purchases/        # Buy/sell records
-│   │   │   │   ├── upload/           # Cloudinary image upload
-│   │   │   │   └── health/           # Health check endpoint
-│   │   │   ├── token/[id]/           # Token detail page
-│   │   │   └── profile/              # User profile page
-│   │   │
-│   │   ├── blockchain/               # Stellar SDK wrappers
-│   │   │   ├── contracts/            # Contract call helpers
-│   │   │   ├── providers/            # RPC provider setup
-│   │   │   ├── tx/                   # Transaction builders
-│   │   │   └── wallet/               # Wallet connection logic
-│   │   │
-│   │   ├── components/               # React UI components
-│   │   │   ├── common/               # CreateCoinPage, TokenCard, etc.
-│   │   │   ├── trade/                # BuyPanel, SellPanel, Chart
-│   │   │   ├── wallet/               # WalletButton, WalletModal
-│   │   │   └── ui/                   # Toast, Skeleton, Button, etc.
-│   │   │
-│   │   ├── features/                 # Business logic by domain
-│   │   │   ├── bonding-curve/        # buy/sell/price service
-│   │   │   ├── token/                # Token deploy + factory
-│   │   │   ├── trade/                # Trade execution flow
-│   │   │   ├── transaction/          # Tx history
-│   │   │   └── wallet/               # Wallet state management
-│   │   │
-│   │   ├── lib/                      # Shared utilities
-│   │   │   ├── db.ts                 # PostgreSQL client (pg)
-│   │   │   ├── db-schema.ts          # Schema + migrations
-│   │   │   ├── token-metrics.ts      # Price/volume/marketcap calc
-│   │   │   ├── background-jobs.ts    # Periodic metric updates
-│   │   │   ├── ohlcv.ts              # Candlestick data builder
-│   │   │   └── stellar.ts            # Stellar helpers
-│   │   │
-│   │   ├── config/
-│   │   │   ├── network.ts            # RPC URL, network passphrase
-│   │   │   └── contracts.ts          # Contract IDs
-│   │   │
-│   │   ├── hooks/                    # React hooks
-│   │   │   ├── useWallet.ts
-│   │   │   ├── useTransaction.ts
-│   │   │   └── useNetwork.ts
-│   │   │
-│   │   └── store/                    # Zustand global state
-│   │       ├── wallet.store.ts
-│   │       └── auth.store.ts
-│   │
-│   └── contracts/                    # Soroban smart contracts (Rust)
-│       ├── bonding_curve/            # Core AMM bonding curve
-│       │   └── src/
-│       │       ├── lib.rs            # buy(), sell(), register_token()
-│       │       ├── math.rs           # calc_buy_cost, calc_sell_proceeds
-│       │       └── state.rs          # TokenCurveState, DataKey
-│       │
-│       ├── token/                    # SEP-41 compatible token
-│       │   └── src/
-│       │       ├── lib.rs            # transfer(), mint(), burn()
-│       │       ├── storage.rs        # Persistent storage helpers
-│       │       └── types.rs          # TokenError enum
-│       │
-│       ├── factory/                  # One-tx deploy + register
-│       │   └── src/
-│       │       └── lib.rs            # create_token()
-│       │
-│       └── scripts/
-│           ├── deploy.ts             # Deployment script
-│           └── config.ts             # Network config
+└── stellar.tpad/                     # Next.js 14 application
+    ├── src/
+    │   ├── app/                      # App Router
+    │   │   ├── page.tsx              # Main dashboard (home feed)
+    │   │   ├── layout.tsx            # Root layout
+    │   │   ├── ThemeProvider.tsx     # Dark/light theme
+    │   │   ├── api/                  # API route handlers
+    │   │   │   ├── tokens/           # Token CRUD + listing
+    │   │   │   │   └── [contractAddress]/
+    │   │   │   │       ├── route.ts
+    │   │   │   │       ├── metrics/  # Trigger metric recalc
+    │   │   │   │       ├── holders/
+    │   │   │   │       ├── comments/
+    │   │   │   │       └── bonding-progress/
+    │   │   │   ├── purchases/        # Buy/sell records
+    │   │   │   ├── trades/           # Trade history
+    │   │   │   ├── ohlcv/            # Candlestick data
+    │   │   │   ├── holders/          # Holder list
+    │   │   │   ├── comments/         # Token comments
+    │   │   │   ├── search/           # Token search
+    │   │   │   ├── upload/           # Cloudinary image upload
+    │   │   │   ├── wallets/          # Wallet profiles
+    │   │   │   └── health/           # Health check (Railway)
+    │   │   ├── token/[contractAddress]/
+    │   │   │   ├── page.tsx          # Token detail (SSR shell)
+    │   │   │   ├── TradingPageClient.tsx  # Trade UI (client)
+    │   │   │   ├── loading.tsx
+    │   │   │   └── not-found.tsx
+    │   │   └── profile/[walletAddress]/
+    │   │       └── page.tsx          # User profile page
+    │   │
+    │   ├── components/
+    │   │   ├── common/               # Shared page-level components
+    │   │   │   ├── KingOfTheHill.tsx # Top MC token banner
+    │   │   │   ├── TrendingCoins.tsx # Trending carousel
+    │   │   │   ├── CoinCard.tsx      # Token grid card
+    │   │   │   ├── CreateCoinPage.tsx# Token launch form
+    │   │   │   ├── FilterBar.tsx     # Sort/filter controls
+    │   │   │   ├── BondingCurve.tsx  # Curve visualizer
+    │   │   │   ├── TokenInfoBar.tsx  # Price/MC/vol bar
+    │   │   │   ├── TokenMetrics.tsx  # Metrics display
+    │   │   │   ├── TokenLightweightChart.tsx  # OHLCV chart
+    │   │   │   ├── TradingViewChart.tsx
+    │   │   │   ├── TransactionTable.tsx
+    │   │   │   ├── CommentSection.tsx
+    │   │   │   ├── HoldersList.tsx
+    │   │   │   ├── LivestreamsPage.tsx
+    │   │   │   └── SupportPage.tsx
+    │   │   ├── trade/                # Trading panel components
+    │   │   │   ├── BondingCurveTrader.tsx  # Buy/sell panel
+    │   │   │   ├── TokenLightweightChart.tsx
+    │   │   │   ├── TokenInfoBar.tsx
+    │   │   │   ├── TokenMetrics.tsx
+    │   │   │   ├── TransactionTable.tsx
+    │   │   │   ├── CommentSection.tsx
+    │   │   │   └── HoldersList.tsx
+    │   │   ├── layout/
+    │   │   │   ├── Header.tsx        # Top nav + wallet connect
+    │   │   │   ├── DolphinLogo.tsx
+    │   │   │   └── SimpleHeader.tsx
+    │   │   ├── ui/                   # Primitive UI components
+    │   │   │   ├── Toast.tsx
+    │   │   │   ├── Skeleton.tsx
+    │   │   │   ├── ThemeToggle.tsx
+    │   │   │   ├── EditProfileModal.tsx
+    │   │   │   ├── SettingsModal.tsx
+    │   │   │   ├── button.tsx
+    │   │   │   ├── input.tsx
+    │   │   │   └── modal.tsx
+    │   │   └── wallet/
+    │   │       ├── connect-button.tsx
+    │   │       └── wallet-info.tsx
+    │   │
+    │   ├── features/                 # Business logic by domain
+    │   │   ├── bonding-curve/
+    │   │   │   └── bonding-curve.service.ts  # buy/sell/price RPC calls
+    │   │   ├── token/
+    │   │   │   ├── token.service.ts  # Factory deploy + init
+    │   │   │   └── token.logic.ts
+    │   │   ├── trade/
+    │   │   │   ├── bonding-curve.service.ts
+    │   │   │   ├── trade.service.ts
+    │   │   │   └── trade.logic.ts
+    │   │   ├── wallet/
+    │   │   │   ├── wallet.service.ts
+    │   │   │   ├── wallet.logic.ts
+    │   │   │   └── wallet.types.ts
+    │   │   └── auth/
+    │   │       ├── auth.service.ts
+    │   │       ├── auth.logic.ts
+    │   │       └── auth.types.ts
+    │   │
+    │   ├── lib/                      # Shared utilities
+    │   │   ├── db.ts                 # PostgreSQL client (pg)
+    │   │   ├── db-schema.ts          # Schema + auto-migrations
+    │   │   ├── token-metrics.ts      # Price/volume/marketcap calc
+    │   │   ├── background-jobs.ts    # Keepalive + snapshot jobs
+    │   │   ├── ohlcv.ts              # OHLCV aggregation
+    │   │   ├── helpers.ts            # formatMarketCap, formatVolume...
+    │   │   ├── time.ts               # Timestamp parsing
+    │   │   └── horizon.ts            # Horizon URL helper
+    │   │
+    │   ├── config/
+    │   │   ├── network.ts            # RPC URL, network passphrase
+    │   │   └── contracts.ts          # Contract IDs + constants
+    │   │
+    │   ├── hooks/
+    │   │   ├── useWallet.ts
+    │   │   ├── useTransaction.ts
+    │   │   ├── useNetwork.ts
+    │   │   └── useTheme.tsx
+    │   │
+    │   ├── services/
+    │   │   ├── wallet.service.ts     # StellarWalletsKit wrapper
+    │   │   ├── contract.service.ts
+    │   │   └── auth.service.ts
+    │   │
+    │   ├── store/                    # Zustand global state
+    │   │   ├── wallet.store.ts
+    │   │   └── auth.store.ts
+    │   │
+    │   └── types/
+    │       ├── index.ts              # Coin, Trade, ViewState...
+    │       └── token.ts              # TokenRecord, CommentRecord
+    │
+    ├── contracts/                    # Soroban smart contracts (Rust)
+    │   ├── bonding_curve/
+    │   │   └── src/
+    │   │       ├── lib.rs            # buy(), sell(), register_token()
+    │   │       ├── math.rs           # calc_buy_cost, calc_sell_proceeds
+    │   │       ├── state.rs          # TokenCurveState, DataKey, errors
+    │   │       └── test.rs           # Property-based tests (proptest)
+    │   ├── token/
+    │   │   └── src/
+    │   │       ├── lib.rs            # transfer(), mint(), burn()
+    │   │       ├── storage.rs        # Persistent storage helpers
+    │   │       ├── types.rs          # TokenError enum
+    │   │       └── test.rs
+    │   ├── factory/
+    │   │   └── src/
+    │   │       └── lib.rs            # create_token() — 1-tx deploy+register
+    │   └── scripts/
+    │       ├── deploy.ts
+    │       └── config.ts
+    │
+    └── instrumentation.ts            # Background jobs bootstrap (Railway)
 ```
 
 ---
