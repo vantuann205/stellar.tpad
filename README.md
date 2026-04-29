@@ -2,7 +2,7 @@
 
 # Stellar TPad
 
-**Pump.fun-style token launchpad built on Stellar Soroban**
+**Token launchpad built on Stellar Soroban**
 
 Launch, trade, and discover meme coins on Stellar Testnet — powered by on-chain bonding curves.
 
@@ -32,7 +32,7 @@ Launch, trade, and discover meme coins on Stellar Testnet — powered by on-chai
 
 ## Testnet Users
 
-Các tài khoản testnet dùng để demo và test:
+Testnet accounts used for demo and testing:
 
 | # | Address |
 |---|---------|
