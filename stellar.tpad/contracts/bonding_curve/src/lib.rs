@@ -29,10 +29,12 @@ impl BondingCurveContract {
         let treasury = Address::from_str(&env, TREASURY);
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Treasury, &treasury);
+        env.storage().instance().extend_ttl(120_000, 250_000);
     }
 
     pub fn register_token(env: Env, token_address: Address, token_admin: Address) {
-        if env.storage().persistent().has(&DataKey::Token(token_address.clone())) {
+        let key = DataKey::Token(token_address.clone());
+        if env.storage().persistent().has(&key) {
             panic_with_error!(&env, ContractError::TokenAlreadyRegistered);
         }
         let state = TokenCurveState {
@@ -45,14 +47,19 @@ impl BondingCurveContract {
             xlm_reserve: 0,
             active: true,
         };
-        env.storage().persistent().set(&DataKey::Token(token_address.clone()), &state);
+        env.storage().persistent().set(&key, &state);
+        env.storage().persistent().extend_ttl(&key, 120_000, 250_000);
         env.events().publish((symbol_short!("register"), token_address), ());
     }
 
     pub fn get_token_state(env: Env, token_address: Address) -> TokenCurveState {
+        let key = DataKey::Token(token_address);
+        if env.storage().persistent().has(&key) {
+            env.storage().persistent().extend_ttl(&key, 120_000, 250_000);
+        }
         env.storage()
             .persistent()
-            .get(&DataKey::Token(token_address))
+            .get(&key)
             .unwrap_or_else(|| panic_with_error!(&env, ContractError::TokenNotFound))
     }
 
@@ -77,8 +84,9 @@ impl BondingCurveContract {
         buyer.require_auth();
         if token_amount <= 0 { panic_with_error!(&env, ContractError::InvalidAmount); }
 
+        let key = DataKey::Token(token_address.clone());
         let mut s: TokenCurveState = env.storage().persistent()
-            .get(&DataKey::Token(token_address.clone()))
+            .get(&key)
             .unwrap_or_else(|| panic_with_error!(&env, ContractError::TokenNotFound));
 
         if s.sold_supply + token_amount > s.total_supply {
@@ -101,7 +109,9 @@ impl BondingCurveContract {
 
         s.sold_supply += token_amount;
         s.xlm_reserve += cost;
-        env.storage().persistent().set(&DataKey::Token(token_address.clone()), &s);
+        env.storage().persistent().set(&key, &s);
+        env.storage().persistent().extend_ttl(&key, 120_000, 250_000);
+        env.storage().instance().extend_ttl(120_000, 250_000);
         env.events().publish((symbol_short!("buy"), buyer, token_address), (token_amount, cost, fee));
     }
 
@@ -109,8 +119,9 @@ impl BondingCurveContract {
         seller.require_auth();
         if token_amount <= 0 { panic_with_error!(&env, ContractError::InvalidAmount); }
 
+        let key = DataKey::Token(token_address.clone());
         let mut s: TokenCurveState = env.storage().persistent()
-            .get(&DataKey::Token(token_address.clone()))
+            .get(&key)
             .unwrap_or_else(|| panic_with_error!(&env, ContractError::TokenNotFound));
 
         if s.sold_supply < token_amount { panic_with_error!(&env, ContractError::InsufficientLiquidity); }
@@ -132,7 +143,9 @@ impl BondingCurveContract {
 
         s.sold_supply -= token_amount;
         s.xlm_reserve -= proceeds;
-        env.storage().persistent().set(&DataKey::Token(token_address.clone()), &s);
+        env.storage().persistent().set(&key, &s);
+        env.storage().persistent().extend_ttl(&key, 120_000, 250_000);
+        env.storage().instance().extend_ttl(120_000, 250_000);
         env.events().publish((symbol_short!("sell"), seller, token_address), (token_amount, proceeds, fee));
     }
 }

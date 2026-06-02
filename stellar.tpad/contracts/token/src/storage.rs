@@ -1,42 +1,69 @@
 use soroban_sdk::{Address, Env, String};
 use crate::types::DataKey;
 
+const BUMP_THRESHOLD: u32 = 120_000; // ~7 days of ledgers
+const BUMP_LIMIT: u32 = 250_000;     // ~14 days of ledgers
+
 pub fn read_balance(env: &Env, addr: &Address) -> i128 {
-    env.storage().persistent().get(&DataKey::Balance(addr.clone())).unwrap_or(0)
+    let key = DataKey::Balance(addr.clone());
+    if env.storage().persistent().has(&key) {
+        env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_LIMIT);
+    }
+    env.storage().persistent().get(&key).unwrap_or(0)
 }
 
 pub fn write_balance(env: &Env, addr: &Address, amount: i128) {
-    env.storage().persistent().set(&DataKey::Balance(addr.clone()), &amount);
+    let key = DataKey::Balance(addr.clone());
+    env.storage().persistent().set(&key, &amount);
+    env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_LIMIT);
 }
 
 pub fn read_admin(env: &Env) -> Address {
-    env.storage().persistent().get(&DataKey::Admin).unwrap()
+    let key = DataKey::Admin;
+    env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_LIMIT);
+    env.storage().persistent().get(&key).unwrap()
 }
 
 pub fn write_admin(env: &Env, admin: &Address) {
-    env.storage().persistent().set(&DataKey::Admin, admin);
+    let key = DataKey::Admin;
+    env.storage().persistent().set(&key, admin);
+    env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_LIMIT);
 }
 
 pub fn read_decimals(env: &Env) -> u32 {
-    env.storage().persistent().get(&DataKey::Decimals).unwrap_or(7)
+    let key = DataKey::Decimals;
+    if env.storage().persistent().has(&key) {
+        env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_LIMIT);
+    }
+    env.storage().persistent().get(&key).unwrap_or(7)
 }
 
 pub fn write_decimals(env: &Env, decimals: u32) {
-    env.storage().persistent().set(&DataKey::Decimals, &decimals);
+    let key = DataKey::Decimals;
+    env.storage().persistent().set(&key, &decimals);
+    env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_LIMIT);
 }
 
 pub fn read_name(env: &Env) -> String {
-    env.storage().persistent().get(&DataKey::Name).unwrap()
+    let key = DataKey::Name;
+    env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_LIMIT);
+    env.storage().persistent().get(&key).unwrap()
 }
 
 pub fn write_name(env: &Env, name: &String) {
-    env.storage().persistent().set(&DataKey::Name, name);
+    let key = DataKey::Name;
+    env.storage().persistent().set(&key, name);
+    env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_LIMIT);
 }
 
 pub fn read_symbol(env: &Env) -> String {
-    env.storage().persistent().get(&DataKey::Symbol).unwrap()
+    let key = DataKey::Symbol;
+    env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_LIMIT);
+    env.storage().persistent().get(&key).unwrap()
 }
 
 pub fn write_symbol(env: &Env, symbol: &String) {
-    env.storage().persistent().set(&DataKey::Symbol, symbol);
+    let key = DataKey::Symbol;
+    env.storage().persistent().set(&key, symbol);
+    env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_LIMIT);
 }

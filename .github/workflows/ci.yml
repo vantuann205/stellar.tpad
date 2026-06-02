@@ -1,0 +1,79 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  rust-contracts:
+    name: Rust Smart Contracts CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            stellar.tpad/contracts/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run Cargo Tests (Bonding Curve)
+        run: |
+          cd stellar.tpad/contracts/bonding_curve
+          cargo test
+
+      - name: Run Cargo Tests (Token)
+        run: |
+          cd stellar.tpad/contracts/token
+          cargo test
+
+  frontend-nextjs:
+    name: Next.js Frontend CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: stellar.tpad/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd stellar.tpad
+          npm ci --legacy-peer-deps
+
+      - name: Run Next.js Build
+        run: |
+          cd stellar.tpad
+          npm run build
+        env:
+          NEXT_PUBLIC_STELLAR_NETWORK: testnet
+          NEXT_PUBLIC_STELLAR_RPC_URL: https://soroban-testnet.stellar.org
+          NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+          NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID: CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+          NEXT_PUBLIC_FACTORY_CONTRACT_ID: CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+          NEXT_PUBLIC_TOKEN_WASM_HASH: 0000000000000000000000000000000000000000000000000000000000000000
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          CLOUDINARY_CLOUD_NAME: dummy
+          CLOUDINARY_API_KEY: dummy
+          CLOUDINARY_API_SECRET: dummy

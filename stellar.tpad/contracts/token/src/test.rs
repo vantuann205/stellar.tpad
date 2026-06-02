@@ -8,13 +8,16 @@ const DEFAULT_SUPPLY: i128 = 1_000_000_000 * 10_000_000;
 fn setup(env: &Env) -> (TokenContractClient, Address) {
     env.mock_all_auths();
     let admin = Address::generate(env);
-    let id = env.register(TokenContract, ());
-    let client = TokenContractClient::new(env, &id);
-    client.initialize(
-        &admin,
-        &String::from_str(env, "My Token"),
-        &String::from_str(env, "MTK"),
+    let id = env.register(
+        TokenContract,
+        (
+            admin.clone(),
+            admin.clone(),
+            String::from_str(env, "My Token"),
+            String::from_str(env, "MTK"),
+        ),
     );
+    let client = TokenContractClient::new(env, &id);
     (client, admin)
 }
 
@@ -35,7 +38,8 @@ fn test_initialize_twice_fails() {
     let env = Env::default();
     env.mock_all_auths();
     let (client, admin) = setup(&env);
-    client.initialize(&admin, &String::from_str(&env, "X"), &String::from_str(&env, "X"));
+    // Already initialized by __constructor, so calling initialize will fail
+    client.initialize(&admin, &admin, &String::from_str(&env, "X"), &String::from_str(&env, "X"));
 }
 
 #[test]
