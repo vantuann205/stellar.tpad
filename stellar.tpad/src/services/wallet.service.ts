@@ -84,22 +84,19 @@ const mapErrorCode = (error: unknown): WalletErrorCode => {
   return 'unknown';
 };
 
-const TESTNET_PASSPHRASE = 'Test SDF Network ; September 2015';
-
-const ensureTestnet = async (): Promise<void> => {
+const ensureConfiguredNetwork = async (): Promise<void> => {
   try {
     const network = await StellarWalletsKit.getNetwork();
     const passphrase = network?.networkPassphrase || '';
-    // Accept both full passphrase and short "testnet" string (some wallets return short form)
-    const isTestnet =
-      passphrase === TESTNET_PASSPHRASE ||
-      passphrase.toLowerCase().includes('testnet') ||
-      passphrase === 'testnet';
+    const expected = String(STELLAR_NETWORK_PASSPHRASE);
+    const matches = passphrase === expected ||
+      (expected === Networks.TESTNET && passphrase.toLowerCase() === 'testnet') ||
+      (expected === Networks.PUBLIC && ['public', 'mainnet'].includes(passphrase.toLowerCase()));
 
-    if (!isTestnet) {
+    if (!matches) {
       throw new WalletServiceError(
         'wrong_network',
-        `Please switch your wallet to Stellar Testnet. Got: "${passphrase}"`,
+        `Please switch your wallet to the configured Stellar network. Got: "${passphrase}"`,
       );
     }
   } catch (err) {
@@ -143,7 +140,7 @@ export const getWalletErrorMessage = (code: WalletErrorCode): string => {
     case 'user_rejected':
       return 'Bạn đã từ chối yêu cầu kết nối ví.';
     case 'wrong_network':
-      return 'Vui lòng chuyển ví sang Stellar Testnet.';
+      return `Vui lòng chuyển ví sang ${STELLAR_NETWORK_PASSPHRASE === Networks.PUBLIC ? 'Stellar Mainnet' : 'Stellar Testnet'}.`;
     default:
       return 'Không thể kết nối ví, vui lòng thử lại.';
   }
@@ -166,7 +163,7 @@ export const stellarWalletService = {
         throw new WalletServiceError('unknown', 'Unsupported wallet selected');
       }
 
-      await ensureTestnet();
+      await ensureConfiguredNetwork();
       writeSession({ walletId: selectedWalletId, address });
 
       return {
@@ -205,7 +202,7 @@ export const stellarWalletService = {
       const { address } = await StellarWalletsKit.getAddress();
       if (!address) return null;
 
-      await ensureTestnet();
+      await ensureConfiguredNetwork();
       writeSession({ walletId: session.walletId, address });
 
       return { provider, address };

@@ -1,10 +1,11 @@
-use soroban_sdk::{contracttype, contracterror, Address};
+use soroban_sdk::{contracterror, contracttype, Address};
 
 #[derive(Clone)]
 #[contracttype]
 pub enum DataKey {
     Admin,
     Treasury,
+    XlmAddress,
     Token(Address),
 }
 
@@ -25,14 +26,14 @@ pub struct TokenCurveState {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum ContractError {
-    AlreadyInitialized     = 1,
+    AlreadyInitialized = 1,
     TokenAlreadyRegistered = 2,
-    TokenNotFound          = 3,
-    InvalidAmount          = 4,
-    SlippageExceeded       = 5,
-    ExceedsSupply          = 6,
-    InsufficientLiquidity  = 7,
-    InsufficientReserve    = 8,
-    InsufficientBalance    = 9,
-    Unauthorized           = 10,
+    TokenNotFound = 3,
+    InvalidAmount = 4,
+    SlippageExceeded = 5,
+    ExceedsSupply = 6,
+    InsufficientLiquidity = 7,
+    InsufficientReserve = 8,
+    InsufficientBalance = 9,
+    Unauthorized = 10,
 }

@@ -3,9 +3,9 @@ export const CONTRACT_CONFIG = {
   bondingCurve: process.env.NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID ?? '',
 };
 
-// Stellar network constants
-export const XLM_NATIVE_CONTRACT = 'CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA'; // testnet
-export const TREASURY_ADDRESS = 'GCZ2IR57HR7JSKNA5ILVGBWJSUFUHPJHW35RXDQ7HTDBZ2QHURULFP63';
+// Deployment-specific addresses. Mainnet values are supplied by Railway after deployment.
+export const XLM_NATIVE_CONTRACT = process.env.NEXT_PUBLIC_XLM_CONTRACT_ID ?? '';
+export const TREASURY_ADDRESS = process.env.NEXT_PUBLIC_TREASURY_ADDRESS ?? '';
 export const BONDING_CURVE_CONTRACT = process.env.NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID ?? '';
 export const MINT_FEE_XLM = 1; // 1 XLM mint fee
 export const TRADE_FEE_BPS = 100; // 1% = 100 basis points

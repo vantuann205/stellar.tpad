@@ -8,7 +8,7 @@ use soroban_sdk::{contract, contractimpl, Address, Env};
 
 // ---------------------------------------------------------------------------
 // Mock token contract — implements the SEP-41 transfer interface.
-// Used to register a no-op token at the hardcoded XLM address and at the
+// Used to register a no-op token at the configured XLM address and at the
 // project-token address so that buy() can call transfer() without panicking.
 // ---------------------------------------------------------------------------
 #[contract]
@@ -29,7 +29,7 @@ impl MockToken {
 //   - mock_all_auths enabled
 //   - BondingCurveContract registered and initialized
 //   - token registered on the curve
-//   - MockToken registered at the hardcoded XLM address
+//   - MockToken registered at the configured XLM address
 //   - MockToken registered at token_addr
 // ---------------------------------------------------------------------------
 fn setup_env() -> (Env, BondingCurveContractClient<'static>, Address, Address) {
@@ -37,14 +37,11 @@ fn setup_env() -> (Env, BondingCurveContractClient<'static>, Address, Address) {
     env.mock_all_auths();
 
     // Register the bonding curve contract
-    let contract_id = env.register(BondingCurveContract, ());
-    let client = BondingCurveContractClient::new(&env, &contract_id);
-
-    // Admin and treasury addresses
     let admin = Address::generate(&env);
-
-    // Initialize the contract (treasury is hardcoded inside initialize)
-    client.initialize(&admin);
+    let treasury = Address::generate(&env);
+    let xlm_addr = Address::generate(&env);
+    let contract_id = env.register(BondingCurveContract, (&admin, &treasury, &xlm_addr));
+    let client = BondingCurveContractClient::new(&env, &contract_id);
 
     // Register a mock token for the project token
     let token_addr = env.register(MockToken, ());
@@ -54,10 +51,6 @@ fn setup_env() -> (Env, BondingCurveContractClient<'static>, Address, Address) {
 
     // Register a MockToken at the correct native XLM SAC address so that
     // buy() can call xlm_client.transfer() without panicking.
-    let xlm_addr = Address::from_str(
-        &env,
-        "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
-    );
     #[allow(deprecated)]
     env.register_contract(Some(&xlm_addr), MockToken);
 
@@ -65,8 +58,7 @@ fn setup_env() -> (Env, BondingCurveContractClient<'static>, Address, Address) {
 
     // SAFETY: the 'static lifetime is sound here because `env` is moved into
     // the returned tuple and outlives the client.
-    let client: BondingCurveContractClient<'static> =
-        unsafe { core::mem::transmute(client) };
+    let client: BondingCurveContractClient<'static> = unsafe { core::mem::transmute(client) };
 
     (env, client, buyer, token_addr)
 }
@@ -240,20 +232,34 @@ proptest! {
 // ---------------------------------------------------------------------------
 
 fn assert_contract_error<T>(
-    result: Result<Result<T, soroban_sdk::ConversionError>, Result<soroban_sdk::Error, soroban_sdk::InvokeError>>,
+    result: Result<
+        Result<T, soroban_sdk::ConversionError>,
+        Result<soroban_sdk::Error, soroban_sdk::InvokeError>,
+    >,
     expected: crate::state::ContractError,
 ) {
     match result {
         Err(Ok(e)) => {
             // panic_with_error! produces a soroban_sdk::Error with the contract error code
             let code = e.get_code();
-            assert_eq!(code, expected as u32, "expected ContractError code {}, got {}", expected as u32, code);
+            assert_eq!(
+                code, expected as u32,
+                "expected ContractError code {}, got {}",
+                expected as u32, code
+            );
         }
         Err(Err(soroban_sdk::InvokeError::Contract(code))) => {
-            assert_eq!(code, expected as u32, "expected ContractError code {}, got {}", expected as u32, code);
+            assert_eq!(
+                code, expected as u32,
+                "expected ContractError code {}, got {}",
+                expected as u32, code
+            );
         }
         Err(Err(soroban_sdk::InvokeError::Abort)) => panic!("contract aborted unexpectedly"),
-        Ok(_) => panic!("expected error ContractError code {}, got Ok", expected as u32),
+        Ok(_) => panic!(
+            "expected error ContractError code {}, got Ok",
+            expected as u32
+        ),
     }
 }
 
@@ -262,13 +268,13 @@ fn test_initialize_twice_fails() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id = env.register(BondingCurveContract, ());
+    let admin = Address::generate(&env);
+    let treasury = Address::generate(&env);
+    let xlm_addr = Address::generate(&env);
+    let contract_id = env.register(BondingCurveContract, (&admin, &treasury, &xlm_addr));
     let client = BondingCurveContractClient::new(&env, &contract_id);
 
-    let admin = Address::generate(&env);
-    client.initialize(&admin);
-
-    let result = client.try_initialize(&admin);
+    let result = client.try_initialize(&admin, &treasury, &xlm_addr);
     assert_contract_error(result, crate::state::ContractError::AlreadyInitialized);
 }
 
@@ -286,11 +292,11 @@ fn test_get_token_state_not_found() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id = env.register(BondingCurveContract, ());
-    let client = BondingCurveContractClient::new(&env, &contract_id);
-
     let admin = Address::generate(&env);
-    client.initialize(&admin);
+    let treasury = Address::generate(&env);
+    let xlm_addr = Address::generate(&env);
+    let contract_id = env.register(BondingCurveContract, (&admin, &treasury, &xlm_addr));
+    let client = BondingCurveContractClient::new(&env, &contract_id);
 
     let unknown = Address::generate(&env);
     let result = client.try_get_token_state(&unknown);

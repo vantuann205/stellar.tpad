@@ -291,13 +291,14 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
 
         {/* Wallet & Actions */}
         <div className="flex items-center gap-3">
-          {/* Network Toggle */}
+          {/* Network is fixed by deployment configuration. */}
           <button
             onClick={onToggleNetwork}
-            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border transition-all active:scale-95 ${
+            disabled
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border ${
               network === 'TESTNET'
-                ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20'
-                : 'border-green-500/50 bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-500'
+                : 'border-green-500/50 bg-green-500/10 text-green-400'
             }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${network === 'TESTNET' ? 'bg-yellow-500' : 'bg-green-400'}`} />
