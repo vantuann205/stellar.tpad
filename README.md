@@ -37,26 +37,36 @@ We have prepared this application for production with continuous integration, on
 
 ---
 
-## 📝 Submission Requirements & Checklist
+## ✅ Level 6 Submission Checklist
 
-### ✅ Submission Checklist Status
-- [x] **Public GitHub Repository:** Deployed publicly with structured commits.
-- [x] **README with Complete Documentation:** Full technical details provided below.
-- [x] **Minimum 8+ Meaningful Commits:** Clean, logical history tracking the development flow.
-- [x] **Required Artifacts in README:**
-  - [x] Live production link (`https://stellar-tpad.up.railway.app/`)
-  - [x] Mobile responsive UI screenshot
-  - [x] GitHub Actions CI/CD status badge
+| Requirement | Status | Evidence |
+|---|---:|---|
+| Public GitHub repository | ✅ | [vantuann205/stellar.tpad](https://github.com/vantuann205/stellar.tpad) |
+| Minimum 30+ meaningful commits | ✅ | [Commit history](https://github.com/vantuann205/stellar.tpad/commits/main/) |
+| Live Mainnet application | ✅ | [Railway production](https://stellar-tpad.up.railway.app/) |
+| Mainnet contract addresses | ✅ | [Factory](https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU) · [Bonding curve](https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY) |
+| Proof of 20+ Mainnet users | ✅ | [20 Mainnet account addresses and funding proof](./MAINNET_USERS.md) |
+| Transaction activity proof | ✅ | [Mainnet transactions](#mainnet-transaction-proof) |
+| Audit/security review proof | ✅ | [Security review](./SECURITY_REVIEW.md) · [CI checks](https://github.com/vantuann205/stellar.tpad/actions) |
+| Twitter/X launch post | ⏳ | [@stellartpad](https://x.com/stellartpad) — launch-post URL to be added |
+| Demo video | ⏳ | Demo-video URL to be added |
+| Technical documentation | ✅ | [Architecture](#-soroban-production-ready-optimizations) · [contracts](#-on-chain-contract-addresses-stellar-mainnet) |
+| User guide/documentation | ✅ | [User guide](./USER_GUIDE.md) |
+| Community contribution link | ✅ | [Open-source repository](https://github.com/vantuann205/stellar.tpad) |
 
-### 📝 Core Requirements Status
-- [x] **Inter-Contract Calls working:**
-  Our architecture features a highly advanced **On-Chain Factory Pattern** (`TokenFactory::create_token` invoking `BondingCurveContract::register_token` in a single, atomic signature block).
-- [x] **Custom Token deployed:**
-  `TokenContract` template built on the SEP-41 standard, minting the initial supply to the bonding curve pool upon contract creation.
-- [x] **CI/CD running:**
-  GitHub Actions workflow `.github/workflows/ci.yml` is active and automatically validates smart contracts and next.js build on every push.
-- [x] **Mobile responsive:**
-  Optimized interface built using Tailwind CSS with cohesive HSL palettes supporting mobile and tablet viewports.
+> The X account and demo placeholders are intentionally not marked complete until
+> direct public URLs are available.
+
+### Mainnet transaction proof
+
+| Action | Transaction |
+|---|---|
+| Upload token WASM | [`6686ae89…fc21`](https://stellar.expert/explorer/public/tx/6686ae899e61197affdae844fe5dd85f81f22ab111eeacc6459f2e80098efc21) |
+| Upload bonding-curve WASM | [`891d7a45…2191`](https://stellar.expert/explorer/public/tx/891d7a455dc85135a265d618e54a32284b893933fc40bb1e493c8f3b56f52191) |
+| Upload factory WASM | [`823a251f…4279`](https://stellar.expert/explorer/public/tx/823a251f240f21678f5df1a021634c22b58f53488dd05ba6def48a4c289e4279) |
+| Deploy bonding curve | [`7ce2828a…965d`](https://stellar.expert/explorer/public/tx/7ce2828a3a0a3db7be75457be7db69f00736d38d1b5e71b1cc0c9e24f06e965d) |
+| Deploy factory | [`65eddfb3…cdf8`](https://stellar.expert/explorer/public/tx/65eddfb3c0abf3bc04d79d483d4629dc58cc3a02f782d89646e054157579cdf8) |
+| Onboard 20 Mainnet accounts | [`ef0d8038…a33c7`](https://stellar.expert/explorer/public/tx/ef0d80381579569b2316d09280090262a45b8cea8a5ee2a6de4c165b429a33c7) |
 
 ---
 
