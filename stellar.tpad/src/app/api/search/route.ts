@@ -23,8 +23,7 @@ export async function GET(request: NextRequest) {
         const tokensResult = await query(
             `SELECT id, name, symbol, contract_address, owner, image_url, created_at, COALESCE(marketcap, 0) as marketcap
              FROM tokens
-             WHERE network = 'mainnet'
-             AND (name ILIKE $1
+             WHERE (name ILIKE $1
              OR symbol ILIKE $1
              OR contract_address ILIKE $1)
              ORDER BY 

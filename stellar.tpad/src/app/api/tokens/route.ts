@@ -36,7 +36,6 @@ export async function GET() {
             0
           ) AS max_reserve
        FROM tokens t
-       WHERE t.network = 'mainnet'
        ORDER BY t.created_at DESC`
     ) as any;
 
