@@ -1,7 +1,3 @@
-import { KitEventType, Networks } from '@creit.tech/stellar-wallets-kit';
-import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit/sdk';
-import { FREIGHTER_ID, FreighterModule } from '@creit.tech/stellar-wallets-kit/modules/freighter';
-import { RABET_ID, RabetModule } from '@creit.tech/stellar-wallets-kit/modules/rabet';
 import { STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
 import { StellarWalletProvider, WalletErrorCode } from '@/store/wallet.store';
 
@@ -21,16 +17,8 @@ export class WalletServiceError extends Error {
   }
 }
 
-const providerToWalletId: Record<StellarWalletProvider, string> = {
-  freighter: FREIGHTER_ID,
-  rabet: RABET_ID,
-};
-
 const walletIdToProvider = (walletId?: string): StellarWalletProvider | null => {
-  if (!walletId) return null;
-  if (walletId === FREIGHTER_ID) return 'freighter';
-  if (walletId === RABET_ID) return 'rabet';
-  return null;
+  return walletId === 'freighter' ? 'freighter' : null;
 };
 
 const getStorage = (): Storage | null => {
@@ -84,63 +72,33 @@ const mapErrorCode = (error: unknown): WalletErrorCode => {
   return 'unknown';
 };
 
+const apiError = (result: { error?: { message?: string } }): Error | null =>
+  result.error ? new Error(result.error.message || 'Freighter request failed') : null;
+
 const ensureConfiguredNetwork = async (): Promise<void> => {
-  try {
-    const network = await StellarWalletsKit.getNetwork();
-    const passphrase = network?.networkPassphrase || '';
-    const expected = String(STELLAR_NETWORK_PASSPHRASE);
-    const matches = passphrase === expected ||
-      (expected === Networks.TESTNET && passphrase.toLowerCase() === 'testnet') ||
-      (expected === Networks.PUBLIC && ['public', 'mainnet'].includes(passphrase.toLowerCase()));
+  const { getNetwork } = await import('@stellar/freighter-api');
+  const network = await getNetwork();
+  const error = apiError(network);
+  if (error) throw error;
 
-    if (!matches) {
-      throw new WalletServiceError(
-        'wrong_network',
-        `Please switch your wallet to the configured Stellar network. Got: "${passphrase}"`,
-      );
-    }
-  } catch (err) {
-    if (err instanceof WalletServiceError) throw err;
-    // Some wallets (Rabet) may not support getNetwork — skip check
-    console.warn('[wallet] Could not verify network, proceeding:', err);
+  const passphrase = network.networkPassphrase || '';
+  const expected = String(STELLAR_NETWORK_PASSPHRASE);
+  if (passphrase !== expected) {
+    throw new WalletServiceError(
+      'wrong_network',
+      `Please switch Freighter to the configured Stellar network. Got: "${passphrase}"`,
+    );
   }
-};
-
-let initialized = false;
-
-const initKit = (): void => {
-  if (initialized || typeof window === 'undefined') return;
-
-  const session = readSession();
-
-  StellarWalletsKit.init({
-    modules: [new FreighterModule(), new RabetModule()],
-    selectedWalletId: session?.walletId,
-    network: STELLAR_NETWORK_PASSPHRASE as Networks,
-    authModal: {
-      // Show all wallets even if extension not detected — user may have it but detection fails
-      hideUnsupportedWallets: false,
-    },
-  });
-
-  StellarWalletsKit.on(KitEventType.WALLET_SELECTED, (event) => {
-    const walletId = event.payload.id;
-    const existing = readSession();
-    if (!walletId || !existing?.address) return;
-    writeSession({ walletId, address: existing.address });
-  });
-
-  initialized = true;
 };
 
 export const getWalletErrorMessage = (code: WalletErrorCode): string => {
   switch (code) {
     case 'extension_not_installed':
-      return 'Freighter hoặc Rabet chưa được cài đặt.';
+      return 'Freighter chưa được cài đặt.';
     case 'user_rejected':
       return 'Bạn đã từ chối yêu cầu kết nối ví.';
     case 'wrong_network':
-      return `Vui lòng chuyển ví sang ${STELLAR_NETWORK_PASSPHRASE === Networks.PUBLIC ? 'Stellar Mainnet' : 'Stellar Testnet'}.`;
+      return `Vui lòng chuyển ví sang ${String(STELLAR_NETWORK_PASSPHRASE).startsWith('Public') ? 'Stellar Mainnet' : 'Stellar Testnet'}.`;
     default:
       return 'Không thể kết nối ví, vui lòng thử lại.';
   }
@@ -149,26 +107,28 @@ export const getWalletErrorMessage = (code: WalletErrorCode): string => {
 export const stellarWalletService = {
   async connect(preferredProvider?: StellarWalletProvider): Promise<{ provider: StellarWalletProvider; address: string }> {
     try {
-      initKit();
-
-      if (preferredProvider) {
-        StellarWalletsKit.setWallet(providerToWalletId[preferredProvider]);
+      if (preferredProvider && preferredProvider !== 'freighter') {
+        throw new WalletServiceError('unknown', 'Only Freighter is supported');
       }
 
-      const { address } = await StellarWalletsKit.authModal();
-      const selectedWalletId = StellarWalletsKit.selectedModule?.productId;
-      const provider = walletIdToProvider(selectedWalletId);
-
-      if (!provider) {
-        throw new WalletServiceError('unknown', 'Unsupported wallet selected');
+      const { isConnected, requestAccess } = await import('@stellar/freighter-api');
+      const connection = await isConnected();
+      const connectionError = apiError(connection);
+      if (connectionError) throw connectionError;
+      if (!connection.isConnected) {
+        throw new WalletServiceError('extension_not_installed', 'Freighter is not installed');
       }
 
+      const access = await requestAccess();
+      const accessError = apiError(access);
+      if (accessError) throw accessError;
+      if (!access.address) throw new Error('Freighter did not return an address');
       await ensureConfiguredNetwork();
-      writeSession({ walletId: selectedWalletId, address });
+      writeSession({ walletId: 'freighter', address: access.address });
 
       return {
-        provider,
-        address,
+        provider: 'freighter',
+        address: access.address,
       };
     } catch (error) {
       if (error instanceof WalletServiceError) {
@@ -180,32 +140,28 @@ export const stellarWalletService = {
   },
 
   async disconnect(): Promise<void> {
-    initKit();
-    try {
-      await StellarWalletsKit.disconnect();
-    } catch {
-      // Keep disconnect resilient even when wallet module has no active session.
-    }
     clearSession();
   },
 
   async restoreSession(): Promise<{ provider: StellarWalletProvider; address: string } | null> {
     try {
-      initKit();
       const session = readSession();
       if (!session) return null;
 
-      StellarWalletsKit.setWallet(session.walletId);
       const provider = walletIdToProvider(session.walletId);
       if (!provider) return null;
 
-      const { address } = await StellarWalletsKit.getAddress();
-      if (!address) return null;
+      const { getAddress, isAllowed, isConnected } = await import('@stellar/freighter-api');
+      const connection = await isConnected();
+      const allowed = await isAllowed();
+      if (!connection.isConnected || !allowed.isAllowed || connection.error || allowed.error) return null;
 
+      const result = await getAddress();
+      if (result.error || !result.address) return null;
       await ensureConfiguredNetwork();
-      writeSession({ walletId: session.walletId, address });
+      writeSession({ walletId: session.walletId, address: result.address });
 
-      return { provider, address };
+      return { provider, address: result.address };
     } catch {
       clearSession();
       return null;
@@ -214,9 +170,9 @@ export const stellarWalletService = {
 
   async getPublicKey(): Promise<string | null> {
     try {
-      initKit();
-      const { address } = await StellarWalletsKit.getAddress();
-      return address || null;
+      const { getAddress } = await import('@stellar/freighter-api');
+      const result = await getAddress();
+      return result.error ? null : result.address || null;
     } catch {
       return null;
     }
@@ -226,16 +182,18 @@ export const stellarWalletService = {
     xdr: string,
     opts?: { networkPassphrase?: string; address?: string }
   ): Promise<{ signedTxXdr: string }> {
-    initKit();
-    const result = await StellarWalletsKit.signTransaction(xdr, {
+    const { signTransaction } = await import('@stellar/freighter-api');
+    const result = await signTransaction(xdr, {
       networkPassphrase: opts?.networkPassphrase,
       address: opts?.address,
     });
+    const error = apiError(result);
+    if (error) throw error;
     if (!result?.signedTxXdr) throw new Error('Signing failed or was rejected');
     return { signedTxXdr: result.signedTxXdr };
   },
 
   getProviderName(provider: StellarWalletProvider): string {
-    return provider === 'freighter' ? 'Freighter' : 'Rabet';
+    return provider === 'freighter' ? 'Freighter' : provider;
   },
 };
