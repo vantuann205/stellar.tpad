@@ -45,7 +45,7 @@ We have prepared this application for production with continuous integration, on
 | Minimum 30+ meaningful commits | ✅ | [Commit history](https://github.com/vantuann205/stellar.tpad/commits/main/) |
 | Live Mainnet application | ✅ | [Railway production](https://stellar-tpad.up.railway.app/) |
 | Mainnet contract addresses | ✅ | [Factory](https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU) · [Bonding curve](https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY) |
-| Proof of 20+ Mainnet users | ✅ | [20 Mainnet account addresses and funding proof](./MAINNET_USERS.md) |
+| Proof of 20+ Mainnet users | ✅ | [20 Mainnet account addresses](./MAINNET_USERS.md) |
 | Transaction activity proof | ✅ | [Mainnet transactions](#mainnet-transaction-proof) |
 | Audit/security review proof | ✅ | [Security review](./SECURITY_REVIEW.md) · [CI checks](https://github.com/vantuann205/stellar.tpad/actions) |
 | Twitter/X launch post | ✅ | [@stellartpad](https://x.com/stellartpad) |
