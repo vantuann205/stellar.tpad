@@ -10,6 +10,8 @@
     "test": "jest --passWithNoTests",
     "test:wallet": "jest __tests__/stellar-wallet-service.test.ts __tests__/wallet-state.test.ts --no-coverage",
     "test:bonding": "tsx scripts/test-bonding-curve-flow.ts",
+    "test:deploy-mainnet": "node --test contracts/scripts/deploy-mainnet.test.cjs",
+    "preflight:mainnet": "node contracts/scripts/deploy-mainnet.cjs",
     "init-db": "tsx scripts/init-db.ts"
   },
   "dependencies": {

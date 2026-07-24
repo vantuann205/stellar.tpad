@@ -15,7 +15,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Rust](https://img.shields.io/badge/Rust-Soroban-CE422B?style=flat-square&logo=rust&logoColor=white)](https://soroban.stellar.org/)
-[![Stellar](https://img.shields.io/badge/Stellar-Testnet-7B2FBE?style=flat-square&logo=stellar&logoColor=white)](https://stellar.org/)
+[![Stellar](https://img.shields.io/badge/Stellar-Mainnet-7B2FBE?style=flat-square&logo=stellar&logoColor=white)](https://stellar.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
 </div>
@@ -70,11 +70,12 @@ Here is the live interface optimized for mobile viewports, featuring real-time p
 
 ---
 
-## 🔗 On-Chain Contract Addresses (Stellar Testnet)
+## 🔗 On-Chain Contract Addresses (Stellar Mainnet)
 
-* **Token Factory Contract:** `CC4WIPK7MXEDT6UCOH55E3R3XJ4TMLH7H2PLSQ4KGD57YMLI24VYFACTOR`
-* **Bonding Curve Contract:** `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
-* **Native Asset Contract (XLM Wrapper):** `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` (SAC Testnet Address)
+* **Token Factory Contract:** [`CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU`](https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU)
+* **Bonding Curve Contract:** [`CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY`](https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY)
+* **Native XLM SAC:** `CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA`
+* **Token WASM Hash:** `547a076fedf192ebf3fc0d274ca80fdc578c6a2c02176643554ffe46a45843da`
 
 ---
 

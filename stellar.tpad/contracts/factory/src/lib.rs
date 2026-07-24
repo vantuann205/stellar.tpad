@@ -1,6 +1,9 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, Symbol, Vec, Val, IntoVal};
 
+#[cfg(test)]
+mod test;
+
 #[contract]
 pub struct TokenFactory;
 
