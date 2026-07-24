@@ -5,7 +5,7 @@
 ---
 
 ### 🌐 Live Production Demo
-**👉 [https://stellar-tpad.up.railway.app/](https://stellar-tpad.up.railway.app/)**
+**👉 [https://stellartpad-production.up.railway.app/](https://stellartpad-production.up.railway.app/)**
 
 ---
 
@@ -43,7 +43,7 @@ We have prepared this application for production with continuous integration, on
 |---|---:|---|
 | Public GitHub repository | ✅ | [vantuann205/stellar.tpad](https://github.com/vantuann205/stellar.tpad) |
 | Minimum 30+ meaningful commits | ✅ | [Commit history](https://github.com/vantuann205/stellar.tpad/commits/main/) |
-| Live Mainnet application | ✅ | [Railway production](https://stellar-tpad.up.railway.app/) |
+| Live Mainnet application | ✅ | [Railway production](https://stellartpad-production.up.railway.app/) |
 | Mainnet contract addresses | ✅ | [Factory](https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU) · [Bonding curve](https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY) |
 | Proof of 20+ Mainnet users | ✅ | [20 Mainnet account addresses](./MAINNET_USERS.md) |
 | Transaction activity proof | ✅ | [Mainnet transactions](#mainnet-transaction-proof) |

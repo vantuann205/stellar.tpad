@@ -183,21 +183,7 @@ export default function Home() {
       </div>
 
       <main className="container mx-auto px-4 py-6">
-        {viewState === ViewState.GRID && network === 'MAINNET' && (
-          <div className="min-h-[70vh] flex flex-col items-center justify-center select-none">
-            <div className="text-center">
-              <p className="text-xs font-black uppercase tracking-widest text-green-400 mb-4">MAINNET</p>
-              <h1 className="text-6xl md:text-8xl font-black text-gray-900 dark:text-white tracking-tighter uppercase">
-                COMING SOON
-              </h1>
-              <p className="mt-4 text-gray-500 dark:text-gray-500 text-sm uppercase tracking-widest font-bold">
-                Stellar TPAD on Mainnet
-              </p>
-            </div>
-          </div>
-        )}
-
-        {viewState === ViewState.GRID && network === 'TESTNET' && (
+        {viewState === ViewState.GRID && (
           <>
             <KingOfTheHill coin={topCoin} onClick={handleCoinClick} />
             <TrendingCoins onClick={handleCoinClick} />

@@ -5,7 +5,7 @@
 1. Install the Freighter wallet extension.
 2. Select **Mainnet** in Freighter.
 3. Keep enough XLM for the account reserve and transaction fees.
-4. Open [Stellar TPad](https://stellar-tpad.up.railway.app/).
+4. Open [Stellar TPad](https://stellartpad-production.up.railway.app/).
 
 ## Connect a wallet
 
