@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Coin } from '@/types';
 import { ExternalLink, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { STELLAR_EXPLORER_URL } from '@/config/network';
 
 interface TokenInfoBarProps {
     coin: Coin;
@@ -12,7 +13,6 @@ interface TokenInfoBarProps {
 const TokenInfoBar: React.FC<TokenInfoBarProps> = ({ coin, currentPriceOverride }) => {
     const [metrics, setMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const OASIS_EXPLORER_URL = 'https://testnet.explorer.sapphire.oasis.io/address';
 
     useEffect(() => {
         const fetchMetrics = async () => {
@@ -39,7 +39,7 @@ const TokenInfoBar: React.FC<TokenInfoBarProps> = ({ coin, currentPriceOverride 
     }, [coin.id]);
 
     const openExplorer = (address: string) => {
-        window.open(`${OASIS_EXPLORER_URL}/${address}`, '_blank');
+        window.open(`${STELLAR_EXPLORER_URL}/${address.startsWith('C') ? 'contract' : 'account'}/${address}`, '_blank');
     };
 
     const formatVolume = (volume: number) => {
@@ -89,7 +89,7 @@ const TokenInfoBar: React.FC<TokenInfoBarProps> = ({ coin, currentPriceOverride 
                         <button
                             onClick={() => openExplorer(coin.creator)}
                             className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-                            title="View creator on Oasis Explorer"
+                            title="View creator on Stellar Expert"
                         >
                             {coin.creator.slice(0, 6)}...{coin.creator.slice(-4)} <ExternalLink className="w-3 h-3" />
                         </button>
@@ -97,7 +97,7 @@ const TokenInfoBar: React.FC<TokenInfoBarProps> = ({ coin, currentPriceOverride 
                             <button
                                 onClick={() => openExplorer(coin.contractAddress!)}
                                 className="bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-                                title="View contract on Oasis Explorer"
+                                title="View contract on Stellar Expert"
                             >
                                 {coin.contractAddress.slice(0, 6)}...{coin.contractAddress.slice(-4)} <ExternalLink className="w-3 h-3" />
                             </button>

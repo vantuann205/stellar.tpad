@@ -6,6 +6,7 @@ import { ArrowLeft, ExternalLink, Copy, CheckCheck } from 'lucide-react';
 import { ToastMessage } from '@/components/ui/Toast';
 import BondingCurve from './BondingCurve';
 import TokenInfoBar from './TokenInfoBar';
+import { STELLAR_EXPLORER_URL } from '@/config/network';
 
 interface CoinDetailProps {
   coin: Coin;
@@ -56,7 +57,7 @@ const CoinDetail: React.FC<CoinDetailProps> = ({ coin, onBack }) => {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
             <p className="text-gray-500 text-xs uppercase mb-1">Network</p>
-            <p className="text-emerald-400 font-medium">Stellar Testnet</p>
+            <p className="text-emerald-400 font-medium">Stellar Mainnet</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3">
             <p className="text-gray-500 text-xs uppercase mb-1">Total Supply</p>
@@ -92,20 +93,12 @@ const CoinDetail: React.FC<CoinDetailProps> = ({ coin, onBack }) => {
           {contractId && (
             <>
               <a
-                href={`https://stellar.expert/explorer/testnet/contract/${contractId}`}
+                href={`${STELLAR_EXPLORER_URL}/contract/${contractId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-emerald-500 hover:text-emerald-400 text-sm font-medium transition-colors"
               >
                 Stellar Expert <ExternalLink className="w-4 h-4" />
-              </a>
-              <a
-                href={`https://lab.stellar.org/r/testnet/contract/${contractId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-colors"
-              >
-                Stellar Lab <ExternalLink className="w-4 h-4" />
               </a>
             </>
           )}

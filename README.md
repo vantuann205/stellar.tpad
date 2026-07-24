@@ -49,13 +49,10 @@ We have prepared this application for production with continuous integration, on
 | Transaction activity proof | ✅ | [Mainnet transactions](#mainnet-transaction-proof) |
 | Audit/security review proof | ✅ | [Security review](./SECURITY_REVIEW.md) · [CI checks](https://github.com/vantuann205/stellar.tpad/actions) |
 | Twitter/X launch post | ✅ | [@stellartpad](https://x.com/stellartpad) |
-| Demo video | ⏳ | Demo-video URL to be added |
+| Demo video | ✅ | [Full product walkthrough](https://drive.google.com/file/d/1DI_LoeVH-k2d0CMGWDXHC_YuHI2ehuRl/view?usp=drive_link) |
 | Technical documentation | ✅ | [Architecture](#-soroban-production-ready-optimizations) · [contracts](#-on-chain-contract-addresses-stellar-mainnet) |
 | User guide/documentation | ✅ | [User guide](./USER_GUIDE.md) |
 | Community contribution link | ✅ | [Open-source repository](https://github.com/vantuann205/stellar.tpad) |
-
-> The demo placeholder is intentionally not marked complete until a direct public
-> video URL is available.
 
 ### Mainnet transaction proof
 

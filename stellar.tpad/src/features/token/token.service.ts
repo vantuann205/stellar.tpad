@@ -17,7 +17,7 @@ import {
   StrKey,
   nativeToScVal,
 } from '@stellar/stellar-sdk';
-import { STELLAR_TESTNET_RPC_URL, STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
+import { STELLAR_RPC_URL, STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
 
 export interface CreateTokenParams {
   name: string;
@@ -28,7 +28,7 @@ export interface CreateTokenParams {
   signTransaction: (xdr: string) => Promise<string>;
 }
 
-const rpc = new SorobanRpc.Server(STELLAR_TESTNET_RPC_URL, { allowHttp: false });
+const rpc = new SorobanRpc.Server(STELLAR_RPC_URL, { allowHttp: false });
 
 /** Deploy a new token contract instance via Factory contract. Returns contract ID. */
 export async function deployAndInitToken(params: CreateTokenParams): Promise<string> {

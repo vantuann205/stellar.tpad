@@ -10,7 +10,7 @@ const faqItems = [
     {
         question: 'How do I bridge funds to Stellar?',
         answer:
-            'In this app you trade on Stellar Sapphire Testnet (chainId 23295, RPC https://testnet.sapphire.oasis.io). Switch your wallet to Sapphire Testnet first, then fund that same wallet on Sapphire (bridge or testnet funding flow) and verify your TEST balance before placing trades.'
+            'This app trades on Stellar Mainnet. Fund the same Freighter Mainnet address with XLM through a supported exchange, Stellar anchor, or wallet transfer, then verify the XLM balance before trading.'
     },
     {
         question: 'Is there a developer wallet allocation?',
@@ -20,7 +20,7 @@ const faqItems = [
     {
         question: 'Why is my transaction pending?',
         answer:
-            'Most pending transactions are caused by low gas settings, nonce conflicts from multiple rapid submits, wallet RPC lag, or temporary network congestion. On Sapphire, wait for confirmation, then check explorer status; if still pending, use wallet speed-up/cancel and retry with updated gas and a fresh quote.'
+            'A pending transaction can be caused by wallet RPC lag, an expired transaction, or temporary network congestion. Wait for confirmation and check the transaction on Stellar Expert. If it fails, refresh the quote and submit a new transaction.'
     }
 ];
 
@@ -48,7 +48,7 @@ const SupportPage: React.FC = () => {
     setTimeout(() => {
         setMessages(prev => [...prev, { 
             id: Date.now() + 1, 
-            text: "Thanks for your message. An agent (probably an AI on Sapphire) will check this shortly.", 
+            text: "Thanks for your message. The Stellar TPad team will check this shortly.",
             sender: 'agent' 
         }]);
     }, 1000);
@@ -66,7 +66,7 @@ const SupportPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-pump-card p-6 rounded-xl border border-gray-300 dark:border-gray-800 hover:border-blue-500/50 transition-colors group cursor-pointer">
                     <h3 className="font-bold text-gray-900 dark:text-white mb-2">How it works</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Learn about bonding curves, Stellar Sapphire, and fair launches.</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Learn about Stellar bonding curves and fair launches.</p>
                 </div>
                 <div className="bg-white dark:bg-pump-card p-6 rounded-xl border border-gray-300 dark:border-gray-800 hover:border-green-500/50 transition-colors group cursor-pointer">
                     <h3 className="font-bold text-gray-900 dark:text-white mb-2">Safety</h3>
@@ -74,7 +74,7 @@ const SupportPage: React.FC = () => {
                 </div>
                 <div className="bg-white dark:bg-pump-card p-6 rounded-xl border border-gray-300 dark:border-gray-800 hover:border-yellow-500/50 transition-colors group cursor-pointer">
                     <h3 className="font-bold text-gray-900 dark:text-white mb-2">Fees</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Understanding transaction costs on Stellar Sapphire.</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Understanding transaction costs on Stellar Mainnet.</p>
                 </div>
             </div>
 

@@ -15,8 +15,6 @@
     "init-db": "tsx scripts/init-db.ts"
   },
   "dependencies": {
-    "@creit.tech/stellar-wallets-kit": "^2.1.0",
-    "@oasisprotocol/sapphire-paratime": "^2.3.0",
     "@stellar/freighter-api": "^6.0.1",
     "@stellar/stellar-sdk": "^15.0.1",
     "@types/pg": "^8.20.0",
@@ -24,7 +22,6 @@
     "cloudinary": "^2.9.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
-    "ethers": "^6.16.0",
     "lightweight-charts": "^5.1.0",
     "lucide-react": "^0.576.0",
     "next": "14.2.29",

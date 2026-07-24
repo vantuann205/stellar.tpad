@@ -537,7 +537,7 @@ export default function TokenLightweightChart({
     }, [buildLiveCandles, candles]);
 
     const liveCandles = buildLiveCandles(candles);
-    const symbol = `${ticker.toUpperCase()}/TEST`;
+    const symbol = `${ticker.toUpperCase()}/XLM`;
     const isPositive = priceChange >= 0;
 
     // Vol 24h — tổng volume 24h gần nhất từ candles gốc (không phải live)

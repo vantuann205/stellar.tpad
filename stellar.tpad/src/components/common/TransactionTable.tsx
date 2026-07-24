@@ -1,14 +1,13 @@
 import React from 'react';
 import { Trade } from '@/types';
 import { formatUtc7DateTime } from '@/lib/time';
+import { STELLAR_EXPLORER_URL } from '@/config/network';
 
 interface TransactionTableProps {
   trades: Trade[];
 }
 
 const TransactionTable: React.FC<TransactionTableProps> = ({ trades }) => {
-  const OASIS_TX_EXPLORER_URL = 'https://testnet.explorer.sapphire.oasis.io/tx';
-
   const formatTradeTime = (timestampStr: string) => {
     if (!timestampStr) return '-';
     const formatted = formatUtc7DateTime(timestampStr);
@@ -57,10 +56,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ trades }) => {
                     </span>
                   </td>
                   <td className="w-[15%] px-3 py-3 text-gray-700 dark:text-gray-400 font-mono text-xs text-left tabular-nums">
-                    {trade.price.toFixed(6)} TEST
+                    {trade.price.toFixed(6)} XLM
                   </td>
                   <td className="w-[23%] px-3 py-3 text-xs font-mono text-gray-700 dark:text-gray-400">
-                    {(trade.totalFee || 0).toFixed(6)} TEST
+                    {(trade.totalFee || 0).toFixed(6)} XLM
                   </td>
                   <td className="w-[20%] px-3 py-3 text-gray-700 dark:text-gray-500 text-xs font-mono">
                     {formatTradeTime(trade.timestamp)}
@@ -68,11 +67,11 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ trades }) => {
                   <td className="w-[10%] px-3 py-3 text-gray-700 dark:text-gray-400 text-xs font-mono">
                     {trade.txHash ? (
                       <a
-                        href={`${OASIS_TX_EXPLORER_URL}/${trade.txHash}`}
+                        href={`${STELLAR_EXPLORER_URL}/tx/${trade.txHash}`}
                         target="_blank"
                         rel="noreferrer"
                         className="hover:text-gray-900 dark:hover:text-white transition-colors"
-                        title="View transaction on Oasis Explorer"
+                        title="View transaction on Stellar Expert"
                       >
                         {trade.txHash.slice(0, 6)}...{trade.txHash.slice(-4)}
                       </a>

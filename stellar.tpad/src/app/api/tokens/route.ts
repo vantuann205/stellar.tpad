@@ -23,6 +23,7 @@ export interface TokenRecord {
 
 export async function GET() {
   try {
+    await ensureDatabaseSchema();
     const result = await query(
       `SELECT
           t.*,
@@ -35,6 +36,7 @@ export async function GET() {
             0
           ) AS max_reserve
        FROM tokens t
+       WHERE t.network = 'mainnet'
        ORDER BY t.created_at DESC`
     ) as any;
 
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
     const result = await query(
       `INSERT INTO tokens (
         name, symbol, description, image_url, social_link,
-        total_supply, owner, contract_address,
+        total_supply, owner, contract_address, network,
         price_snapshot_value, price_snapshot_time,
         marketcap, volume_24h,
         price_change_5m, price_change_1h, price_change_4h, price_change_6h,
@@ -81,7 +83,7 @@ export async function POST(req: NextRequest) {
         sold_supply, current_price, base_price, slope, created_at, updated_at
       ) VALUES (
         $1,$2,$3,$4,$5,
-        $6,$7,$8,
+        $6,$7,$8,'mainnet',
         $9,NOW(),
         $10,0,
         0,0,0,0,

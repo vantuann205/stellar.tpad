@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { TradeRecord } from '@/types';
 import { formatUtc7DateTime } from '@/lib/time';
+import { STELLAR_EXPLORER_URL } from '@/config/network';
 
 interface TransactionTableProps {
   tokenAddress: string;
@@ -86,7 +87,7 @@ export default function TransactionTable({ tokenAddress, refreshKey }: Transacti
                     </td>
                     <td className="w-[10%] px-3 py-3 text-gray-700 dark:text-gray-400 text-xs font-mono">
                       <a
-                        href={`https://stellar.expert/explorer/testnet/tx/${trade.txHash}`}
+                        href={`${STELLAR_EXPLORER_URL}/tx/${trade.txHash}`}
                         target="_blank"
                         rel="noreferrer"
                         className="hover:text-gray-900 dark:hover:text-white transition-colors"

@@ -1,4 +1,4 @@
-export type StellarWalletProvider = 'freighter' | 'rabet';
+export type StellarWalletProvider = 'freighter';
 export type WalletStatus = 'idle' | 'connecting' | 'connected' | 'error';
 export type WalletErrorCode = 'extension_not_installed' | 'user_rejected' | 'wrong_network' | 'unknown';
 

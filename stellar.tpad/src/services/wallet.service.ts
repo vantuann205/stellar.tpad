@@ -98,7 +98,7 @@ export const getWalletErrorMessage = (code: WalletErrorCode): string => {
     case 'user_rejected':
       return 'Bạn đã từ chối yêu cầu kết nối ví.';
     case 'wrong_network':
-      return `Vui lòng chuyển ví sang ${String(STELLAR_NETWORK_PASSPHRASE).startsWith('Public') ? 'Stellar Mainnet' : 'Stellar Testnet'}.`;
+      return 'Vui lòng chuyển ví sang Stellar Mainnet.';
     default:
       return 'Không thể kết nối ví, vui lòng thử lại.';
   }

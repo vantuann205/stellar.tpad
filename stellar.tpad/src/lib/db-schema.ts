@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS tokens (
   total_supply NUMERIC(36, 18) DEFAULT 0,
   owner VARCHAR(255) NOT NULL,
   contract_address VARCHAR(255) NOT NULL UNIQUE,
+  network VARCHAR(20) NOT NULL DEFAULT 'mainnet',
   marketcap NUMERIC(36, 18) DEFAULT 0,
   volume_24h NUMERIC(36, 18) DEFAULT 0,
   price_change_5m NUMERIC(10, 4) DEFAULT 0,
@@ -131,6 +132,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
       ALTER TABLE tokens ADD COLUMN IF NOT EXISTS slope NUMERIC(36, 18) DEFAULT 0;
       ALTER TABLE tokens ADD COLUMN IF NOT EXISTS price_change_24h NUMERIC(10, 4) DEFAULT 0;
       ALTER TABLE tokens ADD COLUMN IF NOT EXISTS metrics_updated_at TIMESTAMPTZ;
+      ALTER TABLE tokens ADD COLUMN IF NOT EXISTS network VARCHAR(20) NOT NULL DEFAULT 'mainnet';
     `);
 
     // Convert existing TIMESTAMP columns to TIMESTAMPTZ (idempotent — no-op if already TIMESTAMPTZ)

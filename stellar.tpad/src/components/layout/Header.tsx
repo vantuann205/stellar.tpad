@@ -295,13 +295,9 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
           <button
             onClick={onToggleNetwork}
             disabled
-            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border ${
-              network === 'TESTNET'
-                ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-500'
-                : 'border-green-500/50 bg-green-500/10 text-green-400'
-            }`}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border border-green-500/50 bg-green-500/10 text-green-400"
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${network === 'TESTNET' ? 'bg-yellow-500' : 'bg-green-400'}`} />
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
             {network}
           </button>
           <ThemeToggle />

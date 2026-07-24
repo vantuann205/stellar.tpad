@@ -2,7 +2,7 @@
 
 import { STELLAR_NETWORK } from '@/config/network';
 
-export type Network = 'TESTNET' | 'MAINNET';
+export type Network = 'MAINNET';
 
 export function useNetwork() {
   const network: Network = STELLAR_NETWORK;

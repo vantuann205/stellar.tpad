@@ -11,7 +11,7 @@ export async function GET(
     const { contractAddress } = params;
 
     const result = await query(
-      `SELECT * FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1`,
+      `SELECT * FROM tokens WHERE network = 'mainnet' AND LOWER(contract_address) = LOWER($1) LIMIT 1`,
       [contractAddress]
     ) as any;
 

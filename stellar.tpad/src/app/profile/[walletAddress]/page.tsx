@@ -6,6 +6,7 @@ import { ArrowLeft, Check, Copy, Edit2 } from 'lucide-react';
 import EditProfileModal from '@/components/ui/EditProfileModal';
 import { ViewState } from '@/types';
 import AppHeaderShell from '@/components/layout/AppHeaderShell';
+import { STELLAR_EXPLORER_URL, STELLAR_HORIZON_URL } from '@/config/network';
 
 const XLM_ICON_URL = 'https://www.binance.com/bapi/fe/resource/image?image=aHR0cHM6Ly9wdWJsaWMuYm5ic3RhdGljLmNvbS9zdGF0aWMvYWNhZGVteS91cGxvYWRzLW9yaWdpbmFsL2U2ZTA2MDk0YTEyMzQ3ZGFhZDNjMGIyODUyYWMwMDUzLnBuZw==&level=lg';
 
@@ -93,7 +94,7 @@ export default function ProfilePage({ params }: PageProps) {
 
   const fetchXlmBalance = useCallback(async (address: string) => {
     try {
-      const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${address}`);
+      const response = await fetch(`${STELLAR_HORIZON_URL}/accounts/${address}`);
       if (!response.ok) {
         setXlmBalance(0);
         return;
@@ -295,7 +296,7 @@ export default function ProfilePage({ params }: PageProps) {
                     {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                   </button>
                   <a
-                    href={`https://stellar.expert/explorer/testnet/account/${walletInfo.wallet_address}`}
+                    href={`${STELLAR_EXPLORER_URL}/account/${walletInfo.wallet_address}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-green-600 dark:text-pump-green hover:text-green-700 dark:hover:text-pump-green/80 text-xs font-medium transition-colors"

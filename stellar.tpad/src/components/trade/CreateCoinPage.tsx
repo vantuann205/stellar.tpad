@@ -6,18 +6,17 @@ import { Loader2 } from 'lucide-react';
 import {
   TransactionBuilder,
   BASE_FEE,
-  Networks,
   Asset,
   Operation,
   Memo,
 } from '@stellar/stellar-sdk';
 import { rpc as SorobanRpc } from '@stellar/stellar-sdk';
-import { STELLAR_TESTNET_RPC_URL, STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
+import { STELLAR_RPC_URL, STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
 import { TREASURY_ADDRESS, MINT_FEE_XLM, BONDING_CURVE_CONTRACT } from '@/config/contracts';
 import { deployAndInitToken } from '@/features/token/token.service';
 import { registerToken } from '@/features/trade/bonding-curve.service';
 
-const rpc = new SorobanRpc.Server(STELLAR_TESTNET_RPC_URL, { allowHttp: false });
+const rpc = new SorobanRpc.Server(STELLAR_RPC_URL, { allowHttp: false });
 
 export default function CreateCoinPage() {
   const router = useRouter();
@@ -37,7 +36,7 @@ export default function CreateCoinPage() {
 
     setLoading(true);
     try {
-      // 1. check wallet via stellarWalletService (supports Freighter + Rabet)
+      // 1. Check Freighter
       setStep('checking wallet...');
       const { stellarWalletService } = await import('@/services/wallet.service');
       let adminPublicKey = await stellarWalletService.getPublicKey();

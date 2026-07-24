@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS tokens (
   total_supply NUMERIC(36, 18) DEFAULT 0,
   owner VARCHAR(255) NOT NULL,
   contract_address VARCHAR(255) NOT NULL UNIQUE,
+  network VARCHAR(20) NOT NULL DEFAULT 'mainnet',
   marketcap NUMERIC(36, 18) DEFAULT 0,
   volume_24h NUMERIC(36, 18) DEFAULT 0,
   price_change_5m NUMERIC(10, 4) DEFAULT 0,

@@ -56,13 +56,6 @@ export interface Trade {
 
 export type SortOption = 'featured' | 'marketCap' | 'lastReply' | 'creationTime';
 
-declare global {
-  interface Window {
-    freighterApi?: unknown;
-    rabet?: unknown;
-  }
-}
-
 // Bonding curve state from BondingCurve_Contract
 export interface TokenCurveState {
   token_address: string;

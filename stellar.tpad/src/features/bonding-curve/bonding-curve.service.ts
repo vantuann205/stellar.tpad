@@ -12,9 +12,9 @@ import {
   Account,
   scValToNative,
 } from '@stellar/stellar-sdk';
-import { STELLAR_TESTNET_RPC_URL, STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
+import { STELLAR_RPC_URL, STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
 
-const rpc = new SorobanRpc.Server(STELLAR_TESTNET_RPC_URL, { allowHttp: false });
+const rpc = new SorobanRpc.Server(STELLAR_RPC_URL, { allowHttp: false });
 const BONDING_CURVE_ID = process.env.NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID!;
 
 export class ContractError extends Error {

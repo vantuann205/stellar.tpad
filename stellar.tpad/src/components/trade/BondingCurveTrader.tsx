@@ -13,6 +13,7 @@ import {
 } from '@/features/bonding-curve/bonding-curve.service';
 import { stellarWalletService } from '@/services/wallet.service';
 import { STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
+import { STELLAR_HORIZON_URL } from '@/config/network';
 
 // Freighter addToken — only available in browser with Freighter extension
 let freighterAddToken: ((args: { contractId: string; networkPassphrase?: string }) => Promise<any>) | null = null;
@@ -36,7 +37,6 @@ interface Preview {
 const STROOPS = 10_000_000n;
 const TOTAL_FEE_RATE = 0.005; // 0.5% fee per transaction
 const GAS_RESERVE_XLM = 0.3;
-const HORIZON_FALLBACK = 'https://horizon-testnet.stellar.org';
 
 function stroopsToXlm(s: bigint): string {
   return (Number(s) / 1e7).toFixed(6);
@@ -72,8 +72,7 @@ export default function BondingCurveTrader({
   const loadBalances = useCallback(async (address: string) => {
     if (!address) return;
     try {
-      const horizonUrl = process.env.NEXT_PUBLIC_HORIZON_URL || HORIZON_FALLBACK;
-      const res = await fetch(`${horizonUrl}/accounts/${address}`);
+      const res = await fetch(`${STELLAR_HORIZON_URL}/accounts/${address}`);
       if (res.ok) {
         const account = await res.json();
         const native = (account.balances || []).find((b: any) => b.asset_type === 'native');
@@ -143,7 +142,7 @@ export default function BondingCurveTrader({
 
   useEffect(() => { updatePreview(amount, mode); }, [amount, mode, updatePreview]);
 
-  // ── sign via StellarWalletsKit (supports Freighter + Rabet) ──────────────
+  // ── sign via Freighter ───────────────────────────────────────────────────
   const sign = async (xdr: string): Promise<string> => {
     const { signedTxXdr } = await stellarWalletService.signTransaction(xdr, {
       networkPassphrase: STELLAR_NETWORK_PASSPHRASE as string,

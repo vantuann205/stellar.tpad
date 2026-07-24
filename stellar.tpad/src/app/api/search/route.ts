@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { ensureDatabaseSchema } from '@/lib/db-schema';
 
 export async function GET(request: NextRequest) {
     try {
+        await ensureDatabaseSchema();
         const searchQuery = request.nextUrl.searchParams.get('q');
 
         if (!searchQuery || searchQuery.trim().length === 0) {
@@ -21,9 +23,10 @@ export async function GET(request: NextRequest) {
         const tokensResult = await query(
             `SELECT id, name, symbol, contract_address, owner, image_url, created_at, COALESCE(marketcap, 0) as marketcap
              FROM tokens
-             WHERE name ILIKE $1 
-             OR symbol ILIKE $1 
-             OR contract_address ILIKE $1
+             WHERE network = 'mainnet'
+             AND (name ILIKE $1
+             OR symbol ILIKE $1
+             OR contract_address ILIKE $1)
              ORDER BY 
                CASE 
                  WHEN name ILIKE $2 THEN 0

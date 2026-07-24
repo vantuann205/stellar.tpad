@@ -14,7 +14,7 @@ import {
   Networks,
   xdr,
 } from '@stellar/stellar-sdk';
-import { STELLAR_TESTNET_RPC_URL, STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
+import { STELLAR_RPC_URL, STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
 import { BONDING_CURVE_CONTRACT } from '@/config/contracts';
 import type { TokenCurveState } from '@/types';
 
@@ -54,7 +54,7 @@ function parseContractError(err: unknown): ContractError {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getRpc() {
-  return new SorobanRpc.Server(STELLAR_TESTNET_RPC_URL, { allowHttp: false });
+  return new SorobanRpc.Server(STELLAR_RPC_URL, { allowHttp: false });
 }
 
 export function calcSlippageBuy(cost: bigint): bigint {

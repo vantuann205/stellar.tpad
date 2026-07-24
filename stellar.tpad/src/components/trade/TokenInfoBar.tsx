@@ -4,6 +4,7 @@ import React from 'react';
 import { ExternalLink, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import type { TokenRecord } from '@/types/token';
 import { formatUtc7Date } from '@/lib/time';
+import { STELLAR_EXPLORER_URL } from '@/config/network';
 
 interface TokenInfoBarProps {
   token: TokenRecord;
@@ -12,8 +13,6 @@ interface TokenInfoBarProps {
 }
 
 const TokenInfoBar: React.FC<TokenInfoBarProps> = ({ token, currentPrice, metrics }) => {
-  const STELLAR_EXPLORER_URL = 'https://stellar.expert/explorer/testnet/account';
-
   const formatMarketCap = (value: any) => {
     const num = Number(value);
     if (!isFinite(num) || isNaN(num)) return '$0.00';
@@ -53,7 +52,7 @@ const TokenInfoBar: React.FC<TokenInfoBarProps> = ({ token, currentPrice, metric
   };
 
   const openExplorer = (address: string) => {
-    window.open(`${STELLAR_EXPLORER_URL}/${address}`, '_blank');
+    window.open(`${STELLAR_EXPLORER_URL}/${address.startsWith('C') ? 'contract' : 'account'}/${address}`, '_blank');
   };
 
   const volume = parseFloat(metrics?.volume_24h ?? token.volume_24h ?? 0);

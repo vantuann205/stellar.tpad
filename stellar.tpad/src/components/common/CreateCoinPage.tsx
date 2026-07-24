@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, Loader2, Wallet } from 'lucide-react';
 import Toast, { type ToastMessage } from '@/components/ui/Toast';
+import { STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
 
 interface CreateCoinPageProps {
   onCancel: () => void;
@@ -85,7 +86,7 @@ export default function CreateCoinPage({ onCancel, onTokenCreated }: CreateCoinP
     setIsDeploying(true);
 
     try {
-      // 1. Connect wallet (supports Freighter + Rabet via StellarWalletsKit)
+      // 1. Connect Freighter
       const { stellarWalletService } = await import('@/services/wallet.service');
 
       let publicKey = await stellarWalletService.getPublicKey();
@@ -111,7 +112,7 @@ export default function CreateCoinPage({ onCancel, onTokenCreated }: CreateCoinP
         wasmHash: WASM_HASH,
         signTransaction: async (txXdr: string) => {
           const { signedTxXdr } = await stellarWalletService.signTransaction(txXdr, {
-            networkPassphrase: 'Test SDF Network ; September 2015',
+            networkPassphrase: STELLAR_NETWORK_PASSPHRASE,
           });
           if (!signedTxXdr) throw new Error('Ký transaction thất bại hoặc bị từ chối');
           return signedTxXdr;
@@ -174,7 +175,7 @@ export default function CreateCoinPage({ onCancel, onTokenCreated }: CreateCoinP
     <div className="max-w-5xl mx-auto py-8 px-4 animate-fade-in">
       <div className="text-center mb-10">
         <h1 className="text-4xl font-black text-white mb-2">Launch Your Coin</h1>
-        <p className="text-gray-400">Deploy token trên Stellar Testnet. Supply mặc định 1,000,000,000 — mint ngay cho bạn.</p>
+        <p className="text-gray-400">Deploy token trên Stellar Mainnet. Supply mặc định 1,000,000,000 — mint ngay cho bạn.</p>
       </div>
 
       <div className="bg-[#0d1117] border border-gray-800 rounded-xl p-8 shadow-2xl">
@@ -278,7 +279,7 @@ export default function CreateCoinPage({ onCancel, onTokenCreated }: CreateCoinP
               <div className="mt-4 pt-4 border-t border-gray-800">
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Wallet className="w-3 h-3" />
-                  <span>Stellar Testnet</span>
+                  <span>Stellar Mainnet</span>
                 </div>
               </div>
             </div>
