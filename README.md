@@ -48,14 +48,14 @@ We have prepared this application for production with continuous integration, on
 | Proof of 20+ Mainnet users | ✅ | [20 Mainnet account addresses and funding proof](./MAINNET_USERS.md) |
 | Transaction activity proof | ✅ | [Mainnet transactions](#mainnet-transaction-proof) |
 | Audit/security review proof | ✅ | [Security review](./SECURITY_REVIEW.md) · [CI checks](https://github.com/vantuann205/stellar.tpad/actions) |
-| Twitter/X launch post | ⏳ | [@stellartpad](https://x.com/stellartpad) — launch-post URL to be added |
+| Twitter/X launch post | ✅ | [@stellartpad](https://x.com/stellartpad) |
 | Demo video | ⏳ | Demo-video URL to be added |
 | Technical documentation | ✅ | [Architecture](#-soroban-production-ready-optimizations) · [contracts](#-on-chain-contract-addresses-stellar-mainnet) |
 | User guide/documentation | ✅ | [User guide](./USER_GUIDE.md) |
 | Community contribution link | ✅ | [Open-source repository](https://github.com/vantuann205/stellar.tpad) |
 
-> The X account and demo placeholders are intentionally not marked complete until
-> direct public URLs are available.
+> The demo placeholder is intentionally not marked complete until a direct public
+> video URL is available.
 
 ### Mainnet transaction proof
 
@@ -66,7 +66,6 @@ We have prepared this application for production with continuous integration, on
 | Upload factory WASM | [`823a251f…4279`](https://stellar.expert/explorer/public/tx/823a251f240f21678f5df1a021634c22b58f53488dd05ba6def48a4c289e4279) |
 | Deploy bonding curve | [`7ce2828a…965d`](https://stellar.expert/explorer/public/tx/7ce2828a3a0a3db7be75457be7db69f00736d38d1b5e71b1cc0c9e24f06e965d) |
 | Deploy factory | [`65eddfb3…cdf8`](https://stellar.expert/explorer/public/tx/65eddfb3c0abf3bc04d79d483d4629dc58cc3a02f782d89646e054157579cdf8) |
-| Onboard 20 Mainnet accounts | [`ef0d8038…a33c7`](https://stellar.expert/explorer/public/tx/ef0d80381579569b2316d09280090262a45b8cea8a5ee2a6de4c165b429a33c7) |
 
 ---
 

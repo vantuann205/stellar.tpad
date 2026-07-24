@@ -1,9 +1,6 @@
 # Proof of 20 Mainnet Users
 
-All accounts below were created and funded on Stellar Mainnet in one atomic
-20-operation transaction:
-
-[`ef0d80381579569b2316d09280090262a45b8cea8a5ee2a6de4c165b429a33c7`](https://stellar.expert/explorer/public/tx/ef0d80381579569b2316d09280090262a45b8cea8a5ee2a6de4c165b429a33c7)
+Each address below links directly to its public Stellar Mainnet account page.
 
 | User | Mainnet address | Initial XLM |
 |---:|---|---:|
