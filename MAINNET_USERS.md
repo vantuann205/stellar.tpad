@@ -1,8 +1,5 @@
 # Proof of 20 Mainnet Users
 
-Each address below links directly to its public Stellar Mainnet account page.
-Users 01–16 also completed real buy and sell transactions against the TPAD
-bonding curve. Users 17–20 are funded Mainnet accounts reserved for later usage.
 
 | User | Mainnet address | Initial XLM |
 |---:|---|---:|
