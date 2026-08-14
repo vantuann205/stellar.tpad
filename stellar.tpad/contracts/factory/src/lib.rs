@@ -1,6 +1,7 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, symbol_short, Address, BytesN, Env, IntoVal, String, Symbol, Val, Vec,
+    contract, contracterror, contractimpl, panic_with_error, symbol_short, Address, BytesN, Env,
+    IntoVal, String, Symbol, Val, Vec,
 };
 
 #[cfg(test)]
@@ -8,6 +9,13 @@ mod test;
 
 #[contract]
 pub struct TokenFactory;
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u32)]
+pub enum FactoryError {
+    InvalidTokenWasm = 1,
+}
 
 #[contractimpl]
 impl TokenFactory {
@@ -21,6 +29,7 @@ impl TokenFactory {
     // Deploy token + register in bonding curve in one tx (1 signature)
     pub fn create_token(
         env: Env,
+        wasm_hash: BytesN<32>,
         salt: BytesN<32>,
         admin: Address,
         bonding_curve_address: Address,
@@ -28,11 +37,14 @@ impl TokenFactory {
         symbol: String,
     ) -> Address {
         admin.require_auth();
-        let wasm_hash: BytesN<32> = env
+        let canonical_hash: BytesN<32> = env
             .storage()
             .instance()
             .get(&symbol_short!("tokenwasm"))
             .unwrap();
+        if wasm_hash != canonical_hash {
+            panic_with_error!(&env, FactoryError::InvalidTokenWasm);
+        }
         let token_address = env.deployer().with_current_contract(salt).deploy_v2(
             wasm_hash,
             (admin.clone(), bonding_curve_address.clone(), name, symbol),
