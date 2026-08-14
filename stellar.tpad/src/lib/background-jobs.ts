@@ -43,53 +43,26 @@ export function startBackgroundJobs() {
 
 async function recordPriceSnapshots() {
   try {
-    // Get all tokens that have been traded (have a current_price > 0)
-    const tokens = await query(
-      `SELECT id, current_price
-       FROM tokens
-       WHERE current_price > 0
-         AND current_price IS NOT NULL
-       ORDER BY metrics_updated_at DESC NULLS LAST
-       LIMIT 100`
-    ) as any;
-
-    if (!tokens?.rows || tokens.rows.length === 0) return;
-
-    // Insert snapshot for each token — skip if price hasn't changed in last 30s
-    // to avoid flooding the table with identical values
-    for (const token of tokens?.rows || []) {
-      const price = parseFloat(token.current_price);
-      if (!price || price <= 0) continue;
-
-      try {
-        // Check last snapshot — skip if same price within 30s
-        const last = await query(
-          `SELECT price, recorded_at
-           FROM price_snapshots
-           WHERE token_id = $1
-           ORDER BY recorded_at DESC
-           LIMIT 1`,
-          [token.id]
-        ) as any;
-
-        if (last?.rows && last.rows.length > 0) {
-          const lastPrice = parseFloat(last?.rows?.[0]?.price);
-          const lastTime = new Date(last?.rows?.[0]?.recorded_at).getTime();
-          const ageMs = Date.now() - lastTime;
-
-          // Skip if same price and recorded less than 30s ago
-          if (lastPrice === price && ageMs < 30_000) continue;
-        }
-
-        await query(
-          `INSERT INTO price_snapshots (token_id, price, recorded_at)
-           VALUES ($1, $2, NOW())`,
-          [token.id, price]
-        );
-      } catch {
-        // Per-token errors are non-fatal
-      }
-    }
+    await query(`
+      WITH active_tokens AS (
+        SELECT id, current_price
+        FROM tokens
+        WHERE current_price > 0
+        ORDER BY metrics_updated_at DESC NULLS LAST
+        LIMIT 100
+      )
+      INSERT INTO price_snapshots (token_id, price, recorded_at)
+      SELECT token.id, token.current_price, NOW()
+      FROM active_tokens token
+      LEFT JOIN LATERAL (
+        SELECT price
+        FROM price_snapshots
+        WHERE token_id = token.id
+        ORDER BY recorded_at DESC
+        LIMIT 1
+      ) latest ON TRUE
+      WHERE latest.price IS DISTINCT FROM token.current_price
+    `);
   } catch (err) {
     console.warn('[bg] Price snapshot job failed:', err);
   }
