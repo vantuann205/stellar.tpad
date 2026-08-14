@@ -117,17 +117,9 @@ export async function ensureDatabaseSchema(): Promise<void> {
   if (!schemaPromise) {
     schemaPromise = (async () => {
       await query(SCHEMA_SQL);
-    })().catch((err) => {
-      schemaPromise = null;
-      throw err;
-    });
-  }
 
-  await schemaPromise;
-
-  // Migrations: add missing columns + convert TIMESTAMP → TIMESTAMPTZ for correct UTC storage
-  try {
-    await query(`
+      // Migrations: add missing columns + convert TIMESTAMP → TIMESTAMPTZ once per process.
+      await query(`
       ALTER TABLE tokens ADD COLUMN IF NOT EXISTS base_price NUMERIC(36, 18) DEFAULT 0.0001;
       ALTER TABLE tokens ADD COLUMN IF NOT EXISTS slope NUMERIC(36, 18) DEFAULT 0;
       ALTER TABLE tokens ADD COLUMN IF NOT EXISTS price_change_24h NUMERIC(10, 4) DEFAULT 0;
@@ -137,7 +129,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
 
     // Convert existing TIMESTAMP columns to TIMESTAMPTZ (idempotent — no-op if already TIMESTAMPTZ)
     // We interpret existing values as UTC+7 local time and convert to UTC
-    await query(`
+      await query(`
       DO $$
       BEGIN
         -- tokens
@@ -195,8 +187,12 @@ export async function ensureDatabaseSchema(): Promise<void> {
             ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'Asia/Ho_Chi_Minh';
         END IF;
       END $$;
-    `);
-  } catch (err) {
-    console.error('Migration error:', err);
+      `);
+    })().catch((err) => {
+      schemaPromise = null;
+      throw err;
+    });
   }
+
+  return schemaPromise;
 }
