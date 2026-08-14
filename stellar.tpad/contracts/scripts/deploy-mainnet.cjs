@@ -165,7 +165,12 @@ function main() {
     ['--admin', source, '--treasury', treasury, '--xlm_address', XLM_SAC],
     state, env, options.hdPath,
   );
-  const factoryId = deploy(factoryHash, 'factory', [], state, env, options.hdPath);
+  const factoryId = deploy(
+    factoryHash,
+    'factory',
+    ['--token_wasm_hash', tokenHash],
+    state, env, options.hdPath,
+  );
 
   state.network = 'mainnet';
   state.deployer = source;
