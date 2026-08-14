@@ -36,4 +36,5 @@ pub enum ContractError {
     InsufficientReserve = 8,
     InsufficientBalance = 9,
     Unauthorized = 10,
+    InvalidPrecision = 11,
 }

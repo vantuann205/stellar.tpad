@@ -116,7 +116,8 @@ proptest! {
 // After buy(N), sold_supply_after == sold_supply_before + N
 proptest! {
     #[test]
-    fn prop_buy_increases_sold_supply(token_amount in 1i128..=1_000_000i128) {
+    fn prop_buy_increases_sold_supply(token_units in 1i128..=1_000_000i128) {
+        let token_amount = token_units * 10_000_000;
         let (_env, client, buyer, token_addr) = setup_env();
 
         let state_before = client.get_token_state(&token_addr);
@@ -187,7 +188,8 @@ proptest! {
 // After sell(N), sold_supply_after == sold_supply_before - N
 proptest! {
     #[test]
-    fn prop_sell_decreases_sold_supply(token_amount in 1i128..=1_000_000i128) {
+    fn prop_sell_decreases_sold_supply(token_units in 1i128..=1_000_000i128) {
+        let token_amount = token_units * 10_000_000;
         let (_env, client, buyer, token_addr) = setup_env();
 
         // First buy N tokens so sold_supply > 0 and the reserve is funded
@@ -318,7 +320,7 @@ fn test_buy_exceeds_supply() {
     let (_env, client, buyer, token_addr) = setup_env();
 
     // total_supply = 10_000_000_000_000_000; request more than that
-    let over_supply = 10_000_000_000_000_001i128;
+    let over_supply = 10_000_000_010_000_000i128;
     let result = client.try_buy(&buyer, &token_addr, &over_supply, &i128::MAX);
     assert_contract_error(result, crate::state::ContractError::ExceedsSupply);
 }
@@ -328,7 +330,7 @@ fn test_sell_insufficient_liquidity() {
     let (_env, client, buyer, token_addr) = setup_env();
 
     // sold_supply is 0, so selling any amount should fail
-    let result = client.try_sell(&buyer, &token_addr, &1i128, &0i128);
+    let result = client.try_sell(&buyer, &token_addr, &10_000_000i128, &0i128);
     assert_contract_error(result, crate::state::ContractError::InsufficientLiquidity);
 }
 
@@ -346,4 +348,11 @@ fn test_sell_invalid_amount() {
 
     let result = client.try_sell(&buyer, &token_addr, &0i128, &0i128);
     assert_contract_error(result, crate::state::ContractError::InvalidAmount);
+}
+
+#[test]
+#[should_panic]
+fn test_fractional_token_amount_fails() {
+    let (_env, client, _buyer, token_addr) = setup_env();
+    client.get_buy_price(&token_addr, &9_999_999i128);
 }

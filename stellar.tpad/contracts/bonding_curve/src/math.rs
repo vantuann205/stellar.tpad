@@ -2,7 +2,7 @@
 // Buy cost  = N*base + slope*S*N + slope*N*(N-1)/2
 // Sell proc = N*base + slope*(S-N)*N + slope*N*(N-1)/2
 
-const SCALE: i128 = 10_000_000;
+pub const SCALE: i128 = 10_000_000;
 
 #[inline]
 fn to_tokens(raw: i128) -> i128 {

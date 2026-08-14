@@ -6,7 +6,7 @@ pub mod state;
 #[cfg(test)]
 mod test;
 
-use math::{calc_buy_cost, calc_sell_proceeds};
+use math::{calc_buy_cost, calc_sell_proceeds, SCALE};
 use soroban_sdk::{contract, contractimpl, panic_with_error, symbol_short, Address, Env};
 use state::{ContractError, DataKey, TokenCurveState};
 
@@ -71,17 +71,13 @@ impl BondingCurveContract {
     }
 
     pub fn get_buy_price(env: Env, token_address: Address, token_amount: i128) -> i128 {
-        if token_amount <= 0 {
-            panic_with_error!(&env, ContractError::InvalidAmount);
-        }
+        validate_token_amount(&env, token_amount);
         let s = Self::get_token_state(env.clone(), token_address);
         calc_buy_cost(s.base_price, s.slope, s.sold_supply, token_amount)
     }
 
     pub fn get_sell_price(env: Env, token_address: Address, token_amount: i128) -> i128 {
-        if token_amount <= 0 {
-            panic_with_error!(&env, ContractError::InvalidAmount);
-        }
+        validate_token_amount(&env, token_amount);
         let s = Self::get_token_state(env.clone(), token_address);
         calc_sell_proceeds(s.base_price, s.slope, s.sold_supply, token_amount)
     }
@@ -94,9 +90,7 @@ impl BondingCurveContract {
         max_xlm_in: i128,
     ) {
         buyer.require_auth();
-        if token_amount <= 0 {
-            panic_with_error!(&env, ContractError::InvalidAmount);
-        }
+        validate_token_amount(&env, token_amount);
 
         let key = DataKey::Token(token_address.clone());
         let mut s: TokenCurveState = env
@@ -146,9 +140,7 @@ impl BondingCurveContract {
         min_xlm_out: i128,
     ) {
         seller.require_auth();
-        if token_amount <= 0 {
-            panic_with_error!(&env, ContractError::InvalidAmount);
-        }
+        validate_token_amount(&env, token_amount);
 
         let key = DataKey::Token(token_address.clone());
         let mut s: TokenCurveState = env
@@ -208,4 +200,13 @@ fn set_config(env: &Env, admin: &Address, treasury: &Address, xlm_address: &Addr
 
 fn get_xlm_address(env: &Env) -> Address {
     env.storage().instance().get(&DataKey::XlmAddress).unwrap()
+}
+
+fn validate_token_amount(env: &Env, amount: i128) {
+    if amount <= 0 {
+        panic_with_error!(env, ContractError::InvalidAmount);
+    }
+    if amount % SCALE != 0 {
+        panic_with_error!(env, ContractError::InvalidPrecision);
+    }
 }
