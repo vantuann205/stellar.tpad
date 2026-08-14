@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureDatabaseSchema } from '@/lib/db-schema';
 import { calculateAndStoreTokenMetrics } from '@/lib/token-metrics';
+import { validateTradeInput } from '@/lib/trade-validation';
 
 export async function POST(request: NextRequest) {
     try {
@@ -16,26 +17,12 @@ export async function POST(request: NextRequest) {
             price_per_token,
             total_price,
             transaction_hash,
-            status,
         } = body;
-
-        if (!token_id || !price_per_token || !total_price) {
+        try {
+            validateTradeInput(body);
+        } catch (error) {
             return NextResponse.json(
-                { error: 'Missing required fields: token_id, price_per_token, total_price' },
-                { status: 400 }
-            );
-        }
-
-        if (!buyer_address && !seller_address) {
-            return NextResponse.json(
-                { error: 'Either buyer_address or seller_address must be provided' },
-                { status: 400 }
-            );
-        }
-
-        if (!quantity) {
-            return NextResponse.json(
-                { error: 'quantity is required' },
+                { error: error instanceof Error ? error.message : 'Invalid trade' },
                 { status: 400 }
             );
         }
@@ -62,12 +49,12 @@ export async function POST(request: NextRequest) {
                 price_per_token,
                 total_price,
                 transaction_hash || null,
-                status || 'completed',
+                'completed',
             ]
         ) as any;
 
         // Recalculate token metrics immediately so price/chart/market cap stay in sync after each trade.
-        if ((status || 'completed') === 'completed') {
+        {
             try {
                 if (sold_supply !== undefined && sold_supply !== null && Number(sold_supply) >= 0) {
                     await query(
