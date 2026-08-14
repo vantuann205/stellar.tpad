@@ -19,6 +19,7 @@ impl TokenFactory {
         name: String,
         symbol: String,
     ) -> Address {
+        admin.require_auth();
         let token_address = env.deployer()
             .with_current_contract(salt)
             .deploy_v2(wasm_hash, (admin.clone(), bonding_curve_address.clone(), name, symbol));
