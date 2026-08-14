@@ -4,9 +4,7 @@ use crate::{TokenFactory, TokenFactoryClient};
 use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, String};
 
 mod token {
-    soroban_sdk::contractimport!(
-        file = "../token/target/wasm32v1-none/release/token.wasm"
-    );
+    soroban_sdk::contractimport!(file = "../token/target/wasm32v1-none/release/token.wasm");
 }
 
 #[contract]
@@ -22,14 +20,13 @@ fn create_token_deploys_initialized_supply_to_bonding_curve() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let factory_id = env.register(TokenFactory, ());
+    let wasm_hash = env.deployer().upload_contract_wasm(token::WASM);
+    let factory_id = env.register(TokenFactory, (wasm_hash.clone(),));
     let bonding_id = env.register(MockBondingCurve, ());
     let admin = Address::generate(&env);
-    let wasm_hash = env.deployer().upload_contract_wasm(token::WASM);
     let salt = BytesN::from_array(&env, &[7; 32]);
 
     let token_id = TokenFactoryClient::new(&env, &factory_id).create_token(
-        &wasm_hash,
         &salt,
         &admin,
         &bonding_id,
