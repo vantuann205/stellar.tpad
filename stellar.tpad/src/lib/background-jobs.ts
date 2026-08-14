@@ -63,6 +63,7 @@ async function recordPriceSnapshots() {
       ) latest ON TRUE
       WHERE latest.price IS DISTINCT FROM token.current_price
     `);
+    await query("DELETE FROM price_snapshots WHERE recorded_at < NOW() - INTERVAL '30 days'");
   } catch (err) {
     console.warn('[bg] Price snapshot job failed:', err);
   }

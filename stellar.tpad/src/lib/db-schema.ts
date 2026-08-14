@@ -109,6 +109,7 @@ CREATE INDEX IF NOT EXISTS idx_wallets_display_name ON wallets(display_name);
 CREATE INDEX IF NOT EXISTS idx_comments_token_id_created_at ON comments(token_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_tokens_metrics_updated ON tokens(metrics_updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_price_snapshots_token_id ON price_snapshots(token_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_price_snapshots_recorded_at ON price_snapshots(recorded_at);
 `;
 
 let schemaPromise: Promise<void> | null = null;
