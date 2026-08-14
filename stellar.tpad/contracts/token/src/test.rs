@@ -5,7 +5,7 @@ use crate::{TokenContract, TokenContractClient};
 
 const DEFAULT_SUPPLY: i128 = 1_000_000_000 * 10_000_000;
 
-fn setup(env: &Env) -> (TokenContractClient, Address) {
+fn setup(env: &Env) -> (TokenContractClient<'_>, Address) {
     env.mock_all_auths();
     let admin = Address::generate(env);
     let id = env.register(
@@ -66,14 +66,13 @@ fn test_transfer_insufficient() {
 }
 
 #[test]
-fn test_mint_by_admin() {
+#[should_panic]
+fn test_mint_is_disabled() {
     let env = Env::default();
     env.mock_all_auths();
     let (client, admin) = setup(&env);
     let to = Address::generate(&env);
     client.mint(&to, &500_i128);
-    assert_eq!(client.balance(&to), 500);
-    // admin supply unchanged
     assert_eq!(client.balance(&admin), DEFAULT_SUPPLY);
 }
 

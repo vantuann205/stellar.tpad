@@ -53,11 +53,8 @@ impl TokenContract {
         env.events().publish((soroban_sdk::symbol_short!("transfer"), from, to), amount);
     }
 
-    pub fn mint(env: Env, to: Address, amount: i128) {
-        read_admin(&env).require_auth();
-        if amount <= 0 { panic_with_error!(&env, TokenError::InvalidAmount); }
-        write_balance(&env, &to, read_balance(&env, &to) + amount);
-        env.events().publish((soroban_sdk::symbol_short!("mint"), to), amount);
+    pub fn mint(env: Env, _to: Address, _amount: i128) {
+        panic_with_error!(&env, TokenError::MintDisabled);
     }
 
     pub fn burn(env: Env, from: Address, amount: i128) {

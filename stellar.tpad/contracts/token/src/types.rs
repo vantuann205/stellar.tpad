@@ -18,4 +18,5 @@ pub enum TokenError {
     Unauthorized       = 2,
     InvalidAmount      = 3,
     InsufficientBalance = 4,
+    MintDisabled       = 5,
 }
