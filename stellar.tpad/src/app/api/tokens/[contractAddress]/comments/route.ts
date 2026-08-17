@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureDatabaseSchema } from '@/lib/db-schema';
 import { formatUtc7DateTime } from '@/lib/time';
+import {
+  CommentValidationError,
+  normalizeCommentAuthor,
+  normalizeCommentText,
+} from '@/lib/comment-validation';
+
+const MAX_COMMENTS_RETURNED = 200;
+
+async function findTokenId(contractAddress: string): Promise<number | null> {
+  const tokenResult = await query(
+    'SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1',
+    [contractAddress]
+  ) as any;
+  return tokenResult?.rows?.[0]?.id ?? null;
+}
 
 export async function GET(
   request: NextRequest,
@@ -10,15 +25,11 @@ export async function GET(
   try {
     await ensureDatabaseSchema();
 
-    const tokenResult = await query(
-      'SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1',
-      [params.contractAddress]
-    ) as any;
-    if (!tokenResult?.rows || tokenResult.rows.length === 0) {
+    const tokenId = await findTokenId(params.contractAddress);
+    if (tokenId === null) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
 
-    const tokenId = tokenResult.rows[0].id;
     const commentsResult = await query(
       `SELECT c.*, 
               COALESCE(NULLIF(w.display_name, ''), c.user_address) AS username,
@@ -26,8 +37,9 @@ export async function GET(
        FROM comments c
        LEFT JOIN wallets w ON LOWER(w.wallet_address) = LOWER(c.user_address)
        WHERE c.token_id = $1
-       ORDER BY c.created_at ASC`,
-      [tokenId]
+       ORDER BY c.created_at ASC
+       LIMIT $2`,
+      [tokenId, MAX_COMMENTS_RETURNED]
     ) as any;
     
     return NextResponse.json({
@@ -59,27 +71,25 @@ export async function POST(
   try {
     await ensureDatabaseSchema();
 
-    const tokenResult = await query(
-      'SELECT id FROM tokens WHERE LOWER(contract_address) = LOWER($1) LIMIT 1',
-      [params.contractAddress]
-    ) as any;
-    if (!tokenResult?.rows || tokenResult.rows.length === 0) {
+    const tokenId = await findTokenId(params.contractAddress);
+    if (tokenId === null) {
       return NextResponse.json({ success: false, error: 'Token not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { text, userAddress, user } = body;
-
-    if (!text || text.trim().length === 0) {
-      return NextResponse.json({ success: false, error: 'Comment text is required' }, { status: 400 });
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const resolvedUser = userAddress || user || 'Anonymous';
+    const { text, userAddress, user } = body as Record<string, unknown>;
+    const author = normalizeCommentAuthor(userAddress, user);
+    const commentText = normalizeCommentText(text);
+
     const result = await query(
       `INSERT INTO comments (token_id, user_address, comment_text, created_at)
        VALUES ($1, $2, $3, NOW())
        RETURNING *`,
-      [tokenResult?.rows?.[0]?.id, resolvedUser, text.trim()]
+      [tokenId, author, commentText]
     ) as any;
     const comment = result?.rows?.[0];
 
@@ -87,12 +97,15 @@ export async function POST(
       success: true,
       data: {
         id: String(comment.id),
-        user: resolvedUser,
+        user: author,
         text: comment.comment_text,
         timestamp: formatUtc7DateTime(comment.created_at),
       },
     });
   } catch (error) {
+    if (error instanceof CommentValidationError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     console.error('Error creating comment:', error);
     return NextResponse.json({ success: false, error: 'Failed to create comment' }, { status: 500 });
   }
