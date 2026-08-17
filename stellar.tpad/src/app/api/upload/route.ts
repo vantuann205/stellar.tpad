@@ -1,30 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
+import { InvalidImageError, MAX_IMAGE_BYTES, validateImageBuffer } from '@/lib/image-validation';
+
+const cloudName = process.env.CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.CLOUD_API_KEY || process.env.CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUD_API_SECRET || process.env.CLOUDINARY_API_SECRET;
 
 cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUD_API_KEY || process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUD_API_SECRET || process.env.CLOUDINARY_API_SECRET,
+  cloud_name: cloudName,
+  api_key: apiKey,
+  api_secret: apiSecret,
 });
 
 export async function POST(req: NextRequest) {
+  if (!cloudName || !apiKey || !apiSecret) {
+    console.error('Upload error: Cloudinary credentials are not configured');
+    return NextResponse.json({ error: 'Image uploads are unavailable' }, { status: 503 });
+  }
+
   try {
     const formData = await req.formData();
-    const file = formData.get('file') as File | null;
+    const file = formData.get('file');
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_IMAGE_BYTES) {
       return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 });
     }
 
-    // Convert File to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const detectedType = validateImageBuffer(buffer);
 
-    // Upload to Cloudinary
     const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         { folder: 'stellar-tpad', resource_type: 'image' },
@@ -35,9 +43,12 @@ export async function POST(req: NextRequest) {
       ).end(buffer);
     });
 
-    return NextResponse.json({ url: result.secure_url });
+    return NextResponse.json({ url: result.secure_url, contentType: detectedType });
   } catch (error) {
+    if (error instanceof InvalidImageError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error('Upload error:', error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }
