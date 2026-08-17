@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureDatabaseSchema } from '@/lib/db-schema';
+import { normalizeSearchTerm } from '@/lib/search-query';
 
 export async function GET(request: NextRequest) {
     try {
         await ensureDatabaseSchema();
-        const searchQuery = request.nextUrl.searchParams.get('q');
+        const searchTerm = normalizeSearchTerm(request.nextUrl.searchParams.get('q'));
 
-        if (!searchQuery || searchQuery.trim().length === 0) {
+        if (!searchTerm) {
             return NextResponse.json({
                 success: true,
                 data: {
@@ -16,8 +17,6 @@ export async function GET(request: NextRequest) {
                 },
             });
         }
-
-        const searchTerm = `%${searchQuery.trim()}%`;
 
         // Search tokens by name, symbol, or contract address
         const tokensResult = await query(
@@ -34,7 +33,7 @@ export async function GET(request: NextRequest) {
                END,
                created_at DESC
              LIMIT 10`,
-            [searchTerm, searchQuery.trim()]
+            [searchTerm.pattern, searchTerm.exact]
         ) as any;
 
         // Search wallets by address or display name
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest) {
                  ELSE 2
                END
              LIMIT 10`,
-            [searchTerm, searchQuery.trim()]
+            [searchTerm.pattern, searchTerm.exact]
         ) as any;
 
         return NextResponse.json({
@@ -65,7 +64,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : 'Failed to search',
+                error: 'Failed to search',
             },
             { status: 500 }
         );
