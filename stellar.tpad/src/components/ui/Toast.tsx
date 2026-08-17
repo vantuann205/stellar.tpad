@@ -17,6 +17,8 @@ interface ToastProps {
 }
 
 const DURATION = 3000;
+const EXIT_ANIMATION_MS = 300;
+const SHAKE_ANIMATION_MS = 500;
 
 const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -25,58 +27,65 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
   const remainingRef = useRef(DURATION);
   const startRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevShakeCount = useRef(toast.shakeCount ?? 0);
 
   const dismiss = useCallback(() => {
     setIsVisible(false);
-    setTimeout(() => onClose(toast.id), 300);
+    if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    exitTimerRef.current = setTimeout(() => onClose(toast.id), EXIT_ANIMATION_MS);
   }, [toast.id, onClose]);
 
-  const startTimer = useCallback(() => {
-    startRef.current = Date.now();
-    timerRef.current = setTimeout(dismiss, remainingRef.current);
-  }, [dismiss]);
-
-  const pauseTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    if (startRef.current !== null) {
-      remainingRef.current -= Date.now() - startRef.current;
-      startRef.current = null;
-    }
-  }, []);
-
-  // Init
+  // Fresh countdown whenever a new toast takes this slot.
   useEffect(() => {
-    requestAnimationFrame(() => setIsVisible(true));
-    if (toast.type !== 'processing') {
-      remainingRef.current = DURATION;
-      startTimer();
-    }
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    remainingRef.current = DURATION;
   }, [toast.id]);
 
-  // Reset timer on shake (spam)
+  // Slide-in animation.
   useEffect(() => {
-    if ((toast.shakeCount ?? 0) > prevShakeCount.current) {
-      prevShakeCount.current = toast.shakeCount ?? 0;
-      setShaking(true);
-      setTimeout(() => setShaking(false), 500);
-      // Reset countdown
-      if (timerRef.current) clearTimeout(timerRef.current);
-      remainingRef.current = DURATION;
-      if (!hovered) startTimer();
-    }
+    const frame = requestAnimationFrame(() => setIsVisible(true));
+    return () => cancelAnimationFrame(frame);
+  }, [toast.id]);
+
+  // Auto-dismiss countdown — pauses while hovered, resumes with the time left.
+  useEffect(() => {
+    if (toast.type === 'processing' || hovered) return;
+
+    startRef.current = Date.now();
+    timerRef.current = setTimeout(dismiss, remainingRef.current);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      if (startRef.current !== null) {
+        remainingRef.current = Math.max(0, remainingRef.current - (Date.now() - startRef.current));
+        startRef.current = null;
+      }
+    };
+  }, [toast.id, toast.type, hovered, dismiss]);
+
+  // Repeated toasts shake instead of stacking, and restart the countdown.
+  useEffect(() => {
+    const shakeCount = toast.shakeCount ?? 0;
+    if (shakeCount <= prevShakeCount.current) return;
+
+    prevShakeCount.current = shakeCount;
+    remainingRef.current = DURATION;
+    setShaking(true);
+
+    if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
+    shakeTimerRef.current = setTimeout(() => setShaking(false), SHAKE_ANIMATION_MS);
   }, [toast.shakeCount]);
 
-  // Hover pause/resume
-  useEffect(() => {
-    if (toast.type === 'processing') return;
-    if (hovered) pauseTimer();
-    else startTimer();
-  }, [hovered]);
+  // Every pending timer is dropped when the toast leaves the screen.
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
+  }, []);
 
   const getStyles = () => {
     switch (toast.type) {
@@ -90,6 +99,8 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
 
   return (
     <div
+      role={toast.type === 'error' ? 'alert' : 'status'}
+      aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
       className={`pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-[#0d1117] border border-gray-800 shadow-xl transition-all duration-300 transform mb-3 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} ${shaking ? 'animate-shake' : ''}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -100,9 +111,14 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
           <p className={`text-xs font-black uppercase tracking-wider ${styles.titleColor}`}>{toast.title}</p>
           <p className="mt-1 text-sm text-gray-300 leading-snug">{toast.message}</p>
         </div>
-        <div className="shrink-0 flex text-gray-400 hover:text-white cursor-pointer" onClick={() => { if (timerRef.current) clearTimeout(timerRef.current); setIsVisible(false); setTimeout(() => onClose(toast.id), 300); }}>
+        <button
+          type="button"
+          aria-label="Dismiss notification"
+          onClick={dismiss}
+          className="shrink-0 flex text-gray-400 hover:text-white cursor-pointer rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-pump-green"
+        >
           <X className="w-4 h-4" />
-        </div>
+        </button>
       </div>
       {/* Static progress bar — không animate, chỉ hiện màu */}
       {toast.type !== 'processing' && isVisible && (
