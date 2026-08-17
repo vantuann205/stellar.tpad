@@ -20,15 +20,33 @@ function formatTime(iso: string) {
   return formatUtc7DateTime(iso);
 }
 
+type FeedState = 'loading' | 'ready' | 'error';
+
 export default function TransactionTable({ tokenAddress, refreshKey }: TransactionTableProps) {
   const [trades, setTrades] = useState<TradeRecord[]>([]);
+  const [state, setState] = useState<FeedState>('loading');
 
   useEffect(() => {
     if (!tokenAddress) return;
-    fetch(`/api/trades?tokenId=${tokenAddress}`)
+
+    // Abort in-flight requests so a slow response for an older token cannot
+    // overwrite the rows of the token now on screen.
+    const controller = new AbortController();
+    setState('loading');
+
+    fetch(`/api/trades?tokenId=${encodeURIComponent(tokenAddress)}`, { signal: controller.signal })
       .then(r => r.json())
-      .then(j => { if (j.success) setTrades(j.data); })
-      .catch(() => {});
+      .then(j => {
+        if (!j.success) throw new Error(j.error || 'Failed to load trades');
+        setTrades(j.data);
+        setState('ready');
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        setState('error');
+      });
+
+    return () => controller.abort();
   }, [tokenAddress, refreshKey]);
 
   return (
@@ -49,7 +67,21 @@ export default function TransactionTable({ tokenAddress, refreshKey }: Transacti
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-300/50 dark:divide-gray-800/50">
-              {trades.length === 0 ? (
+              {state === 'loading' ? (
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={`skeleton-${idx}`} className="animate-pulse">
+                    <td colSpan={7} className="px-3 py-3">
+                      <div className="h-4 w-full rounded bg-gray-200 dark:bg-gray-800" />
+                    </td>
+                  </tr>
+                ))
+              ) : state === 'error' ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-pump-red text-sm">
+                    could not load trades — try refreshing
+                  </td>
+                </tr>
+              ) : trades.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-3 py-8 text-center text-gray-500 text-sm">
                     no transactions yet
