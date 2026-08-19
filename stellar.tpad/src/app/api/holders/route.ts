@@ -5,8 +5,13 @@ import { query } from '@/lib/db';
 // % holding = net_qty_of_wallet / total_supply_of_token * 100
 export async function GET(request: NextRequest) {
     try {
-        const tokenId = request.nextUrl.searchParams.get('tokenId');
-        if (!tokenId) return NextResponse.json({ error: 'Missing tokenId' }, { status: 400 });
+        const rawTokenId = request.nextUrl.searchParams.get('tokenId');
+        const tokenId = Number(rawTokenId);
+        // `id` is an INTEGER column: a non-numeric value makes Postgres raise
+        // instead of returning "not found".
+        if (!Number.isInteger(tokenId) || tokenId <= 0) {
+            return NextResponse.json({ error: 'tokenId must be a positive integer' }, { status: 400 });
+        }
 
         // Get total_supply from tokens table
         const supplyResult = await query(
