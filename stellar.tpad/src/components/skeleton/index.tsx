@@ -86,6 +86,39 @@ export const TableSkeleton: React.FC<{ rows?: number }> = ({ rows = 5 }) => (
   </div>
 );
 
+// Token Table Skeleton - khớp với bảng coin ở trang chủ
+export const TokenTableSkeleton: React.FC<{ rows?: number }> = ({ rows = 10 }) => (
+  <div className="overflow-x-auto rounded-xl border border-gray-300/70 bg-white/80 shadow-lg dark:border-[#24324b] dark:bg-[#0b0f19]">
+    <table className="w-full min-w-[700px] text-left text-sm">
+      <thead>
+        <tr className="border-b border-gray-200/80 bg-gradient-to-r from-slate-100 to-slate-50 text-xs uppercase tracking-wide text-gray-500 dark:border-[#22314a] dark:from-[#142238] dark:to-[#101a2d] dark:text-gray-400">
+          <th className="px-4 py-3">#</th>
+          <th className="px-4 py-3">Coin</th>
+          <th className="px-4 py-3">Symbol</th>
+          <th className="px-4 py-3">Age</th>
+          <th className="px-4 py-3">Contract</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: rows }).map((_, idx) => (
+          <tr key={idx} className="border-b border-gray-200/60 dark:border-[#1c273a]">
+            <td className="px-4 py-3"><Skeleton width="32px" height="16px" /></td>
+            <td className="px-4 py-3">
+              <div className="flex items-center gap-3">
+                <Skeleton width="32px" height="32px" variant="circular" />
+                <Skeleton width="128px" height="16px" />
+              </div>
+            </td>
+            <td className="px-4 py-3"><Skeleton width="64px" height="16px" /></td>
+            <td className="px-4 py-3"><Skeleton width="48px" height="16px" /></td>
+            <td className="px-4 py-3"><Skeleton width="96px" height="16px" /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
 // Comment Skeleton - dùng cho comment section
 export const CommentSkeleton: React.FC<{ count?: number }> = ({ count = 3 }) => (
   <div className="space-y-3">

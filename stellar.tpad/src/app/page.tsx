@@ -9,7 +9,7 @@ import TrendingCoins from '@/components/common/TrendingCoins';
 import CoinCard from '@/components/common/CoinCard';
 import FilterBar from '@/components/common/FilterBar';
 import Toast, { ToastMessage } from '@/components/ui/Toast';
-import { ListSkeleton } from '@/components/skeleton';
+import { ListSkeleton, TokenTableSkeleton } from '@/components/skeleton';
 import { Coin, ViewState, SortOption } from '@/types';
 import { formatMarketCap, formatPriceChange, formatTraderCount, formatVolume } from '@/lib/helpers';
 import { getWalletErrorMessage, stellarWalletService, WalletServiceError } from '@/services/wallet.service';
@@ -245,55 +245,7 @@ export default function Home() {
               {listMode === 'table' && (
                 <>
                   {loading ? (
-                    <div className="overflow-x-auto rounded-xl border border-gray-300/70 bg-white/80 shadow-lg dark:border-[#24324b] dark:bg-[#0b0f19]">
-                      <table className="w-full min-w-[700px] text-left text-sm">
-                        <thead>
-                          <tr className="border-b border-gray-200/80 bg-gradient-to-r from-slate-100 to-slate-50 text-xs uppercase tracking-wide text-gray-500 dark:border-[#22314a] dark:from-[#142238] dark:to-[#101a2d] dark:text-gray-400">
-                            <th className="px-4 py-3">#</th>
-                            <th className="px-4 py-3">Coin</th>
-                            <th className="px-4 py-3">Symbol</th>
-                            <th className="px-4 py-3">Age</th>
-                            <th className="px-4 py-3">Contract</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Array.from({ length: 10 }).map((_, idx) => (
-                            <tr key={idx} className="border-b border-gray-200/60 dark:border-[#1c273a]">
-                              <td className="px-4 py-3">
-                                <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded h-4 w-8">
-                                  <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
-                                </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded-full h-8 w-8">
-                                    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
-                                  </div>
-                                  <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded h-4 w-32">
-                                    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded h-4 w-16">
-                                  <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
-                                </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded h-4 w-12">
-                                  <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
-                                </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="relative overflow-hidden bg-gray-200 dark:bg-gray-800 rounded h-4 w-24">
-                                  <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent" />
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <TokenTableSkeleton rows={10} />
                   ) : (
                     <div className="overflow-x-auto rounded-xl border border-gray-300/70 bg-white/80 shadow-lg dark:border-[#24324b] dark:bg-[#0b0f19]">
                       <table className="w-full min-w-[700px] text-left text-sm">
