@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useImperativeHandle, forwardRef, useRef } from 'react';
+import React, { useState, useImperativeHandle, forwardRef, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Wallet, Menu, Search, HelpCircle, LayoutGrid, PlusCircle, Tv, LifeBuoy, X, ChevronDown, Settings, LogOut } from 'lucide-react';
 import DolphinLogo from './DolphinLogo';
 import ThemeToggle from '../ui/ThemeToggle';
@@ -58,6 +59,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
   network,
   onToggleNetwork,
 }, ref) => {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
   const [walletInfo, setWalletInfo] = useState<any>(null);
@@ -66,6 +68,13 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchAbortRef = useRef<AbortController | null>(null);
+
+  // A pending debounce or request must not outlive the header.
+  useEffect(() => () => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchAbortRef.current?.abort();
+  }, []);
 
   // Expose refresh method to parent
   useImperativeHandle(ref, () => ({
@@ -83,7 +92,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
 
   const fetchWalletInfo = async () => {
     try {
-      const res = await fetch(`/api/wallets?address=${walletAddress}`);
+      const res = await fetch(`/api/wallets?address=${encodeURIComponent(walletAddress ?? '')}`);
       const data = await res.json();
       if (data.success && data.wallet) {
         setWalletInfo(data.wallet);
@@ -96,30 +105,42 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
   // Handle search
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
-    
+
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
+    // Drop the in-flight request: a slow answer for an earlier query used to
+    // land after the newer one and replace the visible results.
+    searchAbortRef.current?.abort();
 
     if (!query.trim()) {
       setSearchResults(null);
       setShowSearchResults(false);
+      setSearchLoading(false);
       return;
     }
 
     setSearchLoading(true);
     searchTimeoutRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      searchAbortRef.current = controller;
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
         const data = await response.json();
         if (data.success) {
           setSearchResults(data.data);
           setShowSearchResults(true);
         }
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
         console.error('Error searching:', error);
       } finally {
-        setSearchLoading(false);
+        if (searchAbortRef.current === controller) {
+          searchAbortRef.current = null;
+          setSearchLoading(false);
+        }
       }
     }, 300);
   };
@@ -132,10 +153,11 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
     setShowSearchResults(false);
   };
 
-  const handleSelectWallet = (walletAddress: string) => {
-    // Navigate to wallet profile
+  const handleSelectWallet = (address: string) => {
     setSearchQuery('');
     setShowSearchResults(false);
+    // Selecting a user result used to clear the box and go nowhere.
+    router.push(`/profile/${address}`);
   };
 
   return (
