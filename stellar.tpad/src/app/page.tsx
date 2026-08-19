@@ -46,8 +46,11 @@ export default function Home() {
   const headerRef = useRef<HeaderRef>(null);
   const { network, toggle: toggleNetwork } = useNetwork();
 
+  // Two toasts raised in the same millisecond used to share an id, which made
+  // React reuse one node and dismiss the wrong toast.
+  const toastSeq = useRef(0);
   const addToast = (type: ToastMessage['type'], title: string, message: string) => {
-    const id = Date.now().toString();
+    const id = `toast-${Date.now()}-${++toastSeq.current}`;
     setToasts(prev => [...prev, { id, type, title, message, shakeCount: 0 }]);
     return id;
   };
