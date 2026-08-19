@@ -41,6 +41,10 @@ export function startBackgroundJobs() {
   console.log('[bg] Background jobs started: keepalive=4min, snapshots=60s');
 }
 
+/** Retention sweeps are hourly — running them with every 60s snapshot was pure load. */
+const SNAPSHOT_RETENTION_SWEEP_MS = 60 * 60 * 1000;
+let lastRetentionSweep = 0;
+
 async function recordPriceSnapshots() {
   try {
     await query(`
@@ -63,7 +67,10 @@ async function recordPriceSnapshots() {
       ) latest ON TRUE
       WHERE latest.price IS DISTINCT FROM token.current_price
     `);
-    await query("DELETE FROM price_snapshots WHERE recorded_at < NOW() - INTERVAL '30 days'");
+    if (Date.now() - lastRetentionSweep >= SNAPSHOT_RETENTION_SWEEP_MS) {
+      lastRetentionSweep = Date.now();
+      await query("DELETE FROM price_snapshots WHERE recorded_at < NOW() - INTERVAL '30 days'");
+    }
   } catch (err) {
     console.warn('[bg] Price snapshot job failed:', err);
   }
