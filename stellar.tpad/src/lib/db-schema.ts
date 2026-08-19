@@ -110,6 +110,10 @@ CREATE INDEX IF NOT EXISTS idx_comments_token_id_created_at ON comments(token_id
 CREATE INDEX IF NOT EXISTS idx_tokens_metrics_updated ON tokens(metrics_updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_price_snapshots_token_id ON price_snapshots(token_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_price_snapshots_recorded_at ON price_snapshots(recorded_at);
+-- Trade aggregates always filter on token + completed status and read newest first.
+CREATE INDEX IF NOT EXISTS idx_purchases_token_status ON purchases(token_id, status, created_at DESC);
+-- The token feed is paginated by creation time.
+CREATE INDEX IF NOT EXISTS idx_tokens_created_at ON tokens(created_at DESC);
 `;
 
 let schemaPromise: Promise<void> | null = null;
