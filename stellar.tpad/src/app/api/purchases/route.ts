@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('Error creating purchase:', error);
         return NextResponse.json(
-            { success: false, error: error instanceof Error ? error.message : 'Failed to create purchase' },
+            { success: false, error: 'Failed to create purchase' },
             { status: 500 }
         );
     }
@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error('Error fetching purchases:', error);
         return NextResponse.json(
-            { success: false, error: error instanceof Error ? error.message : 'Failed to fetch purchases' },
+            { success: false, error: 'Failed to fetch purchases' },
             { status: 500 }
         );
     }

@@ -22,6 +22,6 @@ export async function GET(
     return NextResponse.json({ success: true, data: result?.rows?.[0] });
   } catch (error) {
     console.error('Error fetching token:', error);
-    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to fetch token' }, { status: 500 });
   }
 }

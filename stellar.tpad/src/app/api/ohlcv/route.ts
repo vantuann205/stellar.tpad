@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error('Error fetching OHLCV:', error);
         return NextResponse.json(
-            { success: false, error: error instanceof Error ? error.message : 'Failed' },
+            { success: false, error: 'Failed to fetch OHLCV data' },
             { status: 500 }
         );
     }

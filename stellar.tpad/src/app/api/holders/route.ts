@@ -59,6 +59,6 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, data: holders, totalSupply });
     } catch (error) {
         console.error('Error fetching holders:', error);
-        return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Failed to fetch holders' }, { status: 500 });
     }
 }

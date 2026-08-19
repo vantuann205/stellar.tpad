@@ -42,7 +42,7 @@ export async function GET() {
     return NextResponse.json({ success: true, data: result?.rows || [] });
   } catch (error) {
     console.error('Error fetching tokens:', error);
-    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to fetch tokens' }, { status: 500 });
   }
 }
 
@@ -116,6 +116,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: result?.rows?.[0] }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+    console.error('Error creating token:', error);
+    return NextResponse.json({ success: false, error: 'Failed to create token' }, { status: 500 });
   }
 }

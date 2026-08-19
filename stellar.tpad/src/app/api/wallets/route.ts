@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : 'Failed to save wallet',
+                error: 'Failed to save wallet',
             },
             { status: 500 }
         );
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : 'Failed to fetch wallet',
+                error: 'Failed to fetch wallet',
             },
             { status: 500 }
         );
