@@ -19,6 +19,16 @@ const getTimeAgo = (timestamp: number) => {
   return `${diffInDays}d ago`;
 };
 
+/** Neutral placeholder for tokens whose image URL is dead or missing. */
+const FALLBACK_IMAGE =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="124" height="124">' +
+      '<rect width="124" height="124" fill="#1f2937"/>' +
+      '<text x="50%" y="54%" font-family="sans-serif" font-size="42" fill="#4b5563" text-anchor="middle">?</text>' +
+      '</svg>'
+  );
+
 const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick, tokenRecord }) => {
   const priceChange = Number(tokenRecord?.price_change_5m ?? coin.priceChange5m ?? 0);
   const progressPct = coin.bondingCurveProgress ?? 0;
@@ -30,13 +40,28 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick, tokenRecord }) => {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Open ${coin.name} (${coin.ticker})`}
       onClick={() => onClick(coin)}
-      className="flex cursor-pointer transition-colors duration-200 group"
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        onClick(coin);
+      }}
+      className="flex cursor-pointer transition-colors duration-200 group rounded-[10px] focus:outline-none focus-visible:ring-2 focus-visible:ring-pump-green"
     >
       <div className="w-[124px] h-[124px] rounded-[10px] shrink-0 overflow-hidden bg-gray-200 dark:bg-gray-800">
         <img
-          src={coin.imageUrl}
-          alt={coin.name}
+          src={coin.imageUrl || FALLBACK_IMAGE}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={(event) => {
+            const image = event.currentTarget;
+            if (image.src === FALLBACK_IMAGE) return;
+            image.src = FALLBACK_IMAGE;
+          }}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
       </div>
@@ -52,7 +77,7 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick, tokenRecord }) => {
 
         <div className="flex items-center text-gray-500 dark:text-gray-400 text-[12px] truncate space-x-[4px] mb-[3px]">
           <span className="text-[12px]">🐸</span>
-          <span className="truncate max-w-[80px]">{coin.creator.slice(0, 6)}</span>
+          <span className="truncate max-w-[80px]">{(coin.creator ?? '').slice(0, 6) || 'unknown'}</span>
           <span>{getTimeAgo(coin.createdAt)}</span>
         </div>
 
