@@ -69,6 +69,27 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const searchAbortRef = useRef<AbortController | null>(null);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
+
+  // Escape and outside clicks close the result list; before this it stayed open
+  // until something was picked.
+  useEffect(() => {
+    if (!showSearchResults) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowSearchResults(false);
+    };
+    const onPointerDown = (event: MouseEvent) => {
+      if (!searchBoxRef.current?.contains(event.target as Node)) setShowSearchResults(false);
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('mousedown', onPointerDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('mousedown', onPointerDown);
+    };
+  }, [showSearchResults]);
 
   // A pending debounce or request must not outlive the header.
   useEffect(() => () => {
@@ -222,11 +243,16 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
 
         {/* Search */}
         <div className="flex-1 max-w-md px-8 hidden lg:block">
-          <div className="relative group">
+          <div className="relative group" ref={searchBoxRef}>
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors z-10" />
             <input
               type="search"
               placeholder="Search tokens, users, addresses..."
+              aria-label="Search tokens, users, and addresses"
+              role="combobox"
+              aria-expanded={showSearchResults}
+              aria-controls="header-search-results"
+              aria-busy={searchLoading}
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               onFocus={() => searchQuery && showSearchResults && setShowSearchResults(true)}
@@ -235,7 +261,12 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
             
             {/* Search Results Dropdown */}
             {showSearchResults && searchResults && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-pump-card border border-gray-300 dark:border-gray-800 rounded-lg shadow-lg max-h-96 overflow-y-auto z-40">
+              <div
+                id="header-search-results"
+                role="listbox"
+                aria-label="Search results"
+                className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-pump-card border border-gray-300 dark:border-gray-800 rounded-lg shadow-lg max-h-96 overflow-y-auto z-40"
+              >
                 {/* Token Results */}
                 {searchResults.tokens && searchResults.tokens.length > 0 && (
                   <div className="border-b border-gray-200 dark:border-gray-700">
