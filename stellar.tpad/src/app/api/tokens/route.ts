@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { getClient, query } from '@/lib/db';
 import { ensureDatabaseSchema } from '@/lib/db-schema';
 import { TokenValidationError, validateTokenInput } from '@/lib/token-validation';
 
@@ -71,8 +71,14 @@ export async function POST(req: NextRequest) {
     // Default slope for Stellar based on contract
     const DEFAULT_SLOPE = 25000; // stroops
 
-    const result = await query(
-      `INSERT INTO tokens (
+    // The token row and its launch snapshot must land together — a token without
+    // a snapshot renders an empty chart and breaks price-change windows.
+    const client = await getClient();
+    let result: any;
+    try {
+      await client.query('BEGIN');
+      result = await client.query(
+        `INSERT INTO tokens (
         name, symbol, description, image_url, social_link,
         total_supply, owner, contract_address, network,
         price_snapshot_value, price_snapshot_time,
@@ -88,31 +94,39 @@ export async function POST(req: NextRequest) {
         0,0,0,0,
         0,$11,$12,
         0,$13,$14,$15,NOW(),NOW()
-      ) RETURNING *`,
-      [
-        name,
-        symbol,
-        description,
-        imageUrl,
-        socialLink,
-        supply,
-        owner,
-        contractAddress,
-        INITIAL_PRICE,
-        initialMarketcap,
-        typeof bonding_curve_contract === 'string' ? bonding_curve_contract : null,
-        bonding_curve_registered === true,
-        INITIAL_PRICE,
-        INITIAL_PRICE,
-        DEFAULT_SLOPE,
-      ]
-    ) as any;
+        ) RETURNING *`,
+        [
+          name,
+          symbol,
+          description,
+          imageUrl,
+          socialLink,
+          supply,
+          owner,
+          contractAddress,
+          INITIAL_PRICE,
+          initialMarketcap,
+          typeof bonding_curve_contract === 'string' ? bonding_curve_contract : null,
+          bonding_curve_registered === true,
+          INITIAL_PRICE,
+          INITIAL_PRICE,
+          DEFAULT_SLOPE,
+        ]
+      );
 
-    await query(
-      `INSERT INTO price_snapshots (token_id, price, recorded_at)
-       VALUES ($1, $2, NOW())`,
-      [result?.rows?.[0]?.id, INITIAL_PRICE]
-    );
+      await client.query(
+        `INSERT INTO price_snapshots (token_id, price, recorded_at)
+         VALUES ($1, $2, NOW())`,
+        [result?.rows?.[0]?.id, INITIAL_PRICE]
+      );
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
 
     return NextResponse.json({ success: true, data: result?.rows?.[0] }, { status: 201 });
   } catch (error) {
