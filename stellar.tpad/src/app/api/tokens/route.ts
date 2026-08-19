@@ -22,25 +22,58 @@ export interface TokenRecord {
   sold_supply?: string;
 }
 
-export async function GET() {
+const DEFAULT_TOKEN_LIMIT = 100;
+const MAX_TOKEN_LIMIT = 200;
+
+function parseLimit(value: string | null): number {
+  const limit = Number(value);
+  if (!Number.isInteger(limit) || limit <= 0) return DEFAULT_TOKEN_LIMIT;
+  return Math.min(limit, MAX_TOKEN_LIMIT);
+}
+
+function parseOffset(value: string | null): number {
+  const offset = Number(value);
+  if (!Number.isInteger(offset) || offset < 0) return 0;
+  return offset;
+}
+
+export async function GET(request: NextRequest) {
   try {
     await ensureDatabaseSchema();
+
+    const limit = parseLimit(request.nextUrl.searchParams.get('limit'));
+    const offset = parseOffset(request.nextUrl.searchParams.get('offset'));
+
+    // The reserve is aggregated once for the page being returned instead of
+    // running a correlated subquery for every token in the table.
     const result = await query(
-      `SELECT
-          t.*,
-          COALESCE(
-            (SELECT GREATEST(
-                COALESCE(SUM(CASE WHEN buyer_address IS NOT NULL THEN total_price ELSE 0 END), 0)
-                - COALESCE(SUM(CASE WHEN seller_address IS NOT NULL THEN total_price ELSE 0 END), 0),
-                0
-            ) FROM purchases WHERE token_id = t.id AND status = 'completed'),
-            0
+      `WITH page AS (
+          SELECT * FROM tokens
+          ORDER BY created_at DESC
+          LIMIT $1 OFFSET $2
+       )
+       SELECT
+          page.*,
+          COALESCE(reserve.max_reserve, 0) AS max_reserve
+       FROM page
+       LEFT JOIN LATERAL (
+          SELECT GREATEST(
+              COALESCE(SUM(CASE WHEN buyer_address IS NOT NULL THEN total_price ELSE 0 END), 0)
+              - COALESCE(SUM(CASE WHEN seller_address IS NOT NULL THEN total_price ELSE 0 END), 0),
+              0
           ) AS max_reserve
-       FROM tokens t
-       ORDER BY t.created_at DESC`
+          FROM purchases
+          WHERE token_id = page.id AND status = 'completed'
+       ) reserve ON TRUE
+       ORDER BY page.created_at DESC`,
+      [limit, offset]
     ) as any;
 
-    return NextResponse.json({ success: true, data: result?.rows || [] });
+    return NextResponse.json({
+      success: true,
+      data: result?.rows || [],
+      pagination: { limit, offset, count: result?.rows?.length ?? 0 },
+    });
   } catch (error) {
     console.error('Error fetching tokens:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch tokens' }, { status: 500 });
