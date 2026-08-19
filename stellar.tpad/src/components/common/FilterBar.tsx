@@ -17,6 +17,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
 }) => {
   const [showViewMenu, setShowViewMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -29,6 +30,20 @@ const FilterBar: React.FC<FilterBarProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Clicking outside was the only way out of the menu, which trapped keyboard users.
+  useEffect(() => {
+    if (!showViewMenu) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setShowViewMenu(false);
+      settingsButtonRef.current?.focus();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [showViewMenu]);
 
   return (
     <div className="flex flex-col gap-4 mb-6 text-sm">
@@ -51,8 +66,11 @@ const FilterBar: React.FC<FilterBarProps> = ({
               <option value="lastReply">Sort: Last Reply</option>
             </select>
             <button
+              ref={settingsButtonRef}
               type="button"
               aria-label="Display settings"
+              aria-haspopup="menu"
+              aria-expanded={showViewMenu}
               onClick={() => setShowViewMenu((prev) => !prev)}
               className="h-11 w-11 rounded-xl border border-gray-300/70 bg-white text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-[#171b25] dark:text-gray-200 dark:hover:bg-[#1d2330]"
             >
@@ -61,10 +79,16 @@ const FilterBar: React.FC<FilterBarProps> = ({
           </div>
 
           {showViewMenu && (
-            <div className="absolute right-0 z-50 mt-3 w-[250px] rounded-xl border border-gray-300/70 bg-white/95 p-3 shadow-2xl backdrop-blur-sm dark:border-gray-700 dark:bg-[#0f131d]/95">
+            <div
+              role="menu"
+              aria-label="List display"
+              className="absolute right-0 z-50 mt-3 w-[250px] rounded-xl border border-gray-300/70 bg-white/95 p-3 shadow-2xl backdrop-blur-sm dark:border-gray-700 dark:bg-[#0f131d]/95"
+            >
               <div className="flex rounded-xl bg-gray-100 p-1 dark:bg-[#171d28]">
                 <button
                   type="button"
+                  role="menuitemradio"
+                  aria-checked={listMode === 'grid'}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => {
                     onListModeChange('grid');
@@ -81,6 +105,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 </button>
                 <button
                   type="button"
+                  role="menuitemradio"
+                  aria-checked={listMode === 'table'}
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => {
                     onListModeChange('table');
