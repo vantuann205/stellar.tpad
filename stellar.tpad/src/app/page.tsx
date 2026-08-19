@@ -43,6 +43,7 @@ export default function Home() {
   const [walletState, dispatchWallet]   = useReducer(walletStateReducer, initialWalletState);
   const [tokens, setTokens]             = useState<Coin[]>([]);
   const [loading, setLoading]           = useState(false);
+  const [loadError, setLoadError]       = useState<string | null>(null);
   const headerRef = useRef<HeaderRef>(null);
   const { network, toggle: toggleNetwork } = useNetwork();
 
@@ -58,9 +59,11 @@ export default function Home() {
 
   const fetchTokens = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch('/api/tokens');
       const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Request failed');
       if (data.success && data.data) {
         setTokens(data.data.map((t: any, i: number): Coin => {
           const createdAt = parsePossiblyUtc7Timestamp(t.created_at);
@@ -100,7 +103,10 @@ export default function Home() {
           };
         }));
       }
-    } catch { /* silent */ }
+    } catch {
+      // Without this the page sat on an empty grid that looked like "no coins yet".
+      setLoadError('Could not load coins. Check your connection and try again.');
+    }
     finally { setLoading(false); }
   };
 
@@ -190,6 +196,22 @@ export default function Home() {
           <>
             <KingOfTheHill coin={topCoin} onClick={handleCoinClick} />
             <TrendingCoins onClick={handleCoinClick} />
+            {loadError && (
+              <div
+                role="alert"
+                className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-pump-red/40 bg-pump-red/5 px-4 py-3 text-sm text-pump-red"
+              >
+                <span>{loadError}</span>
+                <button
+                  type="button"
+                  onClick={fetchTokens}
+                  className="rounded-lg border border-pump-red/40 px-3 py-1 text-xs font-bold uppercase tracking-wide transition-colors hover:bg-pump-red/10"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
             <div className="mt-8">
               <FilterBar
                 currentSort={sortOption}
