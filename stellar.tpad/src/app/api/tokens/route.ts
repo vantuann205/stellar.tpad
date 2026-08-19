@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ensureDatabaseSchema } from '@/lib/db-schema';
+import { TokenValidationError, validateTokenInput } from '@/lib/token-validation';
 
 export interface TokenRecord {
   id: number;
@@ -49,16 +50,16 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     await ensureDatabaseSchema();
-    const body = await req.json();
-    const {
-      name, symbol, description, image_url, social_link,
-      totalSupply, owner, contractAddress,
-      bonding_curve_contract, bonding_curve_registered,
-    } = body;
-
-    if (!name || !symbol || !owner || !contractAddress) {
-      return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
     }
+
+    const { bonding_curve_contract, bonding_curve_registered } = body as Record<string, unknown>;
+    const {
+      name, symbol, description, imageUrl, socialLink,
+      totalSupply: supply, owner, contractAddress,
+    } = validateTokenInput(body as Record<string, unknown>);
 
     const existing = await query('SELECT * FROM tokens WHERE contract_address = $1 LIMIT 1', [contractAddress]) as any;
     if (existing?.rows && existing.rows.length > 0) {
@@ -66,7 +67,6 @@ export async function POST(req: NextRequest) {
     }
 
     const INITIAL_PRICE = 0.0001;
-    const supply = parseFloat(String(totalSupply || 0));
     const initialMarketcap = INITIAL_PRICE * supply;
     // Default slope for Stellar based on contract
     const DEFAULT_SLOPE = 25000; // stroops
@@ -92,16 +92,16 @@ export async function POST(req: NextRequest) {
       [
         name,
         symbol,
-        description || null,
-        image_url || null,
-        social_link || null,
+        description,
+        imageUrl,
+        socialLink,
         supply,
         owner,
         contractAddress,
         INITIAL_PRICE,
         initialMarketcap,
-        bonding_curve_contract || null,
-        bonding_curve_registered ?? false,
+        typeof bonding_curve_contract === 'string' ? bonding_curve_contract : null,
+        bonding_curve_registered === true,
         INITIAL_PRICE,
         INITIAL_PRICE,
         DEFAULT_SLOPE,
@@ -116,6 +116,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: result?.rows?.[0] }, { status: 201 });
   } catch (error) {
+    if (error instanceof TokenValidationError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
     console.error('Error creating token:', error);
     return NextResponse.json({ success: false, error: 'Failed to create token' }, { status: 500 });
   }
