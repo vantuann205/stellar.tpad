@@ -1,6 +1,7 @@
 import React from 'react';
 import { Coin } from '@/types';
 import { formatMarketCap } from '@/lib/helpers';
+import { formatTimeAgo } from '@/lib/time';
 import type { TokenRecord } from '@/types/token';
 
 interface CoinCardProps {
@@ -8,16 +9,6 @@ interface CoinCardProps {
   onClick: (coin: Coin) => void;
   tokenRecord?: TokenRecord; // optional enriched data from API
 }
-
-const getTimeAgo = (timestamp: number) => {
-  const diffInMs = Date.now() - timestamp;
-  const diffInMins = Math.floor(diffInMs / 60000);
-  if (diffInMins < 60) return `${Math.max(1, diffInMins)}m ago`;
-  const diffInHours = Math.floor(diffInMins / 60);
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  return `${diffInDays}d ago`;
-};
 
 /** Neutral placeholder for tokens whose image URL is dead or missing. */
 const FALLBACK_IMAGE =
@@ -78,7 +69,7 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onClick, tokenRecord }) => {
         <div className="flex items-center text-gray-500 dark:text-gray-400 text-[12px] truncate space-x-[4px] mb-[3px]">
           <span className="text-[12px]">🐸</span>
           <span className="truncate max-w-[80px]">{(coin.creator ?? '').slice(0, 6) || 'unknown'}</span>
-          <span>{getTimeAgo(coin.createdAt)}</span>
+          <span>{formatTimeAgo(coin.createdAt)}</span>
         </div>
 
         <div className="flex items-center space-x-2 text-[12.5px] whitespace-nowrap mb-1">

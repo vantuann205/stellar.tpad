@@ -14,21 +14,13 @@ import { Coin, ViewState, SortOption } from '@/types';
 import { formatMarketCap, formatPriceChange, formatTraderCount, formatVolume } from '@/lib/helpers';
 import { getWalletErrorMessage, stellarWalletService, WalletServiceError } from '@/services/wallet.service';
 import { initialWalletState, walletStateReducer } from '@/store/wallet.store';
-import { parsePossiblyUtc7Timestamp } from '@/lib/time';
+import { formatTimeAgoShort, parsePossiblyUtc7Timestamp } from '@/lib/time';
 import { useRef } from 'react';
 import { useNetwork } from '@/hooks/useNetwork';
 
 const CreateCoinPage = dynamic(() => import('@/components/common/CreateCoinPage'), { ssr: false });
 const LivestreamsPage = dynamic(() => import('@/components/common/LivestreamsPage'), { ssr: false });
 const SupportPage    = dynamic(() => import('@/components/common/SupportPage'),    { ssr: false });
-
-const getTimeAgoShort = (ts: number) => {
-  const m = Math.floor((Date.now() - ts) / 60000);
-  if (m < 60) return `${Math.max(1, m)}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  return `${Math.floor(h / 24)}d`;
-};
 
 const formatChangeValue = (v: number | null) =>
   v === null || !Number.isFinite(v) ? '--' : formatPriceChange(v);
@@ -273,7 +265,7 @@ export default function Home() {
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-emerald-400 font-mono">{coin.ticker}</td>
-                              <td className="px-4 py-3 text-gray-500">{getTimeAgoShort(coin.createdAt)}</td>
+                              <td className="px-4 py-3 text-gray-500">{formatTimeAgoShort(coin.createdAt)}</td>
                               <td className="px-4 py-3 font-mono text-xs text-gray-400">
                                 {coin.contractAddress ? `${coin.contractAddress.slice(0, 8)}...` : '—'}
                               </td>

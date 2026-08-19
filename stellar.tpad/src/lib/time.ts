@@ -83,3 +83,26 @@ export function formatUtc7DateTime(
     ...options,
   }).format(date);
 }
+
+/**
+ * Compact age of a timestamp: `5m`, `3h`, `2d`.
+ * Anything in the future, or unparseable, renders as `--`.
+ */
+export function formatTimeAgoShort(value: string | number | Date | null | undefined): string {
+  const date = parsePossiblyUtc7Timestamp(value);
+  if (!date) return '--';
+
+  const minutes = Math.floor((Date.now() - date.getTime()) / 60_000);
+  if (minutes < 0) return '--';
+  if (minutes < 60) return `${Math.max(1, minutes)}m`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
+/** Same scale as {@link formatTimeAgoShort} with an `ago` suffix. */
+export function formatTimeAgo(value: string | number | Date | null | undefined): string {
+  const short = formatTimeAgoShort(value);
+  return short === '--' ? short : `${short} ago`;
+}
