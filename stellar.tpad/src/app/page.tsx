@@ -223,9 +223,13 @@ export default function Home() {
                       ))}
                       {sorted.length === 0 && (
                         <div className="col-span-full py-20 text-center text-gray-500">
-                          Chưa có coin nào.{' '}
-                          <button onClick={() => setViewState(ViewState.CREATE)} className="text-emerald-400 hover:underline">
-                            Tạo coin đầu tiên →
+                          No coins yet.{' '}
+                          <button
+                            type="button"
+                            onClick={() => setViewState(ViewState.CREATE)}
+                            className="text-emerald-400 hover:underline"
+                          >
+                            Launch the first one →
                           </button>
                         </div>
                       )}
@@ -254,13 +258,26 @@ export default function Home() {
                           {sorted.map((coin, idx) => (
                             <tr
                               key={coin.id}
+                              tabIndex={0}
+                              aria-label={`Open ${coin.name} (${coin.ticker})`}
                               onClick={() => handleCoinClick(coin)}
-                              className="cursor-pointer border-b border-gray-200/60 text-gray-800 transition hover:bg-slate-100/70 dark:border-[#1c273a] dark:text-gray-100 dark:hover:bg-[#101726]"
+                              onKeyDown={(event) => {
+                                if (event.key !== 'Enter' && event.key !== ' ') return;
+                                event.preventDefault();
+                                handleCoinClick(coin);
+                              }}
+                              className="cursor-pointer border-b border-gray-200/60 text-gray-800 transition hover:bg-slate-100/70 focus:outline-none focus-visible:bg-slate-100/70 dark:border-[#1c273a] dark:text-gray-100 dark:hover:bg-[#101726] dark:focus-visible:bg-[#101726]"
                             >
                               <td className="px-4 py-3 text-gray-500">#{idx + 1}</td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-3">
-                                  <img src={coin.imageUrl} alt={coin.name} className="h-8 w-8 rounded-full object-cover" />
+                                  <img
+                                    src={coin.imageUrl}
+                                    alt=""
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="h-8 w-8 rounded-full object-cover bg-gray-200 dark:bg-gray-800"
+                                  />
                                   <span className="font-semibold">{coin.name}</span>
                                 </div>
                               </td>
@@ -272,7 +289,18 @@ export default function Home() {
                             </tr>
                           ))}
                           {sorted.length === 0 && (
-                            <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">No tokens yet.</td></tr>
+                            <tr>
+                              <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                No coins yet.{' '}
+                                <button
+                                  type="button"
+                                  onClick={() => setViewState(ViewState.CREATE)}
+                                  className="text-emerald-400 hover:underline"
+                                >
+                                  Launch the first one →
+                                </button>
+                              </td>
+                            </tr>
                           )}
                         </tbody>
                       </table>
