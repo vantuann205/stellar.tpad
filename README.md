@@ -44,8 +44,8 @@ We have prepared this application for production with continuous integration, on
 | Public GitHub repository | ✅ | [vantuann205/stellar.tpad](https://github.com/vantuann205/stellar.tpad) |
 | Minimum 30+ meaningful commits | ✅ | [Commit history](https://github.com/vantuann205/stellar.tpad/commits/main/) |
 | Live Mainnet application | ✅ | [Railway production](https://stellartpad-production.up.railway.app/) |
-| Mainnet contract addresses | ✅ | [Factory](https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU) · [Bonding curve](https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY) · [TPAD token](https://stellar.expert/explorer/public/contract/CDFLPOHFVWBNRWKKAFDDPOI66AXP76CFBI5IAUDSZBSF7PMEAJOLOIGR) |
-| Proof of 20+ Mainnet users | ✅ | [20 Mainnet accounts · 16 verified buy/sell users](./MAINNET_USERS.md) |
+| Mainnet contract addresses | ✅ | [Factory](https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU) · [Bonding curve](https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY) · [TPAD token](https://stellar.expert/explorer/public/contract/CDFLPOHFVWBNRWKKAFDDPOI66AXP76CFBI5IAUDSZBSF7PMEAJOLOIGR) · [OSPK](https://stellar.expert/explorer/public/contract/CALWP4NNY2GN6A2ADVXJFAFL4VVFAD4Q6OFW2K7JTRUBOWRHY5WGDRJ6) · [LDRF](https://stellar.expert/explorer/public/contract/CCUHLAYS2RWEM5BEOJNU26ZAQSD5LDE62DUYHRVYE6LPU5QJMYYVFOX5) |
+| Proof of 20+ Mainnet users | ✅ | [25 Mainnet accounts with verified buy/sell activity](./MAINNET_USERS.md) |
 | Transaction activity proof | ✅ | [Mainnet transactions](#mainnet-transaction-proof) |
 | Audit/security review proof | ✅ | [Security review](./SECURITY_REVIEW.md) · [CI checks](https://github.com/vantuann205/stellar.tpad/actions) |
 | Twitter/X launch post | ✅ | [@stellartpad](https://x.com/stellartpad) |
@@ -64,7 +64,9 @@ We have prepared this application for production with continuous integration, on
 | Deploy bonding curve | [`7ce2828a…965d`](https://stellar.expert/explorer/public/tx/7ce2828a3a0a3db7be75457be7db69f00736d38d1b5e71b1cc0c9e24f06e965d) |
 | Deploy factory | [`65eddfb3…cdf8`](https://stellar.expert/explorer/public/tx/65eddfb3c0abf3bc04d79d483d4629dc58cc3a02f782d89646e054157579cdf8) |
 | Create TPAD token | [`527369f7…1b9`](https://stellar.expert/explorer/public/tx/527369f79dc343ddd75d0f4b4a3a78bb854656662e0dd98001a192041bf7a1b9) |
-| 16-user buy/sell activity | [32 verified Mainnet transactions](./MAINNET_USERS.md#verified-mainnet-activity) |
+| Create Orbit Spark (OSPK) | [`e4e7ad16…a05d`](https://stellar.expert/explorer/public/tx/e4e7ad163ae407b40c8ab16f5b1a04052097c2e94b95bcf44d4c2459ff66a05d) |
+| Create Lumen Drift (LDRF) | [`88fbdef1…37d5`](https://stellar.expert/explorer/public/tx/88fbdef1eabdc1083c3e47cb027d34e9f5628e5c143be4b2c707779d730337d5) |
+| 25-account buy/sell activity | [52 verified Mainnet transaction records](./MAINNET_USERS.md#verified-mainnet-activity) |
 
 ---
 
@@ -83,6 +85,8 @@ Here is the live interface optimized for mobile viewports, featuring real-time p
 * **Token Factory Contract:** [`CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU`](https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU)
 * **Bonding Curve Contract:** [`CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY`](https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY)
 * **TPAD Token Contract:** [`CDFLPOHFVWBNRWKKAFDDPOI66AXP76CFBI5IAUDSZBSF7PMEAJOLOIGR`](https://stellar.expert/explorer/public/contract/CDFLPOHFVWBNRWKKAFDDPOI66AXP76CFBI5IAUDSZBSF7PMEAJOLOIGR)
+* **Orbit Spark (OSPK):** [`CALWP4NNY2GN6A2ADVXJFAFL4VVFAD4Q6OFW2K7JTRUBOWRHY5WGDRJ6`](https://stellar.expert/explorer/public/contract/CALWP4NNY2GN6A2ADVXJFAFL4VVFAD4Q6OFW2K7JTRUBOWRHY5WGDRJ6)
+* **Lumen Drift (LDRF):** [`CCUHLAYS2RWEM5BEOJNU26ZAQSD5LDE62DUYHRVYE6LPU5QJMYYVFOX5`](https://stellar.expert/explorer/public/contract/CCUHLAYS2RWEM5BEOJNU26ZAQSD5LDE62DUYHRVYE6LPU5QJMYYVFOX5)
 * **Native XLM SAC:** `CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA`
 * **Token WASM Hash:** `547a076fedf192ebf3fc0d274ca80fdc578c6a2c02176643554ffe46a45843da`
 
