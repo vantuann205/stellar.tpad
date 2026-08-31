@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stellar TPad — Pitch Deck</title>
+<meta name="description" content="Stellar TPad: a token launchpad on Soroban with on-chain linear bonding curves, instant liquidity and no rug-pullable LP." />
+<style>
+  :root{
+    --bg:#08060f; --panel:#120e21; --panel2:#191333; --line:#2c2352;
+    --ink:#f0ecff; --muted:#a196cc; --accent:#a78bfa; --accent2:#38bdf8;
+    --gold:#fbbf24; --green:#34d399;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .deck{max-width:1140px;margin:0 auto;padding:24px 20px 96px}
+
+  .slide{
+    background:linear-gradient(165deg,var(--panel) 0%,#0b0818 100%);
+    border:1px solid var(--line);border-radius:22px;
+    padding:46px 48px;margin:0 0 22px;position:relative;overflow:hidden;
+  }
+  .slide::before{
+    content:"";position:absolute;inset:0 0 auto 0;height:2px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2),transparent);
+    opacity:.6;
+  }
+  .slide>:first-child{margin-top:0}
+  .slide>:last-child{margin-bottom:0}
+
+  .eyebrow{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 12px}
+  .eyebrow .n{color:var(--muted);font-family:var(--mono);margin-right:8px}
+
+  h1{font-size:clamp(36px,5.6vw,62px);line-height:1.02;margin:0 0 16px;letter-spacing:-.025em}
+  h2{font-size:clamp(25px,3.5vw,38px);line-height:1.14;margin:0 0 18px;letter-spacing:-.018em}
+  h3{font-size:17px;margin:28px 0 10px}
+  p{margin:0 0 14px;color:#ded7f5}
+  .lead{font-size:clamp(17px,2.1vw,21px);color:#ded7f5;max-width:76ch}
+  .muted{color:var(--muted)}
+  small{color:var(--muted);font-size:13px;line-height:1.5;display:block}
+
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  @media(max-width:880px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:15px;padding:18px 20px}
+  .card h4{margin:0 0 8px;font-size:15px}
+  .card p{margin:0;font-size:14.5px;color:var(--muted)}
+  .card.hi{border-color:rgba(167,139,250,.45);background:linear-gradient(160deg,rgba(167,139,250,.09),var(--panel2))}
+
+  .stat{font-family:var(--mono);font-size:clamp(26px,4vw,40px);font-weight:700;color:var(--accent);line-height:1.05}
+  .stat.g{color:var(--green)}
+  .stat-sub{font-size:13px;color:var(--muted);margin-top:6px}
+
+  ul{margin:0 0 14px;padding-left:20px;color:#ded7f5}
+  li{margin:0 0 9px}
+  li::marker{color:var(--accent)}
+
+  table{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:14.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase}
+  code{font-family:var(--mono);font-size:13px;color:var(--accent2);word-break:break-all}
+
+  pre{background:#050310;border:1px solid var(--line);border-radius:13px;padding:18px 20px;overflow-x:auto;
+      font-family:var(--mono);font-size:13.5px;line-height:1.7;color:#c7bdf0;margin:0 0 14px}
+
+  a{color:var(--accent2);text-decoration:none;border-bottom:1px solid rgba(56,189,248,.32)}
+  a:hover{border-bottom-color:var(--accent2)}
+
+  .pill{display:inline-block;font-size:12px;font-family:var(--mono);padding:4px 10px;border-radius:999px;
+        background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.3)}
+  .pill.w{background:rgba(251,191,36,.1);color:var(--gold);border-color:rgba(251,191,36,.3)}
+  .pill.n{background:rgba(161,150,204,.1);color:var(--muted);border-color:var(--line)}
+
+  .note{border-left:3px solid var(--gold);background:rgba(251,191,36,.07);padding:12px 16px;border-radius:0 10px 10px 0;font-size:14.5px;color:#efe0c0}
+  .note strong{color:var(--gold)}
+  .note.p{border-left-color:var(--accent);background:rgba(167,139,250,.08);color:#e4dcff}
+  .note.p strong{color:var(--accent)}
+
+  .toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .toc a{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);
+         background:var(--panel2);color:var(--muted);border-bottom:1px solid var(--line)}
+  .toc a:hover{color:var(--ink);border-color:var(--accent)}
+
+  footer{text-align:center;color:var(--muted);font-size:13px;padding:12px 0 0}
+
+  @media print{
+    body{background:#fff;color:#111}
+    .slide{break-after:page;border:none;background:#fff;padding:22px 0}
+    .slide::before{display:none}
+    h1,h2,h3,p,li,td,.lead{color:#111}
+    .card{background:#f6f4fd;border-color:#ddd}
+    a{color:#5b21b6}
+    .toc{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+<!-- 1 · COVER -->
+<section class="slide" id="cover">
+  <p class="eyebrow">Stellar · Soroban · Mainnet</p>
+  <h1>Stellar TPad</h1>
+  <p class="lead">A token launchpad where the liquidity is the contract. Creators launch in one transaction, buyers get a price from day zero, and there is no LP pool for anyone to pull.</p>
+  <div class="grid g4" style="margin-top:30px">
+    <div class="card hi"><div class="stat">5</div><div class="stat-sub">contracts live on Stellar Mainnet</div></div>
+    <div class="card hi"><div class="stat">25</div><div class="stat-sub">Mainnet wallets with verified trades</div></div>
+    <div class="card hi"><div class="stat">54</div><div class="stat-sub">on-chain buy/sell transactions</div></div>
+    <div class="card hi"><div class="stat">0.5%</div><div class="stat-sub">protocol fee, both directions</div></div>
+  </div>
+  <div class="toc">
+    <a href="#problem">Problem</a><a href="#solution">Solution</a><a href="#whynow">Why now</a>
+    <a href="#product">Product</a><a href="#tech">Technology</a><a href="#traction">Traction</a>
+    <a href="#model">Business model</a><a href="#market">Market</a><a href="#competition">Competition</a>
+    <a href="#roadmap">Roadmap</a><a href="#team">Team</a><a href="#ask">Ask</a>
+  </div>
+</section>
+
+<!-- 2 · PROBLEM -->
+<section class="slide" id="problem">
+  <p class="eyebrow"><span class="n">01</span>Problem</p>
+  <h2>Launching a token means bootstrapping a market you cannot afford</h2>
+  <p class="lead">Minting a token is trivial. Making it tradeable is not — and that gap is where most launches die.</p>
+
+  <div class="grid g3" style="margin-top:24px">
+    <div class="card">
+      <h4>Liquidity has to be bought</h4>
+      <p>A new token needs a paired pool before anyone can trade it. The creator must supply both sides — capital most early projects simply do not have.</p>
+    </div>
+    <div class="card">
+      <h4>That pool is the rug</h4>
+      <p>Whoever funds the LP can withdraw it. The single largest category of loss in token launches is the creator removing the liquidity they provided.</p>
+    </div>
+    <div class="card">
+      <h4>No price until someone sets one</h4>
+      <p>Before a pool exists there is no price discovery at all. The first buyer is guessing, and the creator has every incentive to let them.</p>
+    </div>
+  </div>
+
+  <p style="margin-top:20px">The result is an ecosystem where launching is easy, trading is fragile, and buyers price in a rug that frequently arrives. Every honest creator pays that risk premium too.</p>
+</section>
+
+<!-- 3 · SOLUTION -->
+<section class="slide" id="solution">
+  <p class="eyebrow"><span class="n">02</span>Solution</p>
+  <h2>Replace the pool with a curve</h2>
+  <p class="lead">Stellar TPad prices tokens from a bonding curve held inside a Soroban contract. There is no LP to fund, and none to withdraw.</p>
+
+  <pre>price(supply) = base_price + slope × (sold_supply / 10,000,000)
+
+buy  →  contract mints against the curve, takes XLM, charges 0.5%
+sell →  contract burns against the curve, returns XLM, charges 0.5%</pre>
+
+  <div class="grid g3" style="margin-top:6px">
+    <div class="card">
+      <h4>Liquidity from block one</h4>
+      <p>The curve quotes a bid and an ask the moment a token exists. No seeding round, no waiting for a counterparty.</p>
+    </div>
+    <div class="card">
+      <h4>Nothing to rug</h4>
+      <p>Reserves live in the bonding-curve contract and are only reachable through <code>buy</code> and <code>sell</code>. There is no withdrawal function for a creator to call.</p>
+    </div>
+    <div class="card">
+      <h4>Exit is always open</h4>
+      <p>Selling back into the curve is a contract call, not a search for a buyer. A holder is never waiting for someone else to take the other side.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 · WHY NOW -->
+<section class="slide" id="whynow">
+  <p class="eyebrow"><span class="n">03</span>Why now</p>
+  <h2>Bonding curves proved the demand. Stellar makes the economics work.</h2>
+
+  <table>
+    <thead><tr><th>What changed</th><th>Why it matters here</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Curve launchpads found product-market fit</strong></td><td>The model is validated on other chains. The open question is no longer whether users want it.</td></tr>
+      <tr><td><strong>Soroban reached Mainnet</strong></td><td>Stellar can now run the contract logic a curve needs — cross-contract deployment, persistent storage, typed events.</td></tr>
+      <tr><td><strong>Stellar fees are a rounding error</strong></td><td>A launchpad is a high-frequency, low-ticket product. On a chain where a trade costs a fraction of a cent, small trades stay economic.</td></tr>
+      <tr><td><strong>Five-second finality</strong></td><td>Curve pricing moves with every trade. Slow settlement means stale quotes and failed transactions.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note p" style="margin-top:14px">
+    <strong>The gap we are filling.</strong> Stellar has the settlement layer and the user base, but no native curve-based launchpad. We are early on a chain that is late to this category — which is the good version of that trade.
+  </div>
+</section>
+
+<!-- 5 · PRODUCT -->
+<section class="slide" id="product">
+  <p class="eyebrow"><span class="n">04</span>Product</p>
+  <h2>One transaction from idea to tradeable token</h2>
+
+<pre>Creator names a token
+        │
+        ▼
+ Factory deploys a SEP-41 token contract          ← deterministic address
+        │  (same transaction)
+        ▼
+ Token registers with the bonding curve            ← inter-contract call
+        │
+        ▼
+ Anyone can buy or sell immediately
+        │
+        ├── buy  →  XLM in,  tokens out,  0.5% → treasury
+        └── sell →  tokens in, XLM out,   0.5% → treasury</pre>
+
+  <div class="grid g2">
+    <div class="card">
+      <h4>For creators</h4>
+      <p>No capital to raise, no pool to seed, no listing to negotiate. Name the token and it is live with a market.</p>
+    </div>
+    <div class="card">
+      <h4>For traders</h4>
+      <p>A quoted price before the first trade, a guaranteed counterparty, and reserves that no key can drain.</p>
+    </div>
+    <div class="card">
+      <h4>Standards-compliant</h4>
+      <p>Tokens are SEP-41 — <code>name</code>, <code>symbol</code>, <code>decimals</code>, <code>balance</code>, <code>transfer</code>, <code>burn</code>. They work in any Stellar wallet, not only in ours.</p>
+    </div>
+    <div class="card">
+      <h4>Supply is fixed at launch</h4>
+      <p>Minting is closed after the initial supply. A creator cannot inflate the token out from under its holders.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 · TECHNOLOGY -->
+<section class="slide" id="tech">
+  <p class="eyebrow"><span class="n">05</span>Technology</p>
+  <h2>Three contracts, composed</h2>
+
+  <table>
+    <thead><tr><th>Contract</th><th>Responsibility</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Factory</strong></td><td>Deploys token contracts at deterministic addresses via <code>deployer().with_current_contract(salt)</code>, then registers each one with the curve in the same transaction.</td></tr>
+      <tr><td><strong>Bonding curve</strong></td><td>Holds reserves, prices buys and sells, enforces slippage limits, routes the 0.5% fee to treasury, emits typed events.</td></tr>
+      <tr><td><strong>Token</strong></td><td>SEP-41 implementation. Mint closed after launch; burn available to the curve on sells.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid g3" style="margin-top:8px">
+    <div class="card"><h4>Atomic deploy-and-register</h4><p>A token cannot exist without a market, because both happen in one transaction or neither does.</p></div>
+    <div class="card"><h4>Storage TTL management</h4><p>Persistent and instance TTLs are extended on every active path, so a live token's state cannot be archived out from under it.</p></div>
+    <div class="card"><h4>Real-time event streaming</h4><p>Contract events drive instant price and metrics updates in the interface without polling the chain.</p></div>
+  </div>
+
+  <p style="margin-top:8px"><strong>Stack:</strong> Next.js 14 · TypeScript · Rust / Soroban SDK · PostgreSQL 16 · Freighter · Railway · GitHub Actions CI.</p>
+  <p class="muted" style="font-size:14px">24 contract unit and integration tests run in CI alongside the frontend build on every push.</p>
+</section>
+
+<!-- 7 · TRACTION -->
+<section class="slide" id="traction">
+  <p class="eyebrow"><span class="n">06</span>Traction</p>
+  <h2>Live on Mainnet, with public evidence</h2>
+  <p class="lead">Every number below resolves to a block explorer page. None of it requires trusting us.</p>
+
+  <div class="grid g4" style="margin:18px 0">
+    <div class="card"><div class="stat g">3</div><div class="stat-sub">tokens launched on Mainnet</div></div>
+    <div class="card"><div class="stat g">25</div><div class="stat-sub">distinct trading wallets</div></div>
+    <div class="card"><div class="stat g">54</div><div class="stat-sub">verified buy/sell transactions</div></div>
+    <div class="card"><div class="stat g">141</div><div class="stat-sub">commits on <code>main</code></div></div>
+  </div>
+
+  <table>
+    <tbody>
+      <tr><th style="width:170px">Factory</th><td><a href="https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU"><code>CDR6H3FZ…V6ILLU</code></a></td></tr>
+      <tr><th>Bonding curve</th><td><a href="https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY"><code>CDMZM67N…RVADHY</code></a></td></tr>
+      <tr><th>Tokens launched</th><td>
+        <a href="https://stellar.expert/explorer/public/contract/CDFLPOHFVWBNRWKKAFDDPOI66AXP76CFBI5IAUDSZBSF7PMEAJOLOIGR">TPAD</a> ·
+        <a href="https://stellar.expert/explorer/public/contract/CALWP4NNY2GN6A2ADVXJFAFL4VVFAD4Q6OFW2K7JTRUBOWRHY5WGDRJ6">Orbit Spark (OSPK)</a> ·
+        <a href="https://stellar.expert/explorer/public/contract/CCUHLAYS2RWEM5BEOJNU26ZAQSD5LDE62DUYHRVYE6LPU5QJMYYVFOX5">Lumen Drift (LDRF)</a>
+      </td></tr>
+      <tr><th>Application</th><td><a href="https://stellartpad-production.up.railway.app/">stellartpad-production.up.railway.app</a></td></tr>
+      <tr><th>Repository</th><td><a href="https://github.com/vantuann205/stellar.tpad">vantuann205/stellar.tpad</a></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 8 · BUSINESS MODEL -->
+<section class="slide" id="model">
+  <p class="eyebrow"><span class="n">07</span>Business model</p>
+  <h2>0.5% of every trade, in both directions</h2>
+  <p class="lead">The fee is charged by the contract, not invoiced by us. It is taken on the way in and on the way out, and routed to a treasury address on every single trade.</p>
+
+  <pre>buy   cost   = curve_cost;    fee = cost × 0.5%;      user pays cost + fee
+sell  proceeds = curve_proceeds; fee = proceeds × 0.5%;  user receives proceeds − fee
+
+fee → treasury, atomically, inside the same contract call</pre>
+
+  <div class="grid g3">
+    <div class="card"><h4>Volume-linked, not user-linked</h4><p>Revenue scales with trading rather than with headcount. One active token can out-earn a hundred dormant ones.</p></div>
+    <div class="card"><h4>Symmetric</h4><p>Charging both sides means revenue does not depend on a market going up. Volatility is the input, not direction.</p></div>
+    <div class="card"><h4>Non-custodial</h4><p>We never hold user funds. The fee is a transfer inside a contract call the user authorised.</p></div>
+  </div>
+
+  <h3>Unit economics</h3>
+  <table>
+    <thead><tr><th>Daily volume through the curve</th><th>Protocol fee at 0.5%, both sides</th><th>Annualised</th></tr></thead>
+    <tbody>
+      <tr><td>$10,000</td><td>$50 / day</td><td>~$18,000</td></tr>
+      <tr><td>$100,000</td><td>$500 / day</td><td>~$180,000</td></tr>
+      <tr><td>$1,000,000</td><td>$5,000 / day</td><td>~$1.8M</td></tr>
+    </tbody>
+  </table>
+  <small>Arithmetic on the deployed <code>FEE_BPS = 50</code> constant. These are illustrative volume scenarios, not forecasts or achieved figures.</small>
+</section>
+
+<!-- 9 · MARKET -->
+<section class="slide" id="market">
+  <p class="eyebrow"><span class="n">08</span>Market opportunity</p>
+  <h2>A proven category, arriving on a chain that does not have it</h2>
+
+  <div class="grid g3" style="margin-bottom:6px">
+    <div class="card">
+      <h4>TAM — curve-based launchpads</h4>
+      <p>The category is established across major L1s and is measured in billions of cumulative trading volume. Stellar TPad competes for the share of that behaviour that follows low fees and fast finality.</p>
+    </div>
+    <div class="card">
+      <h4>SAM — the Stellar ecosystem</h4>
+      <p>Stellar's existing wallet base and asset issuers, none of whom currently have a native curve-priced launch venue.</p>
+    </div>
+    <div class="card">
+      <h4>SOM — first mover on Soroban</h4>
+      <p>Live contracts and real trades today. The realistic near-term target is the creators already building on Stellar who need a market without funding one.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>On the numbers.</strong> This slide deliberately carries no cited market size. Launchpad volume figures move weekly and vary widely by source, and a deck that quotes an unverifiable TAM is worth less than one that does not. The bottom-up economics on the previous slide are derived from the contract's own fee constant and can be checked against the deployed code.
+    <br><br>Before external fundraising use, insert a current figure with its source and date.
+  </div>
+
+  <h3>Where we win</h3>
+  <p>Not on being the first bonding curve — on being the one where a $5 trade is still worth making. Fee-heavy chains push launchpads toward large tickets and speculative volume. Stellar's cost structure supports the small, frequent trades a curve is actually designed for.</p>
+</section>
+
+<!-- 10 · COMPETITION -->
+<section class="slide" id="competition">
+  <p class="eyebrow"><span class="n">09</span>Competition</p>
+  <h2>Where we sit</h2>
+
+  <table>
+    <thead><tr><th>Approach</th><th>Liquidity</th><th>Rug surface</th><th>Cost per trade</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Traditional DEX listing</strong></td><td>Creator funds an LP pool</td><td>LP can be withdrawn</td><td>Chain-dependent</td></tr>
+      <tr><td><strong>Curve launchpads on other L1s</strong></td><td>Contract-held curve</td><td>Low — no LP to pull</td><td>Higher; small trades become uneconomic</td></tr>
+      <tr><td><strong>Manual token issuance on Stellar</strong></td><td>None until someone makes a market</td><td>n/a — there is no market</td><td>Very low</td></tr>
+      <tr><td class="muted"><strong>Stellar TPad</strong></td><td>Contract-held curve, live at launch</td><td>No withdrawal function exists</td><td>Fraction of a cent</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Defensibility, honestly assessed</h3>
+  <p>The contract logic is not a moat — a bonding curve is well-understood and reimplementable. What compounds is <strong>the token registry itself</strong>: every token launched here is permanently priced by our curve contract, and its holders trade through it for the life of the token. Being first to that registry on Stellar is the position worth holding.</p>
+</section>
+
+<!-- 11 · ROADMAP -->
+<section class="slide" id="roadmap">
+  <p class="eyebrow"><span class="n">10</span>Roadmap</p>
+  <h2>Depth before breadth</h2>
+
+  <div class="grid g2">
+    <div class="card"><h4><span class="pill">Shipped</span> &nbsp;Mainnet launchpad</h4><p>Factory, bonding curve and SEP-41 token live. 3 tokens launched, 25 wallets, 54 verified trades, CI on every push.</p></div>
+    <div class="card"><h4><span class="pill w">Next</span> &nbsp;Reserve headroom guard</h4><p>Prevent a buyer from spending into Stellar's minimum-balance reserve and stranding their own position. Highest-priority fix.</p></div>
+    <div class="card"><h4><span class="pill w">Next</span> &nbsp;Graduation to a DEX pool</h4><p>Automatic migration of curve reserves into an AMM pool once a token reaches a threshold — the standard lifecycle for this category.</p></div>
+    <div class="card"><h4><span class="pill n">Later</span> &nbsp;Configurable curve parameters</h4><p>Let creators choose base price and slope within audited bounds instead of a single default shape.</p></div>
+    <div class="card"><h4><span class="pill n">Later</span> &nbsp;Creator revenue share</h4><p>Route part of the trading fee to the token creator, aligning them with sustained volume rather than a launch-day exit.</p></div>
+    <div class="card"><h4><span class="pill n">Later</span> &nbsp;Third-party audit</h4><p>Published security material today is an internal review. An external audit gates any increase in what the contracts are trusted to hold.</p></div>
+  </div>
+
+  <div class="note" style="margin-top:18px">
+    <strong>Known issue, stated openly.</strong> A buyer who spends their entire XLM balance cannot currently pay the fee to sell back, because Stellar reserves 1 XLM per account. The tokens are not lost — the account needs a small top-up — but the flow should prevent it rather than explain it. It is the first item after this submission.
+  </div>
+</section>
+
+<!-- 12 · TEAM -->
+<section class="slide" id="team">
+  <p class="eyebrow"><span class="n">11</span>Team</p>
+  <h2>Who built this</h2>
+
+  <div class="note" style="margin-bottom:18px">
+    <strong>To be completed before any external use.</strong> This slide is intentionally left as a template rather than filled with placeholder people. Add names, roles, and one line of relevant background each — investors read this slide first and an invented one is worse than none.
+  </div>
+
+  <div class="grid g3">
+    <div class="card"><h4>Name — Role</h4><p>One line: what they have built before that makes them the right person for this part.</p></div>
+    <div class="card"><h4>Name — Role</h4><p>One line: relevant prior work.</p></div>
+    <div class="card"><h4>Name — Role</h4><p>One line: relevant prior work.</p></div>
+  </div>
+
+  <h3>What the work so far demonstrates</h3>
+  <ul>
+    <li><strong>Shipped to Mainnet, not testnet.</strong> Three interoperating Soroban contracts deployed and transacting with real value.</li>
+    <li><strong>Production discipline.</strong> CI on every push, 24 contract tests, a written security review, responsive interface, error tracking.</li>
+    <li><strong>141 commits</strong> of continuous development rather than a single submission push.</li>
+  </ul>
+</section>
+
+<!-- 13 · ASK -->
+<section class="slide" id="ask">
+  <p class="eyebrow"><span class="n">12</span>Close</p>
+  <h2>Check it rather than believe it</h2>
+  <p class="lead">Every claim in this deck resolves to a deployed contract, a public transaction, or a file in the repository.</p>
+
+  <div class="grid g2" style="margin-top:20px">
+    <div class="card"><h4>Try the product</h4><p><a href="https://stellartpad-production.up.railway.app/">stellartpad-production.up.railway.app</a></p></div>
+    <div class="card"><h4>Read the code</h4><p><a href="https://github.com/vantuann205/stellar.tpad">github.com/vantuann205/stellar.tpad</a></p></div>
+    <div class="card"><h4>Inspect the curve</h4><p><a href="https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY">Bonding curve on Stellar Expert</a></p></div>
+    <div class="card"><h4>Verify the users</h4><p><a href="https://github.com/vantuann205/stellar.tpad/blob/main/MAINNET_USERS.md">25 Mainnet accounts, 54 transactions</a></p></div>
+  </div>
+
+  <div class="note" style="margin-top:20px">
+    <strong>Mainnet carries real value.</strong> XLM on the Public Network is real money. Never approve a transaction whose contract, network or amount differs from what the application shows you.
+  </div>
+</section>
+
+<footer>Stellar TPad · Print this page to export the deck as PDF — one slide per page</footer>
+</div>
+</body>
+</html>

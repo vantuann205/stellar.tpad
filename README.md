@@ -7,6 +7,9 @@
 ### 🌐 Live Production Demo
 **👉 [https://stellartpad-production.up.railway.app/](https://stellartpad-production.up.railway.app/)**
 
+### 📊 Pitch Deck
+**👉 [Open pitch deck](https://stellartpad-production.up.railway.app/submission/pitch-deck.html)**
+
 ---
 
 <div align="center">
@@ -44,6 +47,7 @@ We have prepared this application for production with continuous integration, on
 | Public GitHub repository | ✅ | [vantuann205/stellar.tpad](https://github.com/vantuann205/stellar.tpad) |
 | Minimum 30+ meaningful commits | ✅ | [Commit history](https://github.com/vantuann205/stellar.tpad/commits/main/) |
 | Live Mainnet application | ✅ | [Railway production](https://stellartpad-production.up.railway.app/) |
+| PPT/Pitch deck link | ✅ | [Open pitch deck](https://stellartpad-production.up.railway.app/submission/pitch-deck.html) |
 | Mainnet contract addresses | ✅ | [Factory](https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU) · [Bonding curve](https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY) · [TPAD token](https://stellar.expert/explorer/public/contract/CDFLPOHFVWBNRWKKAFDDPOI66AXP76CFBI5IAUDSZBSF7PMEAJOLOIGR) · [OSPK](https://stellar.expert/explorer/public/contract/CALWP4NNY2GN6A2ADVXJFAFL4VVFAD4Q6OFW2K7JTRUBOWRHY5WGDRJ6) · [LDRF](https://stellar.expert/explorer/public/contract/CCUHLAYS2RWEM5BEOJNU26ZAQSD5LDE62DUYHRVYE6LPU5QJMYYVFOX5) |
 | Proof of 20+ Mainnet users | ✅ | [25 Mainnet accounts with verified buy/sell activity](./MAINNET_USERS.md) |
 | Transaction activity proof | ✅ | [Mainnet transactions](#mainnet-transaction-proof) |
