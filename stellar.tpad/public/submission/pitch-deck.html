@@ -7,95 +7,102 @@
 <meta name="description" content="Stellar TPad: a token launchpad on Soroban with on-chain linear bonding curves, instant liquidity and no rug-pullable LP." />
 <style>
   :root{
-    --bg:#08060f; --panel:#120e21; --panel2:#191333; --line:#2c2352;
-    --ink:#f0ecff; --muted:#a196cc; --accent:#a78bfa; --accent2:#38bdf8;
-    --gold:#fbbf24; --green:#34d399;
+    color-scheme: light;
+    --bg:#f4f3fa; --card:#ffffff; --card2:#faf9fe;
+    --ink:#161431; --ink2:#3c3861; --muted:#6f6a94; --line:#e3e0f1;
+    --violet:#6d28d9; --violet-l:#ede9fe; --violet-d:#4c1d95;
+    --cyan:#0e7490; --cyan-l:#cffafe;
+    --green:#047857; --green-l:#d1fae5;
+    --amber:#b45309; --amber-l:#fef3c7;
+    --rose:#be123c; --rose-l:#ffe4e6;
     --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
     --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
-  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
-  .deck{max-width:1140px;margin:0 auto;padding:24px 20px 96px}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .deck{max-width:1160px;margin:0 auto;padding:26px 20px 90px}
 
   .slide{
-    background:linear-gradient(165deg,var(--panel) 0%,#0b0818 100%);
-    border:1px solid var(--line);border-radius:22px;
-    padding:46px 48px;margin:0 0 22px;position:relative;overflow:hidden;
+    background:var(--card);border:1px solid var(--line);border-radius:20px;
+    padding:44px 46px;margin:0 0 20px;position:relative;overflow:hidden;
+    box-shadow:0 1px 2px rgba(22,20,49,.04),0 8px 28px rgba(22,20,49,.05);
   }
-  .slide::before{
-    content:"";position:absolute;inset:0 0 auto 0;height:2px;
-    background:linear-gradient(90deg,var(--accent),var(--accent2),transparent);
-    opacity:.6;
-  }
+  .slide::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;
+    background:linear-gradient(90deg,var(--violet),var(--cyan) 60%,transparent)}
   .slide>:first-child{margin-top:0}
   .slide>:last-child{margin-bottom:0}
 
-  .eyebrow{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 12px}
-  .eyebrow .n{color:var(--muted);font-family:var(--mono);margin-right:8px}
+  .eyebrow{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--violet);font-weight:750;margin:0 0 12px}
+  .eyebrow .n{color:var(--muted);font-family:var(--mono);margin-right:9px;font-weight:600}
 
-  h1{font-size:clamp(36px,5.6vw,62px);line-height:1.02;margin:0 0 16px;letter-spacing:-.025em}
-  h2{font-size:clamp(25px,3.5vw,38px);line-height:1.14;margin:0 0 18px;letter-spacing:-.018em}
-  h3{font-size:17px;margin:28px 0 10px}
-  p{margin:0 0 14px;color:#ded7f5}
-  .lead{font-size:clamp(17px,2.1vw,21px);color:#ded7f5;max-width:76ch}
+  h1{font-size:clamp(38px,5.6vw,64px);line-height:1.02;margin:0 0 16px;letter-spacing:-.03em;color:var(--ink)}
+  h2{font-size:clamp(25px,3.5vw,38px);line-height:1.15;margin:0 0 16px;letter-spacing:-.02em}
+  h3{font-size:16px;margin:28px 0 10px;letter-spacing:-.01em}
+  p{margin:0 0 14px;color:var(--ink2)}
+  .lead{font-size:clamp(17px,2.05vw,20.5px);color:var(--ink2);max-width:74ch;line-height:1.55}
   .muted{color:var(--muted)}
-  small{color:var(--muted);font-size:13px;line-height:1.5;display:block}
+  small{color:var(--muted);font-size:12.5px;line-height:1.55;display:block}
 
-  .grid{display:grid;gap:16px}
+  .grid{display:grid;gap:15px}
   .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
   .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
   .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
   @media(max-width:880px){.g2,.g3,.g4{grid-template-columns:1fr}}
 
-  .card{background:var(--panel2);border:1px solid var(--line);border-radius:15px;padding:18px 20px}
-  .card h4{margin:0 0 8px;font-size:15px}
-  .card p{margin:0;font-size:14.5px;color:var(--muted)}
-  .card.hi{border-color:rgba(167,139,250,.45);background:linear-gradient(160deg,rgba(167,139,250,.09),var(--panel2))}
+  .card{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:17px 19px}
+  .card h4{margin:0 0 7px;font-size:14.5px;color:var(--ink)}
+  .card p{margin:0;font-size:14px;color:var(--muted);line-height:1.55}
+  .card.v{background:var(--violet-l);border-color:#ddd6fe}
+  .card.v h4{color:var(--violet-d)}
+  .card.v p{color:#5b21b6}
+  .card.g{background:var(--green-l);border-color:#a7f3d0}
+  .card.g h4{color:var(--green)}
+  .card.g p{color:#065f46}
 
-  .stat{font-family:var(--mono);font-size:clamp(26px,4vw,40px);font-weight:700;color:var(--accent);line-height:1.05}
-  .stat.g{color:var(--green)}
-  .stat-sub{font-size:13px;color:var(--muted);margin-top:6px}
+  .stat{font-family:var(--mono);font-size:clamp(27px,4vw,40px);font-weight:750;color:var(--violet);line-height:1.05;letter-spacing:-.02em}
+  .card.g .stat{color:var(--green)}
+  .stat-sub{font-size:12.5px;color:var(--muted);margin-top:5px;line-height:1.45}
 
-  ul{margin:0 0 14px;padding-left:20px;color:#ded7f5}
-  li{margin:0 0 9px}
-  li::marker{color:var(--accent)}
+  ul{margin:0 0 14px;padding-left:20px;color:var(--ink2)}
+  li{margin:0 0 8px}
+  li::marker{color:var(--violet)}
 
-  table{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:14.5px}
-  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{color:var(--muted);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase}
-  code{font-family:var(--mono);font-size:13px;color:var(--accent2);word-break:break-all}
+  table{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:14px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{color:var(--muted);font-weight:650;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase}
+  tbody tr:last-child td{border-bottom:none}
+  tr.hl td{background:var(--violet-l)}
+  code{font-family:var(--mono);font-size:12.5px;color:var(--cyan);word-break:break-all}
 
-  pre{background:#050310;border:1px solid var(--line);border-radius:13px;padding:18px 20px;overflow-x:auto;
-      font-family:var(--mono);font-size:13.5px;line-height:1.7;color:#c7bdf0;margin:0 0 14px}
+  figure{margin:18px 0 8px}
+  figure svg{width:100%;height:auto;display:block}
+  figcaption{font-size:12.5px;color:var(--muted);margin-top:10px;text-align:center}
 
-  a{color:var(--accent2);text-decoration:none;border-bottom:1px solid rgba(56,189,248,.32)}
-  a:hover{border-bottom-color:var(--accent2)}
+  a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(14,116,144,.28)}
+  a:hover{border-bottom-color:var(--cyan)}
 
-  .pill{display:inline-block;font-size:12px;font-family:var(--mono);padding:4px 10px;border-radius:999px;
-        background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.3)}
-  .pill.w{background:rgba(251,191,36,.1);color:var(--gold);border-color:rgba(251,191,36,.3)}
-  .pill.n{background:rgba(161,150,204,.1);color:var(--muted);border-color:var(--line)}
+  .pill{display:inline-block;font-size:11px;font-family:var(--mono);padding:3px 9px;border-radius:999px;
+        background:var(--green-l);color:var(--green);border:1px solid #a7f3d0;font-weight:600}
+  .pill.w{background:var(--amber-l);color:var(--amber);border-color:#fde68a}
+  .pill.n{background:#f1f0f7;color:var(--muted);border-color:var(--line)}
 
-  .note{border-left:3px solid var(--gold);background:rgba(251,191,36,.07);padding:12px 16px;border-radius:0 10px 10px 0;font-size:14.5px;color:#efe0c0}
-  .note strong{color:var(--gold)}
-  .note.p{border-left-color:var(--accent);background:rgba(167,139,250,.08);color:#e4dcff}
-  .note.p strong{color:var(--accent)}
+  .note{border-left:3px solid var(--amber);background:var(--amber-l);padding:13px 16px;border-radius:0 10px 10px 0;font-size:14px;color:#78350f}
+  .note strong{color:var(--amber)}
+  .note.v{border-left-color:var(--violet);background:var(--violet-l);color:#4c1d95}
+  .note.v strong{color:var(--violet)}
 
-  .toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
-  .toc a{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);
-         background:var(--panel2);color:var(--muted);border-bottom:1px solid var(--line)}
-  .toc a:hover{color:var(--ink);border-color:var(--accent)}
+  .toc{display:flex;flex-wrap:wrap;gap:7px;margin-top:24px}
+  .toc a{font-size:12.5px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);
+         background:var(--card2);color:var(--muted);border-bottom:1px solid var(--line)}
+  .toc a:hover{color:var(--violet);border-color:#ddd6fe;background:var(--violet-l)}
 
-  footer{text-align:center;color:var(--muted);font-size:13px;padding:12px 0 0}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:14px 0 0}
 
   @media print{
-    body{background:#fff;color:#111}
-    .slide{break-after:page;border:none;background:#fff;padding:22px 0}
-    .slide::before{display:none}
-    h1,h2,h3,p,li,td,.lead{color:#111}
-    .card{background:#f6f4fd;border-color:#ddd}
-    a{color:#5b21b6}
+    body{background:#fff}
+    .deck{padding:0;max-width:none}
+    .slide{break-after:page;border:none;box-shadow:none;padding:20px 0;margin:0}
     .toc{display:none}
   }
 </style>
@@ -105,15 +112,17 @@
 
 <!-- 1 · COVER -->
 <section class="slide" id="cover">
-  <p class="eyebrow">Stellar · Soroban · Mainnet</p>
+  <p class="eyebrow">Stellar · Soroban · Live on Mainnet</p>
   <h1>Stellar TPad</h1>
-  <p class="lead">A token launchpad where the liquidity is the contract. Creators launch in one transaction, buyers get a price from day zero, and there is no LP pool for anyone to pull.</p>
+  <p class="lead">A token launchpad where the liquidity <em>is</em> the contract. Creators launch in one transaction, buyers get a price from block zero, and there is no LP pool for anyone to pull.</p>
+
   <div class="grid g4" style="margin-top:30px">
-    <div class="card hi"><div class="stat">5</div><div class="stat-sub">contracts live on Stellar Mainnet</div></div>
-    <div class="card hi"><div class="stat">25</div><div class="stat-sub">Mainnet wallets with verified trades</div></div>
-    <div class="card hi"><div class="stat">54</div><div class="stat-sub">on-chain buy/sell transactions</div></div>
-    <div class="card hi"><div class="stat">0.5%</div><div class="stat-sub">protocol fee, both directions</div></div>
+    <div class="card v"><div class="stat">5</div><div class="stat-sub">contracts live on Mainnet</div></div>
+    <div class="card v"><div class="stat">25</div><div class="stat-sub">wallets with verified trades</div></div>
+    <div class="card v"><div class="stat">54</div><div class="stat-sub">on-chain buy/sell transactions</div></div>
+    <div class="card v"><div class="stat">0.5%</div><div class="stat-sub">protocol fee, both directions</div></div>
   </div>
+
   <div class="toc">
     <a href="#problem">Problem</a><a href="#solution">Solution</a><a href="#whynow">Why now</a>
     <a href="#product">Product</a><a href="#tech">Technology</a><a href="#traction">Traction</a>
@@ -128,48 +137,113 @@
   <h2>Launching a token means bootstrapping a market you cannot afford</h2>
   <p class="lead">Minting a token is trivial. Making it tradeable is not — and that gap is where most launches die.</p>
 
-  <div class="grid g3" style="margin-top:24px">
-    <div class="card">
-      <h4>Liquidity has to be bought</h4>
-      <p>A new token needs a paired pool before anyone can trade it. The creator must supply both sides — capital most early projects simply do not have.</p>
-    </div>
-    <div class="card">
-      <h4>That pool is the rug</h4>
-      <p>Whoever funds the LP can withdraw it. The single largest category of loss in token launches is the creator removing the liquidity they provided.</p>
-    </div>
-    <div class="card">
-      <h4>No price until someone sets one</h4>
-      <p>Before a pool exists there is no price discovery at all. The first buyer is guessing, and the creator has every incentive to let them.</p>
-    </div>
-  </div>
-
-  <p style="margin-top:20px">The result is an ecosystem where launching is easy, trading is fragile, and buyers price in a rug that frequently arrives. Every honest creator pays that risk premium too.</p>
+  <figure>
+    <svg viewBox="0 0 980 210" role="img" aria-label="The three failure points of a conventional token launch">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#b0abd0"/>
+        </marker>
+      </defs>
+      <!-- step 1 -->
+      <rect x="8" y="42" width="266" height="104" rx="13" fill="#faf9fe" stroke="#e3e0f1"/>
+      <circle cx="42" cy="76" r="15" fill="#ffe4e6"/><text x="42" y="81" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="700" fill="#be123c">1</text>
+      <text x="68" y="72" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="650" fill="#161431">Fund a pool</text>
+      <text x="68" y="94" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">Creator must supply both sides</text>
+      <text x="68" y="112" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">of a pair, in capital they</text>
+      <text x="68" y="130" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">usually do not have.</text>
+      <line x1="282" y1="94" x2="348" y2="94" stroke="#b0abd0" stroke-width="1.6" marker-end="url(#ar)"/>
+      <!-- step 2 -->
+      <rect x="356" y="42" width="266" height="104" rx="13" fill="#faf9fe" stroke="#e3e0f1"/>
+      <circle cx="390" cy="76" r="15" fill="#ffe4e6"/><text x="390" y="81" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="700" fill="#be123c">2</text>
+      <text x="416" y="72" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="650" fill="#161431">That pool is the rug</text>
+      <text x="416" y="94" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">Whoever funds the LP can</text>
+      <text x="416" y="112" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">withdraw it — the largest single</text>
+      <text x="416" y="130" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">category of launch loss.</text>
+      <line x1="630" y1="94" x2="696" y2="94" stroke="#b0abd0" stroke-width="1.6" marker-end="url(#ar)"/>
+      <!-- step 3 -->
+      <rect x="704" y="42" width="266" height="104" rx="13" fill="#faf9fe" stroke="#e3e0f1"/>
+      <circle cx="738" cy="76" r="15" fill="#ffe4e6"/><text x="738" y="81" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="700" fill="#be123c">3</text>
+      <text x="764" y="72" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="650" fill="#161431">No price discovery</text>
+      <text x="764" y="94" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">Before a pool exists there is no</text>
+      <text x="764" y="112" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">price. The first buyer guesses,</text>
+      <text x="764" y="130" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">and is meant to.</text>
+      <text x="489" y="182" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13.5" font-style="italic" fill="#6f6a94">Every honest creator pays the risk premium of the dishonest ones.</text>
+    </svg>
+  </figure>
 </section>
 
 <!-- 3 · SOLUTION -->
 <section class="slide" id="solution">
   <p class="eyebrow"><span class="n">02</span>Solution</p>
   <h2>Replace the pool with a curve</h2>
-  <p class="lead">Stellar TPad prices tokens from a bonding curve held inside a Soroban contract. There is no LP to fund, and none to withdraw.</p>
+  <p class="lead">Stellar TPad prices every token from a bonding curve held inside a Soroban contract. There is no LP to fund — and none to withdraw.</p>
 
-  <pre>price(supply) = base_price + slope × (sold_supply / 10,000,000)
+  <figure>
+    <svg viewBox="0 0 980 330" role="img" aria-label="Linear bonding curve: price rises with supply sold, and the cost of a purchase is the shaded area under the line">
+      <defs>
+        <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#6d28d9" stop-opacity=".28"/>
+          <stop offset="100%" stop-color="#6d28d9" stop-opacity=".06"/>
+        </linearGradient>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#6d28d9"/>
+        </marker>
+      </defs>
 
-buy  →  contract mints against the curve, takes XLM, charges 0.5%
-sell →  contract burns against the curve, returns XLM, charges 0.5%</pre>
+      <!-- plot frame -->
+      <line x1="90" y1="40" x2="90" y2="258" stroke="#c9c4e2" stroke-width="1.5"/>
+      <line x1="90" y1="258" x2="700" y2="258" stroke="#c9c4e2" stroke-width="1.5"/>
+      <!-- gridlines -->
+      <line x1="90" y1="204" x2="700" y2="204" stroke="#eeecf7"/>
+      <line x1="90" y1="150" x2="700" y2="150" stroke="#eeecf7"/>
+      <line x1="90" y1="96" x2="700" y2="96" stroke="#eeecf7"/>
 
-  <div class="grid g3" style="margin-top:6px">
-    <div class="card">
-      <h4>Liquidity from block one</h4>
-      <p>The curve quotes a bid and an ask the moment a token exists. No seeding round, no waiting for a counterparty.</p>
-    </div>
-    <div class="card">
-      <h4>Nothing to rug</h4>
-      <p>Reserves live in the bonding-curve contract and are only reachable through <code>buy</code> and <code>sell</code>. There is no withdrawal function for a creator to call.</p>
-    </div>
-    <div class="card">
-      <h4>Exit is always open</h4>
-      <p>Selling back into the curve is a contract call, not a search for a buyer. A holder is never waiting for someone else to take the other side.</p>
-    </div>
+      <!-- area under the curve between s1 and s2 = cost of the purchase -->
+      <path d="M300,258 L300,177 L470,133 L470,258 Z" fill="url(#fill)"/>
+
+      <!-- the curve itself: price = base + slope x supply -->
+      <line x1="90" y1="235" x2="700" y2="78" stroke="#6d28d9" stroke-width="3" stroke-linecap="round"/>
+
+      <!-- markers on the curve -->
+      <circle cx="300" cy="177" r="5.5" fill="#fff" stroke="#6d28d9" stroke-width="2.5"/>
+      <circle cx="470" cy="133" r="5.5" fill="#fff" stroke="#6d28d9" stroke-width="2.5"/>
+      <line x1="300" y1="177" x2="300" y2="258" stroke="#6d28d9" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>
+      <line x1="470" y1="133" x2="470" y2="258" stroke="#6d28d9" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>
+
+      <text x="385" y="215" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="650" fill="#4c1d95">cost of a buy</text>
+      <text x="385" y="233" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11.5" fill="#6d28d9">= area under the line</text>
+
+      <text x="300" y="276" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#6f6a94">s</text>
+      <text x="470" y="276" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#6f6a94">s + n</text>
+
+      <!-- axis labels -->
+      <text x="395" y="300" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">tokens sold</text>
+      <text x="30" y="150" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94" transform="rotate(-90 30 150)" text-anchor="middle">price</text>
+
+      <!-- buy / sell arrows -->
+      <line x1="620" y1="120" x2="660" y2="98" stroke="#6d28d9" stroke-width="2" marker-end="url(#ar2)"/>
+      <text x="628" y="140" font-family="Inter,system-ui,sans-serif" font-size="12.5" font-weight="650" fill="#4c1d95">buy → price rises</text>
+      <line x1="200" y1="160" x2="160" y2="182" stroke="#0e7490" stroke-width="2" marker-end="url(#ar2)" style="marker-end:url(#ar2)"/>
+      <text x="100" y="150" font-family="Inter,system-ui,sans-serif" font-size="12.5" font-weight="650" fill="#0e7490">sell → price falls</text>
+
+      <!-- formula panel -->
+      <rect x="726" y="52" width="244" height="200" rx="13" fill="#ede9fe" stroke="#ddd6fe"/>
+      <text x="748" y="82" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#4c1d95" letter-spacing="1.2">DEPLOYED CONSTANTS</text>
+      <text x="748" y="112" font-family="ui-monospace,monospace" font-size="13" fill="#5b21b6">base_price = 10</text>
+      <text x="748" y="136" font-family="ui-monospace,monospace" font-size="13" fill="#5b21b6">slope&#8202; = 750</text>
+      <text x="748" y="160" font-family="ui-monospace,monospace" font-size="13" fill="#5b21b6">FEE_BPS = 50</text>
+      <line x1="748" y1="176" x2="948" y2="176" stroke="#ddd6fe"/>
+      <text x="748" y="200" font-family="ui-monospace,monospace" font-size="11.5" fill="#6d28d9">price(s) =</text>
+      <text x="748" y="220" font-family="ui-monospace,monospace" font-size="11.5" fill="#6d28d9">  base + slope · s</text>
+      <text x="748" y="242" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#7c5fd3">read from lib.rs, not illustrative</text>
+    </svg>
+    <figcaption>The curve quotes a bid and an ask from the moment a token exists. A purchase costs the area under the line — exactly what <code>calc_buy_cost</code> computes.</figcaption>
+  </figure>
+
+  <div class="grid g3">
+    <div class="card g"><h4>Liquidity from block one</h4><p>No seeding round, no waiting for a counterparty to appear.</p></div>
+    <div class="card g"><h4>Nothing to rug</h4><p>Reserves are reachable only through <code>buy</code> and <code>sell</code>. No withdrawal function exists.</p></div>
+    <div class="card g"><h4>Exit is always open</h4><p>Selling back is a contract call, not a search for a buyer.</p></div>
   </div>
 </section>
 
@@ -179,17 +253,17 @@ sell →  contract burns against the curve, returns XLM, charges 0.5%</pre>
   <h2>Bonding curves proved the demand. Stellar makes the economics work.</h2>
 
   <table>
-    <thead><tr><th>What changed</th><th>Why it matters here</th></tr></thead>
+    <thead><tr><th style="width:38%">What changed</th><th>Why it matters here</th></tr></thead>
     <tbody>
-      <tr><td><strong>Curve launchpads found product-market fit</strong></td><td>The model is validated on other chains. The open question is no longer whether users want it.</td></tr>
-      <tr><td><strong>Soroban reached Mainnet</strong></td><td>Stellar can now run the contract logic a curve needs — cross-contract deployment, persistent storage, typed events.</td></tr>
-      <tr><td><strong>Stellar fees are a rounding error</strong></td><td>A launchpad is a high-frequency, low-ticket product. On a chain where a trade costs a fraction of a cent, small trades stay economic.</td></tr>
+      <tr><td><strong>Curve launchpads found product-market fit</strong></td><td>The model is validated on other chains. Whether users want it is no longer the open question.</td></tr>
+      <tr><td><strong>Soroban reached Mainnet</strong></td><td>Stellar can now run what a curve needs: cross-contract deployment, persistent storage, typed events.</td></tr>
+      <tr><td><strong>Stellar fees are a rounding error</strong></td><td>A launchpad is high-frequency and low-ticket. Where a trade costs a fraction of a cent, small trades stay economic.</td></tr>
       <tr><td><strong>Five-second finality</strong></td><td>Curve pricing moves with every trade. Slow settlement means stale quotes and failed transactions.</td></tr>
     </tbody>
   </table>
 
-  <div class="note p" style="margin-top:14px">
-    <strong>The gap we are filling.</strong> Stellar has the settlement layer and the user base, but no native curve-based launchpad. We are early on a chain that is late to this category — which is the good version of that trade.
+  <div class="note v">
+    <strong>The gap we are filling.</strong> Stellar has the settlement layer and the user base, but no native curve-priced launch venue. We are early on a chain that is late to this category — which is the good version of that trade.
   </div>
 </section>
 
@@ -198,37 +272,51 @@ sell →  contract burns against the curve, returns XLM, charges 0.5%</pre>
   <p class="eyebrow"><span class="n">04</span>Product</p>
   <h2>One transaction from idea to tradeable token</h2>
 
-<pre>Creator names a token
-        │
-        ▼
- Factory deploys a SEP-41 token contract          ← deterministic address
-        │  (same transaction)
-        ▼
- Token registers with the bonding curve            ← inter-contract call
-        │
-        ▼
- Anyone can buy or sell immediately
-        │
-        ├── buy  →  XLM in,  tokens out,  0.5% → treasury
-        └── sell →  tokens in, XLM out,   0.5% → treasury</pre>
+  <figure>
+    <svg viewBox="0 0 980 190" role="img" aria-label="Launch flow: name a token, factory deploys it, it registers with the curve, anyone can trade">
+      <defs>
+        <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#a99fd8"/>
+        </marker>
+      </defs>
+      <!-- atomic bracket -->
+      <rect x="238" y="18" width="470" height="120" rx="14" fill="#ede9fe" stroke="#ddd6fe" stroke-dasharray="6 4"/>
+      <text x="473" y="40" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11.5" font-weight="700" fill="#6d28d9" letter-spacing="1.1">ONE TRANSACTION — ALL OR NOTHING</text>
 
-  <div class="grid g2">
-    <div class="card">
-      <h4>For creators</h4>
-      <p>No capital to raise, no pool to seed, no listing to negotiate. Name the token and it is live with a market.</p>
-    </div>
-    <div class="card">
-      <h4>For traders</h4>
-      <p>A quoted price before the first trade, a guaranteed counterparty, and reserves that no key can drain.</p>
-    </div>
-    <div class="card">
-      <h4>Standards-compliant</h4>
-      <p>Tokens are SEP-41 — <code>name</code>, <code>symbol</code>, <code>decimals</code>, <code>balance</code>, <code>transfer</code>, <code>burn</code>. They work in any Stellar wallet, not only in ours.</p>
-    </div>
-    <div class="card">
-      <h4>Supply is fixed at launch</h4>
-      <p>Minting is closed after the initial supply. A creator cannot inflate the token out from under its holders.</p>
-    </div>
+      <g>
+        <rect x="14" y="56" width="200" height="66" rx="12" fill="#fff" stroke="#e3e0f1"/>
+        <text x="114" y="84" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14.5" font-weight="650" fill="#161431">Creator names</text>
+        <text x="114" y="104" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14.5" font-weight="650" fill="#161431">a token</text>
+      </g>
+      <line x1="220" y1="89" x2="256" y2="89" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar3)"/>
+      <g>
+        <rect x="262" y="56" width="200" height="66" rx="12" fill="#fff" stroke="#c4b5fd"/>
+        <text x="362" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="650" fill="#4c1d95">Factory deploys</text>
+        <text x="362" y="99" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="650" fill="#4c1d95">SEP-41 token</text>
+        <text x="362" y="115" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#7c5fd3">deterministic address</text>
+      </g>
+      <line x1="468" y1="89" x2="504" y2="89" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar3)"/>
+      <g>
+        <rect x="510" y="56" width="190" height="66" rx="12" fill="#fff" stroke="#c4b5fd"/>
+        <text x="605" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="650" fill="#4c1d95">Registers with</text>
+        <text x="605" y="99" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="650" fill="#4c1d95">the curve</text>
+        <text x="605" y="115" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#7c5fd3">cross-contract call</text>
+      </g>
+      <line x1="714" y1="89" x2="750" y2="89" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar3)"/>
+      <g>
+        <rect x="756" y="56" width="210" height="66" rx="12" fill="#d1fae5" stroke="#a7f3d0"/>
+        <text x="861" y="84" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14.5" font-weight="650" fill="#047857">Tradeable</text>
+        <text x="861" y="104" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14.5" font-weight="650" fill="#047857">immediately</text>
+      </g>
+      <text x="489" y="168" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" font-style="italic" fill="#6f6a94">A token cannot exist without a market, because both happen together or neither does.</text>
+    </svg>
+  </figure>
+
+  <div class="grid g4">
+    <div class="card"><h4>For creators</h4><p>No capital to raise, no pool to seed, no listing to negotiate.</p></div>
+    <div class="card"><h4>For traders</h4><p>A quoted price before the first trade and a guaranteed counterparty.</p></div>
+    <div class="card"><h4>Standards-compliant</h4><p>SEP-41 tokens work in any Stellar wallet, not only in ours.</p></div>
+    <div class="card"><h4>Supply fixed at launch</h4><p>Minting closes after initial supply. No inflating out from under holders.</p></div>
   </div>
 </section>
 
@@ -237,23 +325,74 @@ sell →  contract burns against the curve, returns XLM, charges 0.5%</pre>
   <p class="eyebrow"><span class="n">05</span>Technology</p>
   <h2>Three contracts, composed</h2>
 
-  <table>
-    <thead><tr><th>Contract</th><th>Responsibility</th></tr></thead>
-    <tbody>
-      <tr><td><strong>Factory</strong></td><td>Deploys token contracts at deterministic addresses via <code>deployer().with_current_contract(salt)</code>, then registers each one with the curve in the same transaction.</td></tr>
-      <tr><td><strong>Bonding curve</strong></td><td>Holds reserves, prices buys and sells, enforces slippage limits, routes the 0.5% fee to treasury, emits typed events.</td></tr>
-      <tr><td><strong>Token</strong></td><td>SEP-41 implementation. Mint closed after launch; burn available to the curve on sells.</td></tr>
-    </tbody>
-  </table>
+  <figure>
+    <svg viewBox="0 0 980 300" role="img" aria-label="Architecture: factory deploys token contracts and registers them with the bonding curve, which holds reserves and routes fees to treasury">
+      <defs>
+        <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#a99fd8"/>
+        </marker>
+        <marker id="ar5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#5eb0c4"/>
+        </marker>
+      </defs>
 
-  <div class="grid g3" style="margin-top:8px">
-    <div class="card"><h4>Atomic deploy-and-register</h4><p>A token cannot exist without a market, because both happen in one transaction or neither does.</p></div>
-    <div class="card"><h4>Storage TTL management</h4><p>Persistent and instance TTLs are extended on every active path, so a live token's state cannot be archived out from under it.</p></div>
-    <div class="card"><h4>Real-time event streaming</h4><p>Contract events drive instant price and metrics updates in the interface without polling the chain.</p></div>
+      <!-- user -->
+      <rect x="20" y="120" width="150" height="62" rx="12" fill="#fff" stroke="#e3e0f1"/>
+      <text x="95" y="147" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="650" fill="#161431">Trader / creator</text>
+      <text x="95" y="166" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6f6a94">Freighter wallet</text>
+
+      <!-- factory -->
+      <rect x="240" y="26" width="220" height="86" rx="13" fill="#ede9fe" stroke="#c4b5fd"/>
+      <text x="350" y="54" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#4c1d95">Factory</text>
+      <text x="350" y="76" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11.5" fill="#6d28d9">deploy_v2 at a</text>
+      <text x="350" y="93" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11.5" fill="#6d28d9">deterministic salt</text>
+
+      <!-- token -->
+      <rect x="240" y="188" width="220" height="86" rx="13" fill="#fff" stroke="#e3e0f1"/>
+      <text x="350" y="216" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#161431">Token (SEP-41)</text>
+      <text x="350" y="238" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6f6a94">transfer · burn · balance</text>
+      <text x="350" y="256" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#6f6a94">mint closed after launch</text>
+
+      <!-- curve -->
+      <rect x="540" y="98" width="230" height="108" rx="13" fill="#cffafe" stroke="#a5e8f0"/>
+      <text x="655" y="128" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="15" font-weight="700" fill="#0e7490">Bonding curve</text>
+      <text x="655" y="150" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11.5" fill="#0e7490">holds XLM reserves</text>
+      <text x="655" y="168" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11.5" fill="#0e7490">prices buy / sell</text>
+      <text x="655" y="188" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#0891b2">emits typed events</text>
+
+      <!-- treasury -->
+      <rect x="838" y="122" width="128" height="60" rx="12" fill="#d1fae5" stroke="#a7f3d0"/>
+      <text x="902" y="147" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#047857">Treasury</text>
+      <text x="902" y="166" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#047857">0.5% of each</text>
+
+      <!-- arrows -->
+      <path d="M176,140 C205,140 210,72 236,69" fill="none" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar4)"/>
+      <text x="180" y="98" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#6f6a94">create</text>
+
+      <line x1="350" y1="116" x2="350" y2="184" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar4)"/>
+      <text x="360" y="155" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#6f6a94">deploys</text>
+
+      <path d="M464,66 C520,66 530,110 536,140" fill="none" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar4)"/>
+      <text x="470" y="92" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#6f6a94">registers</text>
+
+      <path d="M464,224 C518,224 528,196 536,176" fill="none" stroke="#5eb0c4" stroke-width="1.8" marker-end="url(#ar5)"/>
+      <text x="470" y="244" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#0e7490">mint / burn</text>
+
+      <path d="M176,162 C300,300 470,296 545,208" fill="none" stroke="#5eb0c4" stroke-width="1.8" marker-end="url(#ar5)"/>
+      <text x="300" y="288" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#0e7490">buy / sell (XLM)</text>
+
+      <line x1="774" y1="152" x2="832" y2="152" stroke="#5eb0c4" stroke-width="1.8" marker-end="url(#ar5)"/>
+      <text x="778" y="142" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#0e7490">fee</text>
+    </svg>
+  </figure>
+
+  <div class="grid g3">
+    <div class="card"><h4>Atomic deploy-and-register</h4><p>Both happen in one transaction or neither does.</p></div>
+    <div class="card"><h4>Storage TTL management</h4><p>Persistent and instance TTLs extended on every active path, so live state cannot be archived away.</p></div>
+    <div class="card"><h4>Real-time event streaming</h4><p>Contract events drive price and metrics updates without polling.</p></div>
   </div>
 
-  <p style="margin-top:8px"><strong>Stack:</strong> Next.js 14 · TypeScript · Rust / Soroban SDK · PostgreSQL 16 · Freighter · Railway · GitHub Actions CI.</p>
-  <p class="muted" style="font-size:14px">24 contract unit and integration tests run in CI alongside the frontend build on every push.</p>
+  <p style="margin-top:6px"><strong>Stack:</strong> Next.js 14 · TypeScript · Rust / Soroban SDK · PostgreSQL 16 · Freighter · Railway · GitHub Actions. <span class="muted">24 contract tests run in CI alongside the frontend build on every push.</span></p>
 </section>
 
 <!-- 7 · TRACTION -->
@@ -263,15 +402,15 @@ sell →  contract burns against the curve, returns XLM, charges 0.5%</pre>
   <p class="lead">Every number below resolves to a block explorer page. None of it requires trusting us.</p>
 
   <div class="grid g4" style="margin:18px 0">
-    <div class="card"><div class="stat g">3</div><div class="stat-sub">tokens launched on Mainnet</div></div>
-    <div class="card"><div class="stat g">25</div><div class="stat-sub">distinct trading wallets</div></div>
-    <div class="card"><div class="stat g">54</div><div class="stat-sub">verified buy/sell transactions</div></div>
-    <div class="card"><div class="stat g">141</div><div class="stat-sub">commits on <code>main</code></div></div>
+    <div class="card g"><div class="stat">3</div><div class="stat-sub">tokens launched on Mainnet</div></div>
+    <div class="card g"><div class="stat">25</div><div class="stat-sub">distinct trading wallets</div></div>
+    <div class="card g"><div class="stat">54</div><div class="stat-sub">verified buy/sell transactions</div></div>
+    <div class="card g"><div class="stat">141</div><div class="stat-sub">commits on <code>main</code></div></div>
   </div>
 
   <table>
     <tbody>
-      <tr><th style="width:170px">Factory</th><td><a href="https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU"><code>CDR6H3FZ…V6ILLU</code></a></td></tr>
+      <tr><th style="width:168px">Factory</th><td><a href="https://stellar.expert/explorer/public/contract/CDR6H3FZCMB2HASOBXL4UTZ2SKAAUWY27N6CS3OGZMXB6NOWS7V6ILLU"><code>CDR6H3FZ…V6ILLU</code></a></td></tr>
       <tr><th>Bonding curve</th><td><a href="https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY"><code>CDMZM67N…RVADHY</code></a></td></tr>
       <tr><th>Tokens launched</th><td>
         <a href="https://stellar.expert/explorer/public/contract/CDFLPOHFVWBNRWKKAFDDPOI66AXP76CFBI5IAUDSZBSF7PMEAJOLOIGR">TPAD</a> ·
@@ -288,29 +427,57 @@ sell →  contract burns against the curve, returns XLM, charges 0.5%</pre>
 <section class="slide" id="model">
   <p class="eyebrow"><span class="n">07</span>Business model</p>
   <h2>0.5% of every trade, in both directions</h2>
-  <p class="lead">The fee is charged by the contract, not invoiced by us. It is taken on the way in and on the way out, and routed to a treasury address on every single trade.</p>
+  <p class="lead">The fee is charged by the contract, not invoiced by us — taken on the way in and on the way out, routed to treasury inside the same call.</p>
 
-  <pre>buy   cost   = curve_cost;    fee = cost × 0.5%;      user pays cost + fee
-sell  proceeds = curve_proceeds; fee = proceeds × 0.5%;  user receives proceeds − fee
+  <figure>
+    <svg viewBox="0 0 980 168" role="img" aria-label="Fee flow: on a buy the user pays cost plus 0.5 percent; on a sell they receive proceeds minus 0.5 percent; the fee goes to treasury in both cases">
+      <defs>
+        <marker id="ar6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#a99fd8"/>
+        </marker>
+      </defs>
+      <!-- BUY row -->
+      <text x="16" y="48" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#6d28d9" letter-spacing="1.1">BUY</text>
+      <rect x="70" y="26" width="176" height="42" rx="10" fill="#fff" stroke="#e3e0f1"/>
+      <text x="158" y="52" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5" fill="#161431">cost + 0.5%</text>
+      <line x1="252" y1="47" x2="304" y2="47" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar6)"/>
+      <rect x="310" y="26" width="200" height="42" rx="10" fill="#cffafe" stroke="#a5e8f0"/>
+      <text x="410" y="52" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="650" fill="#0e7490">Bonding curve</text>
+      <line x1="516" y1="40" x2="568" y2="40" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar6)"/>
+      <rect x="574" y="19" width="150" height="40" rx="10" fill="#fff" stroke="#e3e0f1"/>
+      <text x="649" y="44" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#161431">tokens out</text>
+      <line x1="516" y1="56" x2="568" y2="70" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar6)"/>
 
-fee → treasury, atomically, inside the same contract call</pre>
+      <!-- SELL row -->
+      <text x="16" y="130" font-family="Inter,system-ui,sans-serif" font-size="12" font-weight="700" fill="#0e7490" letter-spacing="1.1">SELL</text>
+      <rect x="70" y="108" width="176" height="42" rx="10" fill="#fff" stroke="#e3e0f1"/>
+      <text x="158" y="134" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5" fill="#161431">tokens in</text>
+      <line x1="252" y1="129" x2="304" y2="129" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar6)"/>
+      <rect x="310" y="108" width="200" height="42" rx="10" fill="#cffafe" stroke="#a5e8f0"/>
+      <text x="410" y="134" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="650" fill="#0e7490">Bonding curve</text>
+      <line x1="516" y1="136" x2="568" y2="136" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar6)"/>
+      <rect x="574" y="115" width="176" height="40" rx="10" fill="#fff" stroke="#e3e0f1"/>
+      <text x="662" y="140" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12.5" fill="#161431">proceeds − 0.5%</text>
+      <line x1="516" y1="120" x2="568" y2="94" stroke="#a99fd8" stroke-width="1.8" marker-end="url(#ar6)"/>
 
-  <div class="grid g3">
-    <div class="card"><h4>Volume-linked, not user-linked</h4><p>Revenue scales with trading rather than with headcount. One active token can out-earn a hundred dormant ones.</p></div>
-    <div class="card"><h4>Symmetric</h4><p>Charging both sides means revenue does not depend on a market going up. Volatility is the input, not direction.</p></div>
-    <div class="card"><h4>Non-custodial</h4><p>We never hold user funds. The fee is a transfer inside a contract call the user authorised.</p></div>
-  </div>
+      <!-- treasury -->
+      <rect x="800" y="52" width="166" height="64" rx="12" fill="#d1fae5" stroke="#a7f3d0"/>
+      <text x="883" y="80" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" font-weight="700" fill="#047857">Treasury</text>
+      <text x="883" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11.5" fill="#047857">fee, both directions</text>
+      <line x1="576" y1="84" x2="794" y2="84" stroke="#5eb0c4" stroke-width="1.8" marker-end="url(#ar6)" stroke-dasharray="5 4"/>
+    </svg>
+  </figure>
 
   <h3>Unit economics</h3>
   <table>
-    <thead><tr><th>Daily volume through the curve</th><th>Protocol fee at 0.5%, both sides</th><th>Annualised</th></tr></thead>
+    <thead><tr><th>Daily volume through the curve</th><th>Protocol fee at 0.5%</th><th>Annualised</th></tr></thead>
     <tbody>
       <tr><td>$10,000</td><td>$50 / day</td><td>~$18,000</td></tr>
       <tr><td>$100,000</td><td>$500 / day</td><td>~$180,000</td></tr>
-      <tr><td>$1,000,000</td><td>$5,000 / day</td><td>~$1.8M</td></tr>
+      <tr class="hl"><td>$1,000,000</td><td>$5,000 / day</td><td>~$1.8M</td></tr>
     </tbody>
   </table>
-  <small>Arithmetic on the deployed <code>FEE_BPS = 50</code> constant. These are illustrative volume scenarios, not forecasts or achieved figures.</small>
+  <small>Arithmetic on the deployed <code>FEE_BPS = 50</code> constant. Illustrative volume scenarios — not forecasts, and not figures achieved to date.</small>
 </section>
 
 <!-- 9 · MARKET -->
@@ -318,24 +485,15 @@ fee → treasury, atomically, inside the same contract call</pre>
   <p class="eyebrow"><span class="n">08</span>Market opportunity</p>
   <h2>A proven category, arriving on a chain that does not have it</h2>
 
-  <div class="grid g3" style="margin-bottom:6px">
-    <div class="card">
-      <h4>TAM — curve-based launchpads</h4>
-      <p>The category is established across major L1s and is measured in billions of cumulative trading volume. Stellar TPad competes for the share of that behaviour that follows low fees and fast finality.</p>
-    </div>
-    <div class="card">
-      <h4>SAM — the Stellar ecosystem</h4>
-      <p>Stellar's existing wallet base and asset issuers, none of whom currently have a native curve-priced launch venue.</p>
-    </div>
-    <div class="card">
-      <h4>SOM — first mover on Soroban</h4>
-      <p>Live contracts and real trades today. The realistic near-term target is the creators already building on Stellar who need a market without funding one.</p>
-    </div>
+  <div class="grid g3" style="margin-bottom:8px">
+    <div class="card"><h4>TAM — curve launchpads</h4><p>An established category across major L1s, measured in billions of cumulative volume. We compete for the share that follows low fees and fast finality.</p></div>
+    <div class="card"><h4>SAM — the Stellar ecosystem</h4><p>Stellar's existing wallet base and asset issuers, none of whom have a native curve-priced launch venue today.</p></div>
+    <div class="card v"><h4>SOM — first mover on Soroban</h4><p>Live contracts and real trades now. Near-term target: creators already building on Stellar who need a market without funding one.</p></div>
   </div>
 
   <div class="note">
-    <strong>On the numbers.</strong> This slide deliberately carries no cited market size. Launchpad volume figures move weekly and vary widely by source, and a deck that quotes an unverifiable TAM is worth less than one that does not. The bottom-up economics on the previous slide are derived from the contract's own fee constant and can be checked against the deployed code.
-    <br><br>Before external fundraising use, insert a current figure with its source and date.
+    <strong>On the numbers.</strong> This slide deliberately cites no market size. Launchpad volume figures move weekly and vary widely by source; a deck quoting an unverifiable TAM is worth less than one that does not. The bottom-up economics on the previous slide come from the contract's own fee constant and can be checked against the deployed code.
+    <br><br>Insert a current figure with its source and date before any external fundraising use.
   </div>
 
   <h3>Where we win</h3>
@@ -347,18 +505,49 @@ fee → treasury, atomically, inside the same contract call</pre>
   <p class="eyebrow"><span class="n">09</span>Competition</p>
   <h2>Where we sit</h2>
 
-  <table>
-    <thead><tr><th>Approach</th><th>Liquidity</th><th>Rug surface</th><th>Cost per trade</th></tr></thead>
-    <tbody>
-      <tr><td><strong>Traditional DEX listing</strong></td><td>Creator funds an LP pool</td><td>LP can be withdrawn</td><td>Chain-dependent</td></tr>
-      <tr><td><strong>Curve launchpads on other L1s</strong></td><td>Contract-held curve</td><td>Low — no LP to pull</td><td>Higher; small trades become uneconomic</td></tr>
-      <tr><td><strong>Manual token issuance on Stellar</strong></td><td>None until someone makes a market</td><td>n/a — there is no market</td><td>Very low</td></tr>
-      <tr><td class="muted"><strong>Stellar TPad</strong></td><td>Contract-held curve, live at launch</td><td>No withdrawal function exists</td><td>Fraction of a cent</td></tr>
-    </tbody>
-  </table>
+  <figure>
+    <svg viewBox="0 0 980 340" role="img" aria-label="Positioning chart: rug surface against cost per trade. Stellar TPad sits in the low-rug-surface, low-cost quadrant.">
+      <!-- quadrant background -->
+      <rect x="120" y="26" width="740" height="250" rx="10" fill="#faf9fe" stroke="#e3e0f1"/>
+      <line x1="490" y1="26" x2="490" y2="276" stroke="#e3e0f1" stroke-dasharray="5 4"/>
+      <line x1="120" y1="151" x2="860" y2="151" stroke="#e3e0f1" stroke-dasharray="5 4"/>
+
+      <!-- axes labels -->
+      <text x="490" y="304" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">cost per trade  →</text>
+      <text x="72" y="151" transform="rotate(-90 72 151)" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12.5" fill="#6f6a94">rug surface  →</text>
+      <text x="140" y="296" font-family="ui-monospace,monospace" font-size="11" fill="#a19cc0">low</text>
+      <text x="828" y="296" font-family="ui-monospace,monospace" font-size="11" fill="#a19cc0">high</text>
+      <text x="98" y="270" font-family="ui-monospace,monospace" font-size="11" fill="#a19cc0">low</text>
+      <text x="98" y="42" font-family="ui-monospace,monospace" font-size="11" fill="#a19cc0">high</text>
+
+      <!-- DEX listing: high rug, mid cost -->
+      <circle cx="600" cy="76" r="11" fill="#ffe4e6" stroke="#be123c" stroke-width="2"/>
+      <text x="620" y="72" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="650" fill="#161431">Traditional DEX listing</text>
+      <text x="620" y="90" font-family="Inter,system-ui,sans-serif" font-size="11.5" fill="#6f6a94">creator funds an LP that can be withdrawn</text>
+
+      <!-- curve launchpads elsewhere: low rug, high cost -->
+      <circle cx="726" cy="216" r="11" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+      <text x="746" y="212" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="650" fill="#161431">Curve launchpads,</text>
+      <text x="746" y="230" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="650" fill="#161431">other L1s</text>
+      <text x="746" y="248" font-family="Inter,system-ui,sans-serif" font-size="11.5" fill="#6f6a94">small trades uneconomic</text>
+
+      <!-- manual stellar issuance: no market -->
+      <circle cx="212" cy="120" r="11" fill="#f1f0f7" stroke="#8f89b5" stroke-width="2"/>
+      <text x="232" y="116" font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="650" fill="#161431">Manual issuance on Stellar</text>
+      <text x="232" y="134" font-family="Inter,system-ui,sans-serif" font-size="11.5" fill="#6f6a94">cheap, but there is no market at all</text>
+
+      <!-- TPad -->
+      <circle cx="228" cy="228" r="15" fill="#6d28d9"/>
+      <circle cx="228" cy="228" r="24" fill="none" stroke="#c4b5fd" stroke-width="2"/>
+      <text x="262" y="224" font-family="Inter,system-ui,sans-serif" font-size="14.5" font-weight="750" fill="#4c1d95">Stellar TPad</text>
+      <text x="262" y="243" font-family="Inter,system-ui,sans-serif" font-size="11.5" fill="#6d28d9">curve liquidity at launch, fraction-of-a-cent trades</text>
+
+      <text x="490" y="330" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="12.5" font-style="italic" fill="#6f6a94">The bottom-left quadrant is the one nobody occupies on Stellar.</text>
+    </svg>
+  </figure>
 
   <h3>Defensibility, honestly assessed</h3>
-  <p>The contract logic is not a moat — a bonding curve is well-understood and reimplementable. What compounds is <strong>the token registry itself</strong>: every token launched here is permanently priced by our curve contract, and its holders trade through it for the life of the token. Being first to that registry on Stellar is the position worth holding.</p>
+  <p>The contract logic is not a moat — a bonding curve is well understood and reimplementable. What compounds is <strong>the token registry itself</strong>: every token launched here is permanently priced by our curve contract, and its holders trade through it for the life of the token. Being first to that registry on Stellar is the position worth holding.</p>
 </section>
 
 <!-- 11 · ROADMAP -->
@@ -367,16 +556,16 @@ fee → treasury, atomically, inside the same contract call</pre>
   <h2>Depth before breadth</h2>
 
   <div class="grid g2">
-    <div class="card"><h4><span class="pill">Shipped</span> &nbsp;Mainnet launchpad</h4><p>Factory, bonding curve and SEP-41 token live. 3 tokens launched, 25 wallets, 54 verified trades, CI on every push.</p></div>
-    <div class="card"><h4><span class="pill w">Next</span> &nbsp;Reserve headroom guard</h4><p>Prevent a buyer from spending into Stellar's minimum-balance reserve and stranding their own position. Highest-priority fix.</p></div>
-    <div class="card"><h4><span class="pill w">Next</span> &nbsp;Graduation to a DEX pool</h4><p>Automatic migration of curve reserves into an AMM pool once a token reaches a threshold — the standard lifecycle for this category.</p></div>
-    <div class="card"><h4><span class="pill n">Later</span> &nbsp;Configurable curve parameters</h4><p>Let creators choose base price and slope within audited bounds instead of a single default shape.</p></div>
-    <div class="card"><h4><span class="pill n">Later</span> &nbsp;Creator revenue share</h4><p>Route part of the trading fee to the token creator, aligning them with sustained volume rather than a launch-day exit.</p></div>
-    <div class="card"><h4><span class="pill n">Later</span> &nbsp;Third-party audit</h4><p>Published security material today is an internal review. An external audit gates any increase in what the contracts are trusted to hold.</p></div>
+    <div class="card g"><h4><span class="pill">Shipped</span> &nbsp;Mainnet launchpad</h4><p>Factory, bonding curve and SEP-41 token live. 3 tokens, 25 wallets, 54 verified trades, CI on every push.</p></div>
+    <div class="card"><h4><span class="pill w">Next</span> &nbsp;Reserve headroom guard</h4><p>Stop a buyer spending into Stellar's minimum-balance reserve and stranding their own position. Highest priority.</p></div>
+    <div class="card"><h4><span class="pill w">Next</span> &nbsp;Graduation to a DEX pool</h4><p>Migrate curve reserves into an AMM pool once a token passes a threshold — the standard lifecycle for this category.</p></div>
+    <div class="card"><h4><span class="pill n">Later</span> &nbsp;Configurable curve parameters</h4><p>Let creators choose base price and slope within audited bounds instead of one default shape.</p></div>
+    <div class="card"><h4><span class="pill n">Later</span> &nbsp;Creator revenue share</h4><p>Route part of the trading fee to the creator, aligning them with sustained volume rather than a launch-day exit.</p></div>
+    <div class="card"><h4><span class="pill n">Later</span> &nbsp;Third-party audit</h4><p>Published security material today is an internal review. An external audit gates any increase in what the contracts hold.</p></div>
   </div>
 
   <div class="note" style="margin-top:18px">
-    <strong>Known issue, stated openly.</strong> A buyer who spends their entire XLM balance cannot currently pay the fee to sell back, because Stellar reserves 1 XLM per account. The tokens are not lost — the account needs a small top-up — but the flow should prevent it rather than explain it. It is the first item after this submission.
+    <strong>Known issue, stated openly.</strong> A buyer who spends their entire XLM balance cannot currently pay the fee to sell back, because Stellar reserves 1 XLM per account. The tokens are not lost — the account needs a small top-up — but the flow should prevent this rather than explain it. First item after this submission.
   </div>
 </section>
 
@@ -386,11 +575,11 @@ fee → treasury, atomically, inside the same contract call</pre>
   <h2>Who built this</h2>
 
   <div class="note" style="margin-bottom:18px">
-    <strong>To be completed before any external use.</strong> This slide is intentionally left as a template rather than filled with placeholder people. Add names, roles, and one line of relevant background each — investors read this slide first and an invented one is worse than none.
+    <strong>To be completed before any external use.</strong> This slide is intentionally a template rather than filled with invented people. Add names, roles and one line of relevant background each — investors read this slide first, and a fabricated one is worse than none.
   </div>
 
   <div class="grid g3">
-    <div class="card"><h4>Name — Role</h4><p>One line: what they have built before that makes them the right person for this part.</p></div>
+    <div class="card"><h4>Name — Role</h4><p>One line: what they built before that makes them right for this part.</p></div>
     <div class="card"><h4>Name — Role</h4><p>One line: relevant prior work.</p></div>
     <div class="card"><h4>Name — Role</h4><p>One line: relevant prior work.</p></div>
   </div>
@@ -399,7 +588,7 @@ fee → treasury, atomically, inside the same contract call</pre>
   <ul>
     <li><strong>Shipped to Mainnet, not testnet.</strong> Three interoperating Soroban contracts deployed and transacting with real value.</li>
     <li><strong>Production discipline.</strong> CI on every push, 24 contract tests, a written security review, responsive interface, error tracking.</li>
-    <li><strong>141 commits</strong> of continuous development rather than a single submission push.</li>
+    <li><strong>141 commits</strong> of continuous development rather than one submission-day push.</li>
   </ul>
 </section>
 
@@ -410,10 +599,10 @@ fee → treasury, atomically, inside the same contract call</pre>
   <p class="lead">Every claim in this deck resolves to a deployed contract, a public transaction, or a file in the repository.</p>
 
   <div class="grid g2" style="margin-top:20px">
-    <div class="card"><h4>Try the product</h4><p><a href="https://stellartpad-production.up.railway.app/">stellartpad-production.up.railway.app</a></p></div>
-    <div class="card"><h4>Read the code</h4><p><a href="https://github.com/vantuann205/stellar.tpad">github.com/vantuann205/stellar.tpad</a></p></div>
-    <div class="card"><h4>Inspect the curve</h4><p><a href="https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY">Bonding curve on Stellar Expert</a></p></div>
-    <div class="card"><h4>Verify the users</h4><p><a href="https://github.com/vantuann205/stellar.tpad/blob/main/MAINNET_USERS.md">25 Mainnet accounts, 54 transactions</a></p></div>
+    <div class="card v"><h4>Try the product</h4><p><a href="https://stellartpad-production.up.railway.app/">stellartpad-production.up.railway.app</a></p></div>
+    <div class="card v"><h4>Read the code</h4><p><a href="https://github.com/vantuann205/stellar.tpad">github.com/vantuann205/stellar.tpad</a></p></div>
+    <div class="card v"><h4>Inspect the curve</h4><p><a href="https://stellar.expert/explorer/public/contract/CDMZM67NNMUJZLBNR3PXDHDZFZOQQSGC66M7PVIGGIAH36NMN4RVADHY">Bonding curve on Stellar Expert</a></p></div>
+    <div class="card v"><h4>Verify the users</h4><p><a href="https://github.com/vantuann205/stellar.tpad/blob/main/MAINNET_USERS.md">25 Mainnet accounts, 54 transactions</a></p></div>
   </div>
 
   <div class="note" style="margin-top:20px">
