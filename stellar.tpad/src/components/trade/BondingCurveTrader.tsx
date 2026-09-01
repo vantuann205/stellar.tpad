@@ -11,6 +11,12 @@ import {
   getWalletTokenBalance,
   ContractError,
 } from '@/features/bonding-curve/bonding-curve.service';
+import {
+  checkTradeAmount,
+  portionOfBalance,
+  toRawWholeTokens,
+  wholeTokensFromRaw,
+} from '@/features/bonding-curve/token-amount';
 import { stellarWalletService } from '@/services/wallet.service';
 import { STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
 import { STELLAR_HORIZON_URL } from '@/config/network';
@@ -123,7 +129,10 @@ export default function BondingCurveTrader({
     debounceRef.current = setTimeout(async () => {
       setPreviewLoading(true);
       try {
-        const rawAmount = BigInt(Math.floor(num * 1e7));
+        // Price the amount the contract would actually accept, so the preview
+        // cannot promise a figure for a trade that will be refused.
+        const rawAmount = toRawWholeTokens(num);
+        if (rawAmount <= 0n) { setPreview(null); return; }
         if (nextMode === 'buy') {
           const costStr = await getBuyPrice(tokenAddress, String(rawAmount));
           const cost = BigInt(costStr);
@@ -153,13 +162,15 @@ export default function BondingCurveTrader({
 
   // ── quick amount buttons ──────────────────────────────────────────────────
   const setQuickBuy = (val: number) => setAmount(String(val));
+  // Whole tokens only. These buttons used to emit two decimal places, which the
+  // contract refuses — so even "MAX" produced a trade that could not execute.
   const setQuickSell = (pct: number) => {
-    setAmount((Number(tokenBalance) / 1e7 * pct).toFixed(2));
+    setAmount(String(portionOfBalance(tokenBalance, pct)));
   };
 
   const handleMaxClick = async () => {
     if (mode === 'sell') {
-      setAmount((Number(tokenBalance) / 1e7).toFixed(2));
+      setAmount(String(wholeTokensFromRaw(tokenBalance)));
       return;
     }
     setIsCalculatingMax(true);
@@ -179,7 +190,7 @@ export default function BondingCurveTrader({
         } catch { high = mid; }
       }
       if (best <= 0) { showToast('error', 'insufficient balance for max buy'); return; }
-      setAmount((Math.floor(best * 100) / 100).toString());
+      setAmount(String(Math.floor(best)));
     } finally { setIsCalculatingMax(false); }
   };
 
@@ -191,9 +202,23 @@ export default function BondingCurveTrader({
       showToast('error', 'please connect your wallet first');
       return;
     }
+
+    // Refuse an amount the contract would refuse, and say why here rather than
+    // letting it come back as an InvalidPrecision panic after a signature.
+    const check = checkTradeAmount(num, mode === 'sell' ? tokenBalance : undefined);
+    if (check.error) {
+      showToast('error', check.error);
+      return;
+    }
+    if (check.rounded) {
+      showToast('error', `Whole tokens only — trading ${check.tokens} instead of ${num}.`);
+      setAmount(String(check.tokens));
+      return;
+    }
+
     setLoading(true);
     try {
-      const rawAmount = BigInt(Math.floor(num * 1e7));
+      const rawAmount = check.raw;
       let txHash: string;
 
       if (mode === 'buy') {
