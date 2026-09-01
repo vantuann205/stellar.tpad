@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Stellar TPad token">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b1a78"/>
+      <stop offset="55%" stop-color="#6d28d9"/>
+      <stop offset="100%" stop-color="#0e7490"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="58%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".34"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="128" cy="128" r="128" fill="url(#bg)"/>
+  <circle cx="128" cy="128" r="128" fill="url(#glow)"/>
+  <circle cx="128" cy="128" r="118" fill="none" stroke="#ffffff" stroke-opacity=".22" stroke-width="2"/>
+
+  <!-- Four-point spark: the launch mark, drawn rather than lettered so the
+       same file suits any ticker. -->
+  <path d="M128 44 C136 96 160 120 212 128 C160 136 136 160 128 212 C120 160 96 136 44 128 C96 120 120 96 128 44 Z"
+        fill="#ffffff" fill-opacity=".93"/>
+  <circle cx="182" cy="76" r="7" fill="#ffffff" fill-opacity=".7"/>
+  <circle cx="74" cy="176" r="5" fill="#ffffff" fill-opacity=".5"/>
+  <circle cx="196" cy="182" r="3.5" fill="#ffffff" fill-opacity=".45"/>
+</svg>
