@@ -12,10 +12,46 @@ import {
   Account,
   scValToNative,
 } from '@stellar/stellar-sdk';
-import { STELLAR_RPC_URL, STELLAR_NETWORK_PASSPHRASE } from '@/config/network';
+import {
+  STELLAR_RPC_URL,
+  STELLAR_NETWORK_PASSPHRASE,
+  STELLAR_HORIZON_URL,
+} from '@/config/network';
+import {
+  checkAffordable,
+  describeSubmitError,
+  fetchAccountFunds,
+  SELL_FEE_HEADROOM_STROOPS,
+} from './account-funds';
 
 const rpc = new SorobanRpc.Server(STELLAR_RPC_URL, { allowHttp: false });
 const BONDING_CURVE_ID = process.env.NEXT_PUBLIC_BONDING_CURVE_CONTRACT_ID!;
+
+/**
+ * Inclusion fee offered per operation, as a multiple of the network base fee.
+ * The Soroban resource fee is added on top by `assembleTransaction`.
+ */
+const INCLUSION_FEE_MULTIPLIER = 200;
+
+/**
+ * Refuses a trade the account cannot pay for, before a signature is requested.
+ *
+ * Fails open when Horizon itself is unreachable: a balance check that cannot
+ * run is not a reason to block someone's trade. The network still rejects an
+ * underfunded transaction, and `describeSubmitError` now makes that readable.
+ */
+async function assertAffordable(publicKey: string, required: bigint, advice: string) {
+  let funds;
+  try {
+    funds = await fetchAccountFunds(publicKey, STELLAR_HORIZON_URL);
+  } catch (error) {
+    console.warn('[bonding-curve] balance check skipped:', error);
+    return;
+  }
+
+  const result = checkAffordable(funds, required);
+  if (!result.ok) throw new Error(`${result.reason} ${advice}`);
+}
 
 export class ContractError extends Error {
   constructor(public code: number, message: string) {
@@ -213,7 +249,7 @@ export async function buyToken(params: BuyTokenParams): Promise<string> {
   const tokenAddr = new Address(tokenAddress);
 
   const tx = new TransactionBuilder(account, {
-    fee: String(Number(BASE_FEE) * 200),
+    fee: String(Number(BASE_FEE) * INCLUSION_FEE_MULTIPLIER),
     networkPassphrase: STELLAR_NETWORK_PASSPHRASE,
   })
     .addOperation(
@@ -235,6 +271,20 @@ export async function buyToken(params: BuyTokenParams): Promise<string> {
   }
 
   const preparedTx = SorobanRpc.assembleTransaction(tx, simulation).build();
+
+  // Check affordability against the assembled fee rather than an estimate, and
+  // do it before asking for a signature: a rejected submission still costs a
+  // fee and tells the user nothing they can act on.
+  //
+  // The headroom matters as much as the spend itself. A buyer left with exactly
+  // zero spendable XLM keeps their tokens but can never pay the fee to sell
+  // them back, which is the trap this whole guard exists to close.
+  await assertAffordable(
+    buyerPublicKey,
+    BigInt(maxXlmIn) + BigInt(preparedTx.fee) + SELL_FEE_HEADROOM_STROOPS,
+    'This includes a small reserve so you can still afford to sell later.',
+  );
+
   console.log('[buyToken] sending to Freighter for signing...');
   const signedXdr = await signTransaction(preparedTx.toXDR());
   console.log('[buyToken] signedXdr type:', typeof signedXdr, 'length:', signedXdr?.length);
@@ -244,7 +294,7 @@ export async function buyToken(params: BuyTokenParams): Promise<string> {
 
   const resp = await rpc.sendTransaction(signedTx);
   if (resp.status === 'ERROR') {
-    throw new Error(`Buy tx error: ${JSON.stringify(resp.errorResult)}`);
+    throw new Error(describeSubmitError(resp.errorResult));
   }
 
   // Wait for confirmation
@@ -271,7 +321,7 @@ export async function sellToken(params: SellTokenParams): Promise<string> {
   const tokenAddr = new Address(tokenAddress);
 
   const tx = new TransactionBuilder(account, {
-    fee: String(Number(BASE_FEE) * 200),
+    fee: String(Number(BASE_FEE) * INCLUSION_FEE_MULTIPLIER),
     networkPassphrase: STELLAR_NETWORK_PASSPHRASE,
   })
     .addOperation(
@@ -292,6 +342,16 @@ export async function sellToken(params: SellTokenParams): Promise<string> {
   }
 
   const preparedTx = SorobanRpc.assembleTransaction(tx, simulation).build();
+
+  // A sell brings XLM in, but the fee is still paid up front out of a balance
+  // that has to stay above the reserve. This is where `txInsufficientBalance`
+  // was surfacing as an unreadable XDR blob.
+  await assertAffordable(
+    sellerPublicKey,
+    BigInt(preparedTx.fee),
+    'Your tokens are safe — the wallet only needs a little XLM to pay the fee.',
+  );
+
   const signedXdr = await signTransaction(preparedTx.toXDR());
   if (!signedXdr) throw new Error('Transaction signing failed or was rejected');
 
@@ -299,7 +359,7 @@ export async function sellToken(params: SellTokenParams): Promise<string> {
 
   const resp = await rpc.sendTransaction(signedTx);
   if (resp.status === 'ERROR') {
-    throw new Error(`Sell tx error: ${JSON.stringify(resp.errorResult)}`);
+    throw new Error(describeSubmitError(resp.errorResult));
   }
 
   // Wait for confirmation
