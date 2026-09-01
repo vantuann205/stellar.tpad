@@ -75,7 +75,9 @@ export default function Home() {
             name: t.name,
             ticker: t.symbol,
             description: t.description || '',
-            imageUrl: t.image_url || `https://picsum.photos/200/200?random=${i}`,
+            // A token with no logo looked broken rather than plain, because the
+            // fallback pulled a different random stock photo on every load.
+            imageUrl: t.image_url || '/token-default.svg',
             creator: t.owner,
             marketCap: marketcap,
             maxReserve: maxReserve,
